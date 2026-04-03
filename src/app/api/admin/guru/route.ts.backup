@@ -1,0 +1,159 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@/lib/db'
+import * as bcrypt from 'bcryptjs'
+
+// GET - Fetch all guru (users with role GURU)
+export async function GET() {
+  try {
+    const guru = await db.user.findMany({
+      where: { role: 'GURU' },
+      include: {
+        teacherProfile: {
+          include: {
+            classes: {
+              select: {
+                id: true,
+                name: true,
+                ageGroup: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+
+    // Transform the data
+    const guruList = guru.map(g => ({
+      id: g.id,
+      name: g.name,
+      username: g.username,
+      email: g.email,
+      phone: g.phone,
+      avatar: g.avatar,
+      nuptk: g.teacherProfile?.nuptk,
+      birthPlace: g.teacherProfile?.birthPlace,
+      birthDate: g.teacherProfile?.birthDate,
+      gender: g.teacherProfile?.gender,
+      lastEducation: g.teacherProfile?.lastEducation,
+      employmentStatus: g.teacherProfile?.employmentStatus,
+      address: g.teacherProfile?.address,
+      subjects: g.teacherProfile?.subjects,
+      classes: g.teacherProfile?.classes || [],
+      isActive: g.isActive,
+      createdAt: g.createdAt
+    }))
+
+    return NextResponse.json({
+      success: true,
+      guru: guruList
+    })
+  } catch (error) {
+    console.error('Error fetching guru:', error)
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to fetch guru'
+    }, { status: 500 })
+  }
+}
+
+// POST - Create new guru
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { username, password, name, email, phone, nuptk, birthPlace, birthDate, gender, lastEducation, employmentStatus, address, subjects } = body
+
+    // Validation
+    if (!username || !password || !name) {
+      return NextResponse.json({
+        success: false,
+        error: 'Username, password, and name are required'
+      }, { status: 400 })
+    }
+
+    // Check if username already exists
+    const existingUser = await db.user.findUnique({
+      where: { username }
+    })
+
+    if (existingUser) {
+      return NextResponse.json({
+        success: false,
+        error: 'Username already exists'
+      }, { status: 400 })
+    }
+
+    // Check if NUPTK already exists (if provided)
+    if (nuptk) {
+      const existingNuptk = await db.teacher.findUnique({
+        where: { nuptk }
+      })
+
+      if (existingNuptk) {
+        return NextResponse.json({
+          success: false,
+          error: 'NUPTK already exists'
+        }, { status: 400 })
+      }
+    }
+
+    // Create user with GURU role
+    // Hash password before storing
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    const user = await db.user.create({
+      data: {
+        username,
+        password: hashedPassword,
+        name,
+        email,
+        phone,
+        role: 'GURU',
+        isActive: true,
+        teacherProfile: {
+          create: {
+            nuptk,
+            birthPlace,
+            birthDate,
+            gender,
+            lastEducation,
+            employmentStatus: employmentStatus || 'tetap',
+            address,
+            subjects: subjects || ''
+          }
+        }
+      },
+      include: {
+        teacherProfile: true
+      }
+    })
+
+    return NextResponse.json({
+      success: true,
+      guru: {
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        email: user.email,
+        phone: user.phone,
+        avatar: user.avatar,
+        nuptk: user.teacherProfile?.nuptk,
+        birthPlace: user.teacherProfile?.birthPlace,
+        birthDate: user.teacherProfile?.birthDate,
+        gender: user.teacherProfile?.gender,
+        lastEducation: user.teacherProfile?.lastEducation,
+        employmentStatus: user.teacherProfile?.employmentStatus,
+        address: user.teacherProfile?.address,
+        subjects: user.teacherProfile?.subjects,
+        isActive: user.isActive,
+        createdAt: user.createdAt
+      }
+    })
+  } catch (error) {
+    console.error('Error creating guru:', error)
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to create guru'
+    }, { status: 500 })
+  }
+}

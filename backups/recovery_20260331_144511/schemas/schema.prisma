@@ -1,0 +1,426 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  KEPSEK
+  GURU
+  ORTU
+}
+
+// User accounts for all roles
+model User {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  password     String
+  name         String
+  email        String?   @unique
+  phone        String?
+  role         UserRole
+  isActive     Boolean   @default(true)
+  avatar       String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations based on role
+  teacherProfile  Teacher?
+  parentProfile   Parent?
+  notifications   Notification[]
+  sentMessages    Message[]  @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+}
+
+// School Information
+model School {
+  id             String   @id @default(cuid())
+  name           String
+  npsn           String   @unique
+  address        String
+  establishedYear Int
+  accreditation  String
+  totalClasses   Int      @default(0)
+  totalTeachers  Int      @default(0)
+  totalStudents  Int      @default(0)
+  phone          String?
+  email          String?
+  website        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  classes        Class[]
+}
+
+// Teacher Profile
+model Teacher {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nuptk           String?  @unique
+  birthPlace      String?
+  birthDate       String?
+  gender          String?
+  lastEducation   String?
+  address         String?
+  employmentStatus String   // tetap/honorer
+  subjects        String   // Mata kegiatan yang diampu (comma separated)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  classes         Class[]
+  schedules       Schedule[]
+  attendances     TeacherAttendance[]
+  dailyPlans      DailyPlan[]
+  studentAssessments StudentAssessment[]
+  reports         TeacherReport[]
+  prosems         Prosem[]
+}
+
+// Parent Profile
+model Parent {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  address     String?
+  occupation  String?
+  // Father's data
+  fatherName  String?
+  fatherOccupation String?
+  fatherPhone  String?
+  fatherEmail  String?
+  // Mother's data
+  motherName  String?
+  motherOccupation String?
+  motherPhone  String?
+  motherEmail  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  children    Student[]
+  messages    Message[]
+}
+
+// Class/Classroom
+model Class {
+  id          String   @id @default(cuid())
+  name        String   // A1, A2, B1, B2, etc.
+  ageGroup    String   // A / B
+  teacherId   String?
+  teacher     Teacher? @relation(fields: [teacherId], references: [id])
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id])
+  capacity    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  students    Student[]
+  schedules   Schedule[]
+}
+
+// Student
+model Student {
+  id          String   @id @default(cuid())
+  name        String
+  nis         String   @unique
+  birthDate   String
+  gender      String
+  address     String?
+  parentId    String
+  parent      Parent   @relation(fields: [parentId], references: [id])
+  classId     String?
+  class       Class?   @relation(fields: [classId], references: [id])
+  photo       String?
+  status      String   @default("aktif") // aktif/keluar/lulus
+  healthData  String?  // JSON data
+  immunization String? // JSON data
+  classHistory String? // JSON data
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  attendances StudentAttendance[]
+  assessments StudentAssessment[]
+  portfolios  Portfolio[]
+  reports     StudentReport[]
+}
+
+// Teacher Schedule
+model Schedule {
+  id          String   @id @default(cuid())
+  day         String   // Senin, Selasa, etc.
+  startTime   String
+  endTime     String
+  subject     String
+  classId     String
+  class       Class    @relation(fields: [classId], references: [id])
+  teacherId   String
+  teacher     Teacher  @relation(fields: [teacherId], references: [id])
+  semester    String
+  academicYear String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Student Attendance
+model StudentAttendance {
+  id          String   @id @default(cuid())
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id])
+  date        String
+  status      String   // hadir/izin/sakit/alpha
+  notes       String?
+  checkInTime String?
+  checkOutTime String?
+  isHoliday   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([studentId, date])
+}
+
+// Teacher Attendance
+model TeacherAttendance {
+  id          String   @id @default(cuid())
+  teacherId   String
+  teacher     Teacher  @relation(fields: [teacherId], references: [id])
+  date        String
+  status      String   // hadir/izin/sakit/alpha
+  notes       String?
+  checkInTime String?
+  checkOutTime String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([teacherId, date])
+}
+
+// Daily Learning Plan (RPPH)
+model DailyPlan {
+  id          String   @id @default(cuid())
+  teacherId   String
+  teacher     Teacher  @relation(fields: [teacherId], references: [id])
+  classId     String
+  date        String
+  theme       String
+  subTheme    String?
+  activities  String   // JSON data
+  materials   String   // JSON data
+  goals       String?
+  status      String   @default("draft") // draft/submitted/approved
+  submittedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([teacherId, classId, date])
+}
+
+// Weekly/Monthly Plan (PROSEM/RPPM)
+model CurriculumPlan {
+  id          String   @id @default(cuid())
+  title       String
+  type        String   // PROSEM/RPPM
+  semester    String
+  academicYear String
+  week        Int?
+  theme       String
+  subThemes   String   // JSON array
+  goals       String   // JSON array
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Student Assessment (6 aspek perkembangan)
+model StudentAssessment {
+  id          String   @id @default(cuid())
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id])
+  teacherId   String
+  teacher     Teacher  @relation(fields: [teacherId], references: [id])
+  date        String
+  aspect      String   // agama_moral, fisik_motorik, kognitif, bahasa, sosial_emosional, seni
+  score       String   // BB/MB/BSH/BSB
+  notes       String?
+  observation String?  // Catatan anekdot
+  documentation String? // URL foto/video
+  semester    String
+  academicYear String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Portfolio
+model Portfolio {
+  id          String   @id @default(cuid())
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id])
+  title       String
+  type        String   // karya/foto/video
+  description String?
+  fileUrl     String?
+  date        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// School Announcement
+model Announcement {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  category    String   // umum/keagamaan/pembelajaran/outing/parenting/pentas_seni/rapat
+  targetAudience String // all/kepsek/guru/ortu
+  eventDate   String?
+  priority    String   @default("normal") // normal/important/urgent
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Notification
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  message     String
+  type        String   // info/warning/alert
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+// Message/Chat
+model Message {
+  id          String   @id @default(cuid())
+  senderId    String
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId  String
+  receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  parentId    String?
+  parent      Parent?  @relation(fields: [parentId], references: [id])
+  subject     String?
+  content     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Teacher Report
+model TeacherReport {
+  id          String   @id @default(cuid())
+  teacherId   String
+  teacher     Teacher  @relation(fields: [teacherId], references: [id])
+  month       String
+  year        Int
+  content     String   // JSON data
+  status      String   @default("draft")
+  submittedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([teacherId, month, year])
+}
+
+// Student Report (Raport)
+model StudentReport {
+  id          String   @id @default(cuid())
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id])
+  semester    String
+  academicYear String
+  assessments String   // JSON data
+  teacherNotes String?
+  parentSuggestion String?
+  activities  String   // JSON array
+  status      String   @default("draft")
+  generatedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([studentId, semester, academicYear])
+}
+
+// School Activity Report
+model SchoolActivity {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  date        String
+  category    String
+  attendees   Int?
+  photos      String?  // JSON array of URLs
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// RPP Template (KBC)
+model RPPTemplate {
+  id                        String   @id @default(cuid())
+  tema                      String   @unique
+  topikKBC                  String
+  profilLulusan             String   // comma separated
+  tujuanKBC                 String
+  tujuanProfilLulusan       String   // JSON object
+  tujuanPembelajaranMendalam String
+  materiIntegrasiKBC        String
+  tujuanPembelajaran        String
+  kerangkaPembelajaran      String   // JSON object
+  kegiatanPembelajaran      String   // JSON object
+  rubrikPenilaian           String?  // JSON object for assessment rubric
+  isActive                  Boolean  @default(true)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+}
+
+// RPP (Rencana Pelaksanaan Pembelajaran KBC)
+model RPP {
+  id                        String   @id @default(cuid())
+  tema                      String
+  subtema                   String
+  temaProjek                String
+  judulKegiatan             String
+  pokokBahasan              String?
+  fase                      String   @default("Fase Fondasi")
+  kelompokUsia              String   @default("Kelompok A (4-5 Tahun)")
+  semester                  String   @default("Ganjil")
+  tahunAjaran               String   @default("2025/2026")
+  hari                      String?
+  jumlahPertemuan           String   @default("8 JP")
+  kelas                     String?
+  guru                      String?
+  topikKBC                  String?
+  profilLulusan             String?
+  tujuanKBC                 String?
+  tujuanProfilLulusan       String   // JSON object
+  tujuanPembelajaranMendalam String?
+  materiIntegrasiKBC        String?
+  tujuanPembelajaran        String?
+  kerangkaPembelajaran      String   // JSON object
+  kegiatanPembelajaran      String   // JSON object
+  rubrikPenilaian           String?  // JSON object
+  namaSekolah               String   @default("RA INSAN MADANI")
+  alamatSekolah             String?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@unique([tema, semester, tahunAjaran])
+}
+
+// PROSEM (Program Semester)
+model Prosem {
+  id            String   @id @default(cuid())
+  teacherId     String
+  teacher       Teacher  @relation(fields: [teacherId], references: [id])
+  tahunAjaran   String
+  semester      String
+  mingguan      String   // JSON array of 20 weeks
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

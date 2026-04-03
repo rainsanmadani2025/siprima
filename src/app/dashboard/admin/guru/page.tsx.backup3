@@ -1,0 +1,774 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { DashboardLayout } from '@/components/dashboard/dashboard-layout'
+import { Plus, Pencil, Trash2, Search, UserRound, Mail, Phone, UserCheck, Loader2, GraduationCap, ArrowUp, ArrowDown } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { toast } from 'sonner'
+
+interface Teacher {
+  id: string
+  name: string
+  nuptk?: string
+  email?: string
+  phone?: string
+  subjects?: string
+  isActive: boolean
+  avatar?: string
+  username?: string
+  birthPlace?: string
+  birthDate?: string
+  classes?: Array<{ id: string; name: string; ageGroup: string }>
+}
+
+interface Class {
+  id: string
+  name: string
+  ageGroup: string
+}
+
+export default function GuruPage() {
+  const [teachers, setTeachers] = useState<Teacher[]>([])
+  const [classes, setClasses] = useState<Class[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [sortBy, setSortBy] = useState<'name' | 'nuptk' | 'status' | 'email'>('name')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [selectedClassIds, setSelectedClassIds] = useState<string[]>([])
+  const [formData, setFormData] = useState({
+    name: '',
+    nuptk: '',
+    email: '',
+    phone: '',
+    subjects: '',
+    isActive: true,
+    avatar: '',
+    username: '',
+    password: '',
+    birthPlace: '',
+    birthDate: '',
+  })
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+
+  useEffect(() => {
+    fetchTeachers()
+    fetchClasses()
+  }, [])
+
+  const fetchClasses = async () => {
+    try {
+      const response = await fetch('/api/classes')
+      const data = await response.json()
+      if (data.success) {
+        setClasses(data.classes)
+      }
+    } catch (error) {
+      console.error('Error fetching classes:', error)
+    }
+  }
+
+  const fetchTeachers = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/admin/guru')
+      if (!response.ok) throw new Error('Failed to fetch teachers')
+      const data = await response.json()
+      setTeachers(data.guru || [])
+    } catch (error) {
+      toast.error('Gagal memuat data guru')
+      console.error(error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAdd = () => {
+    setSelectedTeacher(null)
+    setSelectedClassIds([])
+    setFormData({
+      name: '',
+      nuptk: '',
+      email: '',
+      phone: '',
+      subjects: '',
+      isActive: true,
+      avatar: '',
+      username: '',
+      password: '',
+      birthPlace: '',
+      birthDate: '',
+    })
+    setAvatarPreview(null)
+    setSelectedFile(null)
+    setIsDialogOpen(true)
+  }
+
+  const handleEdit = (teacher: Teacher) => {
+    setSelectedTeacher(teacher)
+    setSelectedClassIds(teacher.classes?.map(c => c.id) || [])
+    setFormData({
+      name: teacher.name,
+      nuptk: teacher.nuptk || '',
+      email: teacher.email || '',
+      phone: teacher.phone || '',
+      subjects: teacher.subjects || '',
+      isActive: teacher.isActive,
+      avatar: teacher.avatar || '',
+      username: teacher.username || '',
+      password: '',
+      birthPlace: teacher.birthPlace || '',
+      birthDate: teacher.birthDate || '',
+    })
+    setAvatarPreview(teacher.avatar || null)
+    setSelectedFile(null)
+    setIsDialogOpen(true)
+  }
+
+  const handleDelete = (teacher: Teacher) => {
+    setSelectedTeacher(teacher)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleSave = async () => {
+    setSubmitting(true)
+    try {
+      const url = selectedTeacher
+        ? `/api/admin/guru/${selectedTeacher.id}`
+        : '/api/admin/guru'
+
+      const method = selectedTeacher ? 'PATCH' : 'POST'
+
+      const payload = {
+        ...formData,
+        classIds: selectedClassIds
+      }
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const error = await response.text()
+        throw new Error(error || 'Failed to save teacher')
+      }
+
+      const data = await response.json()
+
+      // For new teacher with photo, upload the photo after creating the user
+      if (!selectedTeacher && selectedFile) {
+        try {
+          const formDataUpload = new FormData()
+          formDataUpload.append('file', selectedFile)
+          formDataUpload.append('userId', data.guru.id)
+
+          const uploadResponse = await fetch('/api/guru/profile/upload', {
+            method: 'POST',
+            body: formDataUpload
+          })
+
+          if (!uploadResponse.ok) {
+            console.error('Failed to upload photo')
+          }
+        } catch (uploadError) {
+          console.error('Error uploading photo:', uploadError)
+        }
+      }
+
+      toast.success(selectedTeacher ? 'Data guru berhasil diperbarui' : 'Guru baru berhasil ditambahkan')
+      setIsDialogOpen(false)
+      fetchTeachers()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal menyimpan data guru')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!selectedTeacher) return
+
+    try {
+      const response = await fetch(`/api/admin/guru/${selectedTeacher.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) throw new Error('Failed to delete teacher')
+
+      toast.success('Guru berhasil dihapus')
+      setIsDeleteDialogOpen(false)
+      fetchTeachers()
+    } catch (error) {
+      toast.error('Gagal menghapus guru')
+    }
+  }
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Ukuran foto maksimal 2MB')
+      return
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Tipe file tidak didukung. Hanya gambar (JPEG, PNG, GIF, WebP) yang diizinkan')
+      return
+    }
+
+    // Store the file
+    setSelectedFile(file)
+
+    // Show preview
+    const preview = URL.createObjectURL(file)
+    setAvatarPreview(preview)
+
+    // If editing existing teacher, upload immediately
+    if (selectedTeacher) {
+      try {
+        setUploadingPhoto(true)
+        const formDataUpload = new FormData()
+        formDataUpload.append('file', file)
+        formDataUpload.append('userId', selectedTeacher.id)
+
+        const response = await fetch('/api/guru/profile/upload', {
+          method: 'POST',
+          body: formDataUpload
+        })
+
+        const data = await response.json()
+
+        if (data.success) {
+          setFormData({ ...formData, avatar: data.avatarUrl })
+          toast.success('Foto berhasil diupload')
+        } else {
+          throw new Error(data.error || 'Gagal mengupload foto')
+        }
+      } catch (error: any) {
+        console.error('Error uploading photo:', error)
+        toast.error(error.message || 'Gagal mengupload foto')
+        setAvatarPreview(formData.avatar || null)
+      } finally {
+        setUploadingPhoto(false)
+      }
+    }
+    // For new teacher, we'll upload after creating the user
+  }
+
+  const filteredTeachers = teachers.filter(teacher => {
+    const matchesSearch =
+      teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (teacher.nuptk && teacher.nuptk.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (teacher.email && teacher.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (teacher.subjects && teacher.subjects.toLowerCase().includes(searchTerm.toLowerCase()))
+
+    const matchesStatus = statusFilter === 'all' ||
+      (statusFilter === 'active' && teacher.isActive) ||
+      (statusFilter === 'inactive' && !teacher.isActive)
+
+    return matchesSearch && matchesStatus
+  }).sort((a, b) => {
+    let compareValue = 0
+    
+    switch (sortBy) {
+      case 'name':
+        compareValue = a.name.localeCompare(b.name, 'id-ID')
+        break
+      case 'nuptk':
+        compareValue = (a.nuptk || '').localeCompare(b.nuptk || '', 'id-ID')
+        break
+      case 'email':
+        compareValue = (a.email || '').localeCompare(b.email || '', 'id-ID')
+        break
+      case 'status':
+        compareValue = a.isActive === b.isActive ? 0 : a.isActive ? -1 : 1
+        break
+    }
+    
+    return sortOrder === 'asc' ? compareValue : -compareValue
+  })
+
+  const activeCount = teachers.filter(t => t.isActive).length
+  const inactiveCount = teachers.filter(t => !t.isActive).length
+
+  return (
+    <DashboardLayout role="admin" userName="Administrator">
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Pengaturan Data Guru</h1>
+            <p className="text-muted-foreground mt-2">
+              Kelola data guru dan staf pengajar
+            </p>
+          </div>
+          <Button onClick={handleAdd}>
+            <Plus className="mr-2 h-4 w-4" />
+            Tambah Guru
+          </Button>
+        </div>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Cari berdasarkan nama, NUPTK, email, atau mata pelajaran..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Select
+                value={statusFilter}
+                onValueChange={(value: 'all' | 'active' | 'inactive') => setStatusFilter(value)}
+              >
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Filter Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Status</SelectItem>
+                  <SelectItem value="active">Aktif</SelectItem>
+                  <SelectItem value="inactive">Non-Aktif</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={sortBy}
+                onValueChange={(value: 'name' | 'nuptk' | 'status' | 'email') => setSortBy(value)}
+              >
+                <SelectTrigger className="w-full sm:w-[160px]">
+                  <SelectValue placeholder="Urutkan" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Nama</SelectItem>
+                  <SelectItem value="nuptk">NUPTK</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="status">Status</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="shrink-0"
+              >
+                {sortOrder === 'asc' ? (
+                  <ArrowUp className="h-4 w-4" />
+                ) : (
+                  <ArrowDown className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserRound className="h-5 w-5" />
+              Daftar Guru ({filteredTeachers.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin" />
+              </div>
+            ) : filteredTeachers.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {searchTerm || statusFilter !== 'all'
+                  ? 'Tidak ada guru yang sesuai dengan filter'
+                  : 'Belum ada data guru. Klik "Tambah Guru" untuk menambah data.'}
+              </div>
+            ) : (
+              <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[80px]">Foto</TableHead>
+                    <TableHead>Nama</TableHead>
+                    <TableHead>NUPTK</TableHead>
+                    <TableHead>Wali Kelas</TableHead>
+                    <TableHead>Mata Pelajaran</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Telepon</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-center">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-8">
+                        Memuat data...
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredTeachers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                        {searchTerm || statusFilter !== 'all'
+                          ? 'Tidak ada guru yang sesuai dengan filter'
+                          : 'Belum ada data guru. Klik "Tambah Guru" untuk menambah data.'}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredTeachers.map((teacher) => (
+                      <TableRow key={teacher.id}>
+                        <TableCell className="py-3">
+                          <div className="w-12 h-12 rounded-full overflow-hidden bg-muted flex items-center justify-center">
+                            {teacher.avatar ? (
+                              <img
+                                src={teacher.avatar}
+                                alt={teacher.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <UserRound className="w-6 h-6 text-muted-foreground" />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium">{teacher.name}</TableCell>
+                        <TableCell>{teacher.nuptk || '-'}</TableCell>
+                        <TableCell>
+                          {teacher.classes && teacher.classes.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {teacher.classes.map((cls) => (
+                                <Badge
+                                  key={cls.id}
+                                  variant={cls.ageGroup === 'A' ? 'default' : 'secondary'}
+                                  className={
+                                    cls.ageGroup === 'A'
+                                      ? 'bg-green-600 hover:bg-green-700'
+                                      : 'bg-blue-600 hover:bg-blue-700'
+                                  }
+                                >
+                                  {cls.name}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell>{teacher.subjects || '-'}</TableCell>
+                        <TableCell>
+                          {teacher.email ? (
+                            <div className="flex items-center gap-1">
+                              <Mail className="w-3 h-3 text-muted-foreground" />
+                              <span className="text-sm">{teacher.email}</span>
+                            </div>
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {teacher.phone ? (
+                            <div className="flex items-center gap-1">
+                              <Phone className="w-3 h-3 text-muted-foreground" />
+                              <span className="text-sm">{teacher.phone}</span>
+                            </div>
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={teacher.isActive ? 'default' : 'secondary'}
+                            className={
+                              teacher.isActive
+                                ? 'bg-green-500 hover:bg-green-600'
+                                : 'bg-gray-500 hover:bg-gray-600'
+                            }
+                          >
+                            {teacher.isActive ? 'Aktif' : 'Non-Aktif'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex justify-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(teacher)}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(teacher)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedTeacher ? 'Edit Data Guru' : 'Tambah Guru Baru'}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedTeacher
+                ? 'Perbarui informasi guru di bawah ini'
+                : 'Isi formulir untuk menambah guru baru'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4 overflow-y-auto flex-1">
+            <div className="flex justify-center">
+              <div className="relative">
+                <div className="w-24 h-24 rounded-full overflow-hidden bg-muted flex items-center justify-center border-2 border-dashed relative">
+                  {avatarPreview || formData.avatar ? (
+                    <img
+                      src={avatarPreview || formData.avatar}
+                      alt="Foto Guru"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <UserRound className="w-8 h-8 text-muted-foreground" />
+                  )}
+                  {uploadingPhoto && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <Loader2 className="w-8 h-8 animate-spin text-white" />
+                    </div>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  disabled={uploadingPhoto}
+                />
+                <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-2">
+                  <Pencil className="w-4 h-4" />
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="name">Nama Lengkap *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Masukkan nama lengkap"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="username">Username *</Label>
+                <Input
+                  id="username"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  placeholder="Masukkan username"
+                  disabled={!!selectedTeacher}
+                />
+              </div>
+              {!selectedTeacher && (
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password *</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder="Masukkan password"
+                  />
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="nuptk">NUPTK</Label>
+                <Input
+                  id="nuptk"
+                  value={formData.nuptk}
+                  onChange={(e) => setFormData({ ...formData, nuptk: e.target.value })}
+                  placeholder="Masukkan NUPTK"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="birthPlace">Tempat Lahir</Label>
+                <Input
+                  id="birthPlace"
+                  value={formData.birthPlace}
+                  onChange={(e) => setFormData({ ...formData, birthPlace: e.target.value })}
+                  placeholder="Kota kelahiran"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="birthDate">Tanggal Lahir</Label>
+                <Input
+                  id="birthDate"
+                  type="date"
+                  value={formData.birthDate}
+                  onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="subjects">Mata Pelajaran</Label>
+                <Input
+                  id="subjects"
+                  value={formData.subjects}
+                  onChange={(e) => setFormData({ ...formData, subjects: e.target.value })}
+                  placeholder="Masukkan mata pelajaran"
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="Masukkan email"
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="phone">Telepon</Label>
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="Masukkan nomor telepon"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="isActive">Status</Label>
+                  <Select
+                    value={formData.isActive ? 'active' : 'inactive'}
+                    onValueChange={(value: 'active' | 'inactive') =>
+                      setFormData({ ...formData, isActive: value === 'active' })
+                    }
+                  >
+                    <SelectTrigger id="isActive">
+                      <SelectValue placeholder="Pilih status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Aktif</SelectItem>
+                      <SelectItem value="inactive">Non-Aktif</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label>Wali Kelas</Label>
+                <div className="border rounded-md p-3 max-h-32 overflow-y-auto">
+                  {classes.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Belum ada data kelas</p>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {classes.map((cls) => (
+                        <label key={cls.id} className="flex items-center space-x-2 text-sm cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedClassIds.includes(cls.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedClassIds([...selectedClassIds, cls.id])
+                              } else {
+                                setSelectedClassIds(selectedClassIds.filter(id => id !== cls.id))
+                              }
+                            }}
+                            className="w-4 h-4 rounded border-gray-300"
+                          />
+                          <span>{cls.name} ({cls.ageGroup})</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="flex-shrink-0">
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={submitting}>
+              Batal
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={
+                submitting ||
+                !formData.name ||
+                (!selectedTeacher && (!formData.username || !formData.password))
+              }
+            >
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {selectedTeacher ? 'Simpan Perubahan' : 'Tambah'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Guru?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus data guru "{selectedTeacher?.name}"? Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </DashboardLayout>
+  )
+}
