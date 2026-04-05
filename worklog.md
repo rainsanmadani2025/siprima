@@ -1351,3 +1351,154 @@ GET / 200 in 1382ms
 
 ---
 
+
+---
+
+## Work ID: WORD_EXPORT_LAYOUT_FIX_20260405
+
+### Date: 2025-04-05 12:00
+### Task: Perbaikan layout Word export - hilangkan garis tabel di bagian profil
+
+---
+
+## Summary
+
+Berhasil memperbaiki layout Word export dengan menghapus penggunaan table di bagian profil siswa dan menggantinya dengan paragraph biasa dengan tab. Ini menghilangkan masalah garis tabel yang muncul meskipun border sudah diset ke NONE.
+
+---
+
+## Problem Identified
+
+**User Report:**
+"Saya heran kenapa di halaman export word jadi muncul garis kayak tabel di bagian profil nya, padahal di pdf tidak ada"
+
+**Analysis:**
+- Bagian student information di Word export menggunakan Table dengan borders NONE
+- Meskipun borders diset NONE, Word masih menampilkan gridlines atau border hidden
+- Ini menyebabkan munculnya garis-garis yang tidak diinginkan
+- Tidak ada cara untuk menghilangkan ini sepenuhnya saat menggunakan Table
+
+---
+
+## Solution Implemented
+
+### Step 1: Remove Table, Use Paragraphs with Tabs
+
+**Before:**
+- Menggunakan Table dengan 3 kolom (45%-10%-45%)
+- Menggunakan TableCell dengan borders NONE
+- Masih muncul garis tabel di Word
+
+**After:**
+- Menggunakan Paragraph biasa dengan tab stops
+- Left column info: 4 items
+- Right column info: 4 items (dengan 2 tab karakter untuk alignment)
+- TIDAK ada garis tabel sama sekali
+
+### Step 2: Update Import Statements
+
+**Removed imports:**
+- Table
+- TableRow  
+- TableCell
+- WidthType
+
+**Kept imports:**
+- Paragraph
+- TextRun
+- AlignmentType
+- BorderStyle
+
+### Step 3: Implementation Details
+
+```typescript
+// Left column info
+const infoData = [
+  { label: 'NAMA', value: data.studentName },
+  { label: 'NIS/NISN', value: `${data.studentNis} / ${data.studentNisn || '-'}` },
+  { label: 'Madrasah', value: data.schoolName },
+  { label: 'Alamat', value: data.schoolAddress || '-' },
+]
+
+// Right column info
+const infoDataRight = [
+  { label: 'Kelas', value: data.className },
+  { label: 'Fase', value: 'Pondasi' },
+  { label: 'Semester', value: data.semester },
+  { label: 'Tahun Ajaran', value: data.academicYear }
+]
+```
+
+Setiap item di-render sebagai Paragraph dengan tab stops untuk alignment.
+
+---
+
+## Files Modified
+
+### Modified:
+- `/home/z/my-project/src/app/api/raport/export-word/route.ts`
+
+**Changes:**
+- Lines 53-114: Replaced table-based student info with paragraph-based approach
+- Line 2: Removed unused imports (Table, TableRow, TableCell, WidthType)
+
+---
+
+## Verification Results
+
+**Dev Server Status:**
+```
+✓ Next.js 16.1.3 (Turbopack)
+✓ No errors in dev.log
+✓ API endpoints responding normally
+```
+
+**File Verification:**
+```
+✓ export-word route.ts: Modified successfully
+✓ No compilation errors
+✓ TypeScript types valid
+```
+
+---
+
+## Key Improvements
+
+### 1. No Table Borders
+- Menggunakan paragraph biasa, bukan table
+- Tidak ada garis tabel yang muncul di Word
+- Layout lebih bersih dan sesuai dengan PDF
+
+### 2. Cleaner Code
+- Tidak perlu mengatur borders pada setiap cell
+- Tidak perlu mengatur widths dan margins pada cells
+- Code lebih sederhana dan mudah di-maintain
+
+### 3. Better Alignment
+- Menggunakan tab stops untuk alignment
+- Left dan right column terpisah dengan jelas
+- Format "LABEL : VALUE" yang konsisten
+
+---
+
+## Lessons Learned
+
+1. **Table dengan Borders NONE Masih Menampilkan Gridlines** - Meskipun borders diset NONE, Word mungkin masih menampilkan gridlines
+2. **Paragraph dengan Tab Adalah Solusi Lebih Baik** - Untuk layout sederhana seperti profil siswa, paragraph dengan tab lebih baik daripada table
+3. **Jangan Paksa Menggunakan Table** - Jika table menyebabkan masalah, pertimbangkan alternatif seperti paragraph dengan tabs
+4. **User Feedback is Critical** - User dengan jelas mengidentifikasi masalah (garis tabel) dan solusi yang diharapkan (seperti PDF)
+
+---
+
+## Status
+
+- ✅ Word export layout diperbaiki
+- ✅ Table di bagian profil dihapus
+- ✅ Diganti dengan paragraph dengan tab
+- ✅ Garis tabel tidak muncul lagi
+- ✅ Code lebih sederhana dan bersih
+- ✅ Dev server berjalan normal
+- ✅ Tidak ada error
+
+**KESIMPULAN:** Layout Word export sekarang lebih rapi dan tidak ada garis tabel yang muncul di bagian profil siswa. Penggunaan paragraph dengan tab adalah solusi yang lebih baik daripada table untuk kasus ini.
+

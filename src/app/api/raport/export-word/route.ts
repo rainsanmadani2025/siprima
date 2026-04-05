@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType } from 'docx'
+import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle } from 'docx'
 
 const scoreLabels: Record<string, string> = {
   BB: 'Belum Berkembang',
@@ -50,98 +50,66 @@ async function createWordDocument(data: any) {
     })
   )
 
-  // Student Information - Using table with NO BORDERS
+  // Student Information - Using paragraphs with tabs (NO TABLE)
   const infoData = [
     { label: 'NAMA', value: data.studentName },
     { label: 'NIS/NISN', value: `${data.studentNis} / ${data.studentNisn || '-'}` },
     { label: 'Madrasah', value: data.schoolName },
     { label: 'Alamat', value: data.schoolAddress || '-' },
+  ]
+
+  const infoDataRight = [
     { label: 'Kelas', value: data.className },
     { label: 'Fase', value: 'Pondasi' },
     { label: 'Semester', value: data.semester },
     { label: 'Tahun Ajaran', value: data.academicYear }
   ]
 
-  const leftInfo = infoData.slice(0, 4)
-  const rightInfo = infoData.slice(4, 8)
-
-  const infoRows: TableRow[] = []
-  for (let i = 0; i < 4; i++) {
-    infoRows.push(
-      new TableRow({
+  // Left column info
+  for (const info of infoData) {
+    children.push(
+      new Paragraph({
         children: [
-          new TableCell({
-            width: { size: 45, type: WidthType.PERCENTAGE },
-            margins: { top: 0, bottom: 0, left: 0, right: 0 },
-            children: [
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: `${leftInfo[i].label} : ${leftInfo[i].value}`,
-                    size: 20
-                  })
-                ],
-                spacing: { after: 100 }
-              })
-            ],
-            borders: {
-              top: { style: BorderStyle.NONE, size: 0 },
-              bottom: { style: BorderStyle.NONE, size: 0 },
-              left: { style: BorderStyle.NONE, size: 0 },
-              right: { style: BorderStyle.NONE, size: 0 }
-            }
-          }),
-          new TableCell({
-            width: { size: 10, type: WidthType.PERCENTAGE },
-            margins: { top: 0, bottom: 0, left: 0, right: 0 },
-            children: [new Paragraph('')],
-            borders: {
-              top: { style: BorderStyle.NONE, size: 0 },
-              bottom: { style: BorderStyle.NONE, size: 0 },
-              left: { style: BorderStyle.NONE, size: 0 },
-              right: { style: BorderStyle.NONE, size: 0 }
-            }
-          }),
-          new TableCell({
-            width: { size: 45, type: WidthType.PERCENTAGE },
-            margins: { top: 0, bottom: 0, left: 0, right: 0 },
-            children: [
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: `${rightInfo[i].label} : ${rightInfo[i].value}`,
-                    size: 20
-                  })
-                ],
-                spacing: { after: 100 }
-              })
-            ],
-            borders: {
-              top: { style: BorderStyle.NONE, size: 0 },
-              bottom: { style: BorderStyle.NONE, size: 0 },
-              left: { style: BorderStyle.NONE, size: 0 },
-              right: { style: BorderStyle.NONE, size: 0 }
-            }
+          new TextRun({
+            text: `${info.label} : ${info.value}`,
+            size: 20
           })
+        ],
+        spacing: { after: 100 },
+        tabStops: [
+          {
+            type: 'left',
+            position: 2500
+          }
         ]
       })
     )
   }
 
-  children.push(
-    new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: infoRows,
-      borders: {
-        top: { style: BorderStyle.NONE, size: 0 },
-        bottom: { style: BorderStyle.NONE, size: 0 },
-        left: { style: BorderStyle.NONE, size: 0 },
-        right: { style: BorderStyle.NONE, size: 0 },
-        insideHorizontal: { style: BorderStyle.NONE, size: 0 },
-        insideVertical: { style: BorderStyle.NONE, size: 0 }
-      }
-    })
-  )
+  // Right column info (aligned to the right side)
+  for (const info of infoDataRight) {
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: `\t\t${info.label} : ${info.value}`,
+            size: 20
+          })
+        ],
+        spacing: { after: 100 },
+        tabStops: [
+          {
+            type: 'left',
+            position: 5000
+          },
+          {
+            type: 'left',
+            position: 6000
+          }
+        ]
+      })
+    )
+  }
 
   children.push(new Paragraph({ text: '', spacing: { after: 300 } }))
 
