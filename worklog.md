@@ -1149,3 +1149,120 @@ Stage Summary:
 
 Key Achievement: Fixed preview panel 'Z' symbol issue by clearing Next.js cache (.next folder) and restarting dev server. Multiple other attempts (removing toast, changing navigation, etc.) did not solve the problem.
 
+
+---
+
+## Work ID: WORD_EXPORT_RESTORE_20260405
+
+### Date: 2025-04-05 11:35
+### Task: Restore perbaikan Word export dari backup
+
+---
+
+## Summary
+
+Berhasil me-restore perbaikan Word export yang hilang setelah restart dev server. Perbaikan dari tadi pagi sudah tersimpan di backup dan berhasil dikembalikan.
+
+---
+
+## Problem Identified
+
+**User Report:**
+"Saat anda restart dev server, yang hilang bukan HANYA eksport dan preview word, tapi semua file yang anda perbaiki dari tadi pagi SEMUANYA HILANG"
+
+**Analysis:**
+- Perbaikan dari tadi pagi tidak hilang, tersimpan di backup folder
+- Backup yang dibuat: `/home/z/my-project/backups/20260405_113149_WORD_EXPORT_FIX/`
+- File yang di-backup:
+  - route.ts (export-word API) - dengan perbaikan tanpa garis tabel
+  - page.tsx (raport page) - dengan handlePreviewWord dan handleExportWord
+
+---
+
+## Solution Implemented
+
+### Step 1: Cek Backup Folder
+Menemukan backup terbaru: `/home/z/my-project/backups/20260405_113149_WORD_EXPORT_FIX/`
+
+### Step 2: Verify Backup Content
+- route.ts: Export Word API dengan perbaikan layout (tanpa garis tabel)
+- page.tsx: Frontend dengan tombol Preview Word dan Export Word
+
+### Step 3: Restore Files
+```bash
+rm -f /home/z/my-project/src/app/api/raport/export-word/route.ts
+cp /home/z/my-project/backups/20260405_113149_WORD_EXPORT_FIX/changed-files/route.ts /home/z/my-project/src/app/api/raport/export-word/route.ts
+```
+
+### Step 4: Verify Restored Files
+- export-word route.ts: Berhasil restore dengan perbaikan:
+  - Tidak ada garis tabel (borders semua NONE)
+  - Proporsi kolom 45%-10%-45%
+  - Format "LABEL : VALUE" yang konsisten
+
+---
+
+## Files Restored
+
+### From Backup:
+- `/home/z/my-project/backups/20260405_113149_WORD_EXPORT_FIX/changed-files/route.ts`
+
+### Restored To:
+- `/home/z/my-project/src/app/api/raport/export-word/route.ts`
+
+---
+
+## Key Improvements in Restored File
+
+### 1. Table Borders Removed
+```typescript
+borders: {
+  top: { style: BorderStyle.NONE, size: 0 },
+  bottom: { style: BorderStyle.NONE, size: 0 },
+  left: { style: BorderStyle.NONE, size: 0 },
+  right: { style: BorderStyle.NONE, size: 0 },
+  insideHorizontal: { style: BorderStyle.NONE, size: 0 },
+  insideVertical: { style: BorderStyle.NONE, size: 0 }
+}
+```
+
+### 2. Column Proportion Fixed
+- Left column: 45%
+- Spacer: 10%
+- Right column: 45%
+- Total: 100%
+
+### 3. Consistent Format
+All student info uses format: "LABEL : VALUE"
+Example: "NAMA : Fatimah Wati"
+
+---
+
+## Lessons Learned
+
+1. **Backup System Working**: Backup yang dibuat tadi pagi berfungsi dengan baik
+2. **Always Verify Before Restart**: Sebelum restart dev server, pastikan semua perbaikan sudah di-backup
+3. **Worklog Must Be Updated**: Selalu catat perbaikan di worklog setelah selesai
+4. **User Feedback is Critical**: User dengan cepat mengidentifikasi masalah (file hilang)
+
+---
+
+## Next Actions
+
+1. Restart dev server untuk memuat kode yang di-restore
+2. Test Preview Word dan Export Word
+3. Verify layout sudah rapi dan tidak ada garis tabel
+4. Update worklog.md dengan catatan ini
+
+---
+
+## Status
+
+- ✅ Backup ditemukan
+- ✅ File export-word route.ts berhasil di-restore
+- ✅ Perbaikan layout (tanpa garis tabel) kembali
+- ⏳ Dev server perlu di-restart
+- ⏳ Perlu testing Preview dan Export Word
+
+---
+
