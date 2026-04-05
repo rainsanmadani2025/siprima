@@ -117,6 +117,8 @@ export default function GuruRaportPage() {
   const [saving, setSaving] = useState(false)
   const [loadingPreviewPDF, setLoadingPreviewPDF] = useState(false)
   const [loadingExportPDF, setLoadingExportPDF] = useState(false)
+  const [loadingPreviewWord, setLoadingPreviewWord] = useState(false)
+  const [loadingExportWord, setLoadingExportWord] = useState(false)
   const [schoolInfo, setSchoolInfo] = useState<{ name: string; address: string; npsn: string } | null>(null)
   const [teacherInfo, setTeacherInfo] = useState<{ name: string; nip?: string } | null>(null)
   const [principalInfo, setPrincipalInfo] = useState<{ name: string; nip?: string } | null>(null)
@@ -523,6 +525,136 @@ export default function GuruRaportPage() {
     }
   }
 
+  const handlePreviewWord = async () => {
+    if (!selectedStudent || !reportData) {
+      toast({
+        title: "Error",
+        description: "Pilih siswa dan pastikan data raport tersedia",
+        variant: "destructive"
+      })
+      return
+    }
+
+    try {
+      setLoadingPreviewWord(true)
+
+      const response = await fetch('/api/raport/export-word', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentName: selectedStudent.name,
+          studentNis: selectedStudent.nis,
+          studentNisn: selectedStudent.nisn || '',
+          className: selectedStudent.className,
+          period: selectedPeriod,
+          periodLabel: getMonthLabel(selectedPeriod),
+          semester: getSemester(selectedPeriod),
+          academicYear: `${parseInt(selectedPeriod.split('-')[0]) - 1}/${selectedPeriod.split('-')[0]}`,
+          schoolName: schoolInfo?.name || 'RA INSAN MADANI',
+          schoolAddress: schoolInfo?.address || '',
+          teacherName: teacherInfo?.name || 'Guru',
+          teacherNip: teacherInfo?.nip || '',
+          principalName: principalInfo?.name || 'Kepala Sekolah',
+          principalNip: principalInfo?.nip || '',
+          assessments: reportData.assessments,
+          attendance: attendance,
+          educatorNotes: educatorNotes
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Gagal membuat preview Word')
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+
+      // Open Word in new tab
+      window.open(url, '_blank')
+
+      toast({
+        title: "Berhasil",
+        description: "Word dibuka di tab baru"
+      })
+    } catch (error: any) {
+      console.error('Error previewing Word:', error)
+      toast({
+        title: "Error",
+        description: error.message || "Gagal membuat preview Word",
+        variant: "destructive"
+      })
+    } finally {
+      setLoadingPreviewWord(false)
+    }
+  }
+
+  const handleExportWord = async () => {
+    if (!selectedStudent || !reportData) {
+      toast({
+        title: "Error",
+        description: "Pilih siswa dan pastikan data raport tersedia",
+        variant: "destructive"
+      })
+      return
+    }
+
+    try {
+      setLoadingExportWord(true)
+      const response = await fetch('/api/raport/export-word', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentName: selectedStudent.name,
+          studentNis: selectedStudent.nis,
+          studentNisn: selectedStudent.nisn || '',
+          className: selectedStudent.className,
+          period: selectedPeriod,
+          periodLabel: getMonthLabel(selectedPeriod),
+          semester: getSemester(selectedPeriod),
+          academicYear: `${parseInt(selectedPeriod.split('-')[0]) - 1}/${selectedPeriod.split('-')[0]}`,
+          schoolName: schoolInfo?.name || 'RA INSAN MADANI',
+          schoolAddress: schoolInfo?.address || '',
+          teacherName: teacherInfo?.name || 'Guru',
+          teacherNip: teacherInfo?.nip || '',
+          principalName: principalInfo?.name || 'Kepala Sekolah',
+          principalNip: principalInfo?.nip || '',
+          assessments: reportData.assessments,
+          attendance: attendance,
+          educatorNotes: educatorNotes
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Gagal mengekspor Word')
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Raport-${selectedStudent.name}-${getMonthLabel(selectedPeriod)}.docx`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      toast({
+        title: "Berhasil",
+        description: "Raport berhasil diekspor ke Word"
+      })
+    } catch (error: any) {
+      console.error('Error exporting Word:', error)
+      toast({
+        title: "Error",
+        description: error.message || "Gagal mengekspor Raport ke Word",
+        variant: "destructive"
+      })
+    } finally {
+      setLoadingExportWord(false)
+    }
+  }
+
   if (loading) {
     return (
       <DashboardLayout role="guru" userName="Ibu Guru">
@@ -581,9 +713,15 @@ export default function GuruRaportPage() {
                       <FileDown className="mr-2 h-4 w-4" />
                       Export PDF
                     </Button>
-                    <Button variant="outline" onClick={handleExport} size="sm">
+                    <Button onClick={handlePreviewWord} disabled={loadingPreviewWord} variant="outline" size="sm">
+                      {loadingPreviewWord && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <Eye className="mr-2 h-4 w-4" />
+                      Preview Word
+                    </Button>
+                    <Button onClick={handleExportWord} disabled={loadingExportWord} variant="outline" size="sm">
+                      {loadingExportWord && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       <Download className="mr-2 h-4 w-4" />
-                      Export
+                      Export Word
                     </Button>
                     <Button variant="outline" onClick={handlePrint} size="sm">
                       <Printer className="mr-2 h-4 w-4" />
