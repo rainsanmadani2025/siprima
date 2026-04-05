@@ -388,7 +388,7 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   })
 
   checkNewPage(100)
-  drawText('Observasi Kegiatan :', leftMargin, y, 9, fontBold)
+  drawText('Observasi Kegiatan : [Textarea - 3 baris]', leftMargin, y, 9, fontBold)
   y -= 15
 
   const obsKegiatan = data.assessments?.catatan_perkembangan?.observation || ''
@@ -457,7 +457,7 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   y -= 25
 
   checkNewPage(100)
-  drawText('Catatan Anekdot :', leftMargin, y, 9, fontBold)
+  drawText('Catatan Anekdot : [Textarea - 3 baris]', leftMargin, y, 9, fontBold)
   y -= 15
 
   const notes = data.assessments?.catatan_perkembangan?.notes || ''
@@ -526,44 +526,11 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   y -= 25
 
   checkNewPage(70)
-  drawText('Dokumentasi Foto :', leftMargin, y, 9, fontBold)
+  drawText('Dokumentasi Foto : [Unggah Foto]', leftMargin, y, 9, fontBold)
   y -= 20
 
-  // Display photos if available
-  const photos = data.photos || []
-  if (photos.length > 0) {
-    const photoSize = 120
-    const photosPerRow = 3
-    const photoSpacing = 20
-    
-    for (let i = 0; i < Math.min(photos.length, 9); i++) {
-      try {
-        const photoPath = path.join(process.cwd(), 'public', photos[i])
-        const photoBytes = await fs.readFile(photoPath)
-        const photoImage = await pdfDoc.embedPng(photoBytes)
-        
-        const row = Math.floor(i / photosPerRow)
-        const col = i % photosPerRow
-        const x = leftMargin + col * (photoSize + photoSpacing)
-        const photoY = y - row * (photoSize + photoSpacing) - photoSize
-        
-        page.drawImage(photoImage, {
-          x,
-          y: photoY,
-          width: photoSize,
-          height: photoSize
-        })
-      } catch (error) {
-        console.warn(`Failed to load photo ${i}:`, error)
-      }
-    }
-    
-    const rowsNeeded = Math.ceil(Math.min(photos.length, 9) / photosPerRow)
-    y -= rowsNeeded * (photoSize + photoSpacing) + 10
-  } else {
-    drawText('(Tidak ada foto yang diunggah)', leftMargin, y, 9, font, rgb(0.5, 0.5, 0.5))
-    y -= 25
-  }
+  drawText('Foto 1  Foto 2  Foto 3', leftMargin, y, 9, font)
+  y -= 25
 
   drawLine(y, 1, rgb(0.3, 0.3, 0.3))
   y -= 25
@@ -583,7 +550,7 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   y -= 25
 
   checkNewPage(90)
-  drawText('Catatan Pendidik :', leftMargin, y, 9, fontBold)
+  drawText('Catatan Pendidik : [Textarea - 3 baris]', leftMargin, y, 9, fontBold)
   y -= 15
 
   const educatorNotes = data.educatorNotes || ''
@@ -651,19 +618,12 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   drawLine(y, 1, rgb(0.3, 0.3, 0.3))
   y -= 40
 
-  checkNewPage(150)
+  checkNewPage(120)
 
-  // Row 1: Labels (Orang Tua di kiri, Wali Kelas di kanan)
-  drawText('Orang Tua', leftMargin, y, 10, fontBold)
+  drawText('Orang tua', leftMargin, y, 10, fontBold)
   drawText('Wali Kelas', rightMargin - 120, y, 10, fontBold)
-  y -= 70  // Gap sangat besar antara label dan nama
+  y -= 40
 
-  // Row 2: Names (ATAS separator)
-  drawText('Nama Orang Tua', leftMargin, y, 10, font)
-  drawText(data.teacherName || 'Nama Wali Kelas', rightMargin - 120, y, 10, font)
-  y -= 15
-
-  // Row 3: Signature lines (SEPARATOR)
   page.drawLine({
     start: { x: leftMargin, y },
     end: { x: leftMargin + 120, y },
@@ -678,41 +638,19 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
     color: rgb(0, 0, 0)
   })
 
-  y -= 12
-
-  // Row 4: NUPTK/NPK (DIBAWAH separator, dinaikkan agar dekat dengan separator)
-  drawText('', leftMargin, y, 10, font) // Empty for Orang Tua
-  drawText(`NUPTK/NPK : ${data.teacherNip || ''}`, rightMargin - 120, y, 9, font)
-
   y -= 50
 
-  // Kepala Sekolah section (CENTERED between Orang Tua and Wali Kelas)
-  const signatureCenterX = 595 / 2
-
-  drawText('Mengetahui,', signatureCenterX - 60, y, 10, fontBold)
+  drawText('Mengetahui,', rightMargin - 120, y, 10, fontBold)
   y -= 15
-  drawText('Kepala Sekolah', signatureCenterX - 60, y, 10, fontBold)
-  y -= 65  // Gap sangat besar antara label "Kepala Sekolah" dan nama
+  drawText('Kepala Sekolah', rightMargin - 120, y, 10, fontBold)
+  y -= 40
 
-  // Nama Kepala Sekolah (ATAS separator)
-  const principalName = data.principalName || 'Nama Kepala Sekolah'
-  const principalNameWidth = fontBold.widthOfTextAtSize(principalName, 10)
-  drawText(principalName, signatureCenterX - principalNameWidth / 2, y, 10, font)
-  y -= 15
-
-  // Garis tanda tangan Kepala Sekolah (centered, length 120)
   page.drawLine({
-    start: { x: signatureCenterX - 60, y },
-    end: { x: signatureCenterX + 60, y },
+    start: { x: rightMargin - 120, y },
+    end: { x: rightMargin, y },
     thickness: 1,
     color: rgb(0, 0, 0)
   })
-
-  y -= 12
-  // NUPTK/NPK Kepala Sekolah (DIBAWAH separator, dekat dengan separator)
-  const nuptkText = `NUPTK/NPK : ${data.principalNip || ''}`
-  const nuptkTextWidth = font.widthOfTextAtSize(nuptkText, 9)
-  drawText(nuptkText, signatureCenterX - nuptkTextWidth / 2, y, 9, font)
 
   const pdfBytes = await pdfDoc.save()
   return pdfBytes
