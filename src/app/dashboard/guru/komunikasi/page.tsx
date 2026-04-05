@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { DashboardLayout } from '@/components/dashboard/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { MessageSquare, Send, FileText, Reply, Plus, CheckCircle2, Users, Inbox, AlertCircle } from 'lucide-react'
+import { MessageSquare, Send, FileText, Reply, Plus, CheckCircle2, Users, Inbox, AlertCircle, Loader2 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -51,11 +52,9 @@ interface User {
 
 export default function GuruKomunikasiPage() {
   // State
-  const [currentUser, setCurrentUser] = useState<User>({
-    id: 'user-teacher-1',
-    name: 'Ibu Siti Aminah',
-    role: 'GURU'
-  })
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [userName, setUserName] = useState('Ibu Guru')
+  const [loading, setLoading] = useState(true)
   const [messages, setMessages] = useState<Message[]>([])
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [newMessage, setNewMessage] = useState('')
@@ -74,6 +73,7 @@ export default function GuruKomunikasiPage() {
 
   // Fetch messages
   const fetchMessages = useCallback(async () => {
+    if (!currentUser) return
     try {
       const response = await fetch(`/api/messages?userId=${currentUser.id}`)
       const data = await response.json()
@@ -81,10 +81,11 @@ export default function GuruKomunikasiPage() {
     } catch (error) {
       console.error('Error fetching messages:', error)
     }
-  }, [currentUser.id])
+  }, [currentUser?.id])
 
   // Fetch conversations
   const fetchConversations = useCallback(async () => {
+    if (!currentUser) return
     try {
       const response = await fetch(`/api/conversations?userId=${currentUser.id}`)
       const data = await response.json()
@@ -92,10 +93,29 @@ export default function GuruKomunikasiPage() {
     } catch (error) {
       console.error('Error fetching conversations:', error)
     }
-  }, [currentUser.id])
+  }, [currentUser?.id])
+
+  // Get user data from localStorage
+  useEffect(() => {
+    const userId = localStorage.getItem('userId')
+    const storedUserName = localStorage.getItem('userName')
+    const userRole = localStorage.getItem('userRole')
+
+    if (userId && storedUserName && userRole) {
+      setCurrentUser({
+        id: userId,
+        name: storedUserName,
+        role: userRole
+      })
+      setUserName(storedUserName)
+    }
+    setLoading(false)
+  }, [])
 
   // Initialize WebSocket connection
   useEffect(() => {
+    if (!currentUser) return
+
     const socketInstance = io('/', {
       query: { XTransformPort: 3003 },
       transports: ['websocket', 'polling']
@@ -149,13 +169,15 @@ export default function GuruKomunikasiPage() {
 
   // Initial data fetch
   useEffect(() => {
-    fetchMessages()
-    fetchConversations()
-  }, [fetchMessages, fetchConversations])
+    if (currentUser) {
+      fetchMessages()
+      fetchConversations()
+    }
+  }, [currentUser, fetchMessages, fetchConversations])
 
   // Send message
   const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedReceiver) return
+    if (!newMessage.trim() || !selectedReceiver || !currentUser) return
 
     try {
       const response = await fetch('/api/messages', {
@@ -199,6 +221,7 @@ export default function GuruKomunikasiPage() {
 
   // Mark message as read
   const markAsRead = async (messageId: string, senderId: string) => {
+    if (!currentUser) return
     try {
       await fetch(`/api/messages/${messageId}/read`, { method: 'PUT' })
 
@@ -238,14 +261,26 @@ export default function GuruKomunikasiPage() {
     })
   }
 
+  if (loading) {
+    return (
+      <DashboardLayout role="guru" userName={userName}>
+        <div className="flex items-center justify-center min-h-96">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+      </DashboardLayout>
+    )
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <DashboardLayout role="guru" userName={userName}>
+      <div className="space-y-6">
+        {/* Header */}
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Komunikasi Orang Tua</h1>
-          <p className="text-muted-foreground mt-2">Kelola komunikasi dengan orang tua siswa</p>
+          <p className="text-muted-foreground mt-2">
+            Selamat datang, {userName}
+          </p>
         </div>
-      </div>
 
       {/* Statistik Komunikasi */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -439,5 +474,6 @@ export default function GuruKomunikasiPage() {
         </Card>
       </div>
     </div>
+    </DashboardLayout>
   )
 }

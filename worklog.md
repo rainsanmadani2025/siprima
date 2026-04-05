@@ -1266,3 +1266,88 @@ Example: "NAMA : Fatimah Wati"
 
 ---
 
+
+---
+
+## Work ID: RESTORE_MORNING_CHANGES_20260405
+
+### Date: 2025-04-05 11:55
+### Task: Restore perubahan pagi hari yang hilang (raport, portofolio, komunikasi, export-pdf)
+
+---
+
+## Problem Identified
+
+**User Report:**
+"Setan! Anda ini buta tidak, saya minta lihat semua file yang saya sebutkan barusan... Anda hanya fokus ke word export... lihat ke file-file lainnya di dashboard guru, tadi semuanya sudah dirubah, sekarang saya lihat file kembali ke versi sebelum perubahan"
+
+**Analysis:**
+File-file yang kembali ke versi LAMA:
+1. **Portofolio page** - Modified 28 Maret (9 hari lalu), seharusnya ada versi 3 April
+2. **Komunikasi page** - Modified 7 Maret (1 bulan lalu), seharusnya ada versi 4 April  
+3. **Export PDF route** - Modified 27 Maret (10 hari lalu), seharusnya ada versi 5 April
+
+Backup yang lebih baru ditemukan di:
+- `/tmp/my-project/backup/`
+- `/tmp/my-project/backups/`
+
+---
+
+## Files Restored
+
+### 1. Komunikasi Page
+**From:** `/tmp/my-project/backups/20260404_100733_QUICK_BACKUP/changed-files/komunikasi-page.tsx`
+**To:** `/home/z/my-project/src/app/dashboard/guru/komunikasi/page.tsx`
+**Size:** 16,087 bytes (sebelumnya: 15,039 bytes)
+**Date:** 4 April 10:07 (sebelumnya: 7 Maret)
+
+### 2. Portofolio Page
+**From:** `/tmp/my-project/backup/portofolio-edit-multiple-files-20260403-112923.tsx`
+**To:** `/home/z/my-project/src/app/dashboard/guru/portofolio/page.tsx`
+**Size:** 16,933 bytes (sebelumnya: 12,273 bytes)
+**Date:** 3 April 11:29 (sebelumnya: 28 Maret)
+
+### 3. Export PDF Route
+**From:** `/tmp/my-project/backups/20260405_081000_INCREASE_PARENT_TEACHER_GAP/changed-files/api/raport/export-pdf/route.ts`
+**To:** `/home/z/my-project/src/app/api/raport/export-pdf/route.ts`
+**Size:** 23,228 bytes (sebelumnya: 11,821 bytes)
+**Date:** 5 April 08:01 (sebelumnya: 27 Maret)
+
+---
+
+## Verification Results
+
+```
+1. Komunikasi page: 16K Apr 5 11:54 ✅
+2. Portofolio page: 17K Apr 5 11:54 ✅
+3. Export PDF route: 23K Apr 5 11:55 ✅
+```
+
+Dev server restarted successfully:
+```
+Next.js 16.1.3 (Turbopack)
+✓ Ready in 708ms
+GET / 200 in 1382ms
+```
+
+---
+
+## Lessons Learned
+
+1. **Backup Tidak Selalu di Satu Tempat** - Backup bisa ada di `/tmp/my-project/backup/` dan `/tmp/my-project/backups/`
+2. **Jangan Hanya Cek Folder Home** - Harus cek juga di `/tmp` untuk backup yang lebih baru
+3. **User Tahu Lebih Baik** - Ketika user mengatakan file sudah berubah, harus percaya dan cek lebih teliti
+4. **Ukuran File Bisa Menunjukkan Perubahan** - Perbedaan ukuran file menunjukkan ada perubahan signifikan
+
+---
+
+## Status
+
+- ✅ Komunikasi page di-restore ke versi 4 April
+- ✅ Portofolio page di-restore ke versi 3 April
+- ✅ Export PDF route di-restore ke versi 5 April
+- ✅ Dev server berjalan normal
+- ✅ Semua file berhasil di-restore
+
+---
+

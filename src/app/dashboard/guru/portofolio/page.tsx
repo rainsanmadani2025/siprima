@@ -1,55 +1,91 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
+import { useParams } from 'next/navigation'
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import {
-  Plus,
-  Image,
-  Video,
-  FileText,
-  Trash2,
-  RefreshCw,
-  Loader2,
-  Users
-} from 'lucide-react'
+import { ArrowLeft, Save, Loader2, Users, Image as ImageIcon, X, Video, Upload } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 
-interface Portfolio {
+interface Student {
   id: string
-  studentId: string
-  title: string
-  type: string
-  description?: string | null
-  fileUrl?: string | null
-  videoUrl?: string | null
-  date: string
-  createdAt: string
-  updatedAt: string
-  student: {
-    id: string
-    name: string
-    nis: string
-  }
+  name: string
+  nis: string
 }
 
-export default function GuruPortofolioPage() {
-  const [portfolios, setPortfolios] = useState<Portfolio[]>([])
-  const [students, setStudents] = useState<Array<{ id: string; name: string; nis: string }>>([])
+export default function EditPortofolioPage() {
+  const params = useParams()
+  const portfolioId = params.id as string
+  const { toast } = useToast()
   const [loading, setLoading] = useState(true)
-  const [studentsLoading, setStudentsLoading] = useState(false)
-  const [filterType, setFilterType] = useState('semua')
-  const [filterStudent, setFilterStudent] = useState('semua')
+  const [saving, setSaving] = useState(false)
+  const [students, setStudents] = useState<Student[]>([])
+  const [studentsLoading, setStudentsLoading] = useState(true)
+  const [files, setFiles] = useState<File[]>([])
+  const [filePreviews, setFilePreviews] = useState<string[]>([])
+  const [uploading, setUploading] = useState(false)
 
-  // Fetch students
-  const fetchStudents = useCallback(async () => {
+  // Form state
+  const [formData, setFormData] = useState({
+    studentId: '',
+    title: '',
+    type: 'karya',
+    description: '',
+    videoUrl: '',
+    date: new Date().toISOString().split('T')[0]
+  })
+
+  // Fetch portfolio data and students on mount
+  useEffect(() => {
+    fetchPortfolioData()
+    fetchStudents()
+  }, [portfolioId])
+
+  const fetchPortfolioData = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/portfolios/${portfolioId}`)
+      const data = await response.json()
+
+      if (data.success && data.portfolio) {
+        const portfolio = data.portfolio
+        setFormData({
+          studentId: portfolio.studentId,
+          title: portfolio.title,
+          type: portfolio.type,
+          description: portfolio.description || '',
+          videoUrl: portfolio.videoUrl || '',
+          date: portfolio.date
+        })
+        // Load existing fileUrls
+        if (portfolio.fileUrls && portfolio.fileUrls.length > 0) {
+          setFilePreviews(portfolio.fileUrls)
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: "Portfolio tidak ditemukan",
+          variant: "destructive"
+        })
+        window.location.href = '/dashboard/guru/portofolio'
+      }
+    } catch (error) {
+      console.error('Error fetching portfolio:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchStudents = async () => {
     try {
       setStudentsLoading(true)
       const userId = localStorage.getItem('userId')
       if (!userId) {
-        console.warn('[Portofolio] No userId found')
+        console.warn('[Edit Portofolio] No userId found')
         return
       }
 
@@ -63,254 +99,373 @@ export default function GuruPortofolioPage() {
     } finally {
       setStudentsLoading(false)
     }
-  }, [])
+  }
 
-  // Fetch portfolios
-  const fetchPortfolios = useCallback(async () => {
-    try {
-      setLoading(true)
-      const params = new URLSearchParams()
-      if (filterStudent !== 'semua') {
-        params.append('studentId', filterStudent)
-      }
-      if (filterType !== 'semua') {
-        params.append('type', filterType)
-      }
-
-      const response = await fetch(`/api/portfolios?${params}`)
-      const data = await response.json()
-      setPortfolios(data.portfolios || [])
-    } catch (error) {
-      console.error('Error fetching portfolios:', error)
-    } finally {
-      setLoading(false)
+  const handleSubmit = async () => {
+    // Validasi form
+    if (!formData.studentId) {
+      toast({
+        title: "Error",
+        description: "Silakan pilih siswa terlebih dahulu",
+        variant: "destructive"
+      })
+      return
     }
-  }, [filterType, filterStudent])
 
-  // Initial fetch
-  useEffect(() => {
-    fetchStudents()
-    fetchPortfolios()
-  }, [fetchStudents, fetchPortfolios])
+    if (!formData.title) {
+      toast({
+        title: "Error",
+        description: "Silakan masukkan judul portfolio",
+        variant: "destructive"
+      })
+      return
+    }
 
-  // Delete portfolio
-  const deletePortfolio = async (id: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus portfolio ini?')) return
+    if (!formData.date) {
+      toast({
+        title: "Error",
+        description: "Silakan pilih tanggal",
+        variant: "destructive"
+      })
+      return
+    }
 
+    setSaving(true)
     try {
-      await fetch(`/api/portfolios/${id}`, { method: 'DELETE' })
-      fetchPortfolios()
-    } catch (error) {
-      console.error('Error deleting portfolio:', error)
-      alert('Gagal menghapus portfolio')
+      // Convert new files to base64 and combine with existing previews
+      let allFileUrls: string[] = [...filePreviews]
+
+      if (files.length > 0) {
+        setUploading(true)
+        const newFileUrls = await Promise.all(
+          files.map(file =>
+            new Promise<string>((resolve, reject) => {
+              const reader = new FileReader()
+              reader.onloadend = () => resolve(reader.result as string)
+              reader.onerror = reject
+              reader.readAsDataURL(file)
+            })
+          )
+        )
+        allFileUrls = [...allFileUrls, ...newFileUrls]
+        setUploading(false)
+      }
+
+      const response = await fetch(`/api/portfolios/${portfolioId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          fileUrls: allFileUrls
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || `Server error: ${response.status}`)
+      }
+
+      if (data.success) {
+        toast({
+          title: "Berhasil",
+          description: "Portfolio berhasil diperbarui"
+        })
+        window.location.href = '/dashboard/guru/portofolio'
+      } else {
+        throw new Error(data.error || 'Gagal memperbarui portfolio')
+      }
+    } catch (error: any) {
+      console.error('Error updating portfolio:', error)
+      toast({
+        title: "Error",
+        description: error.message || 'Gagal memperbarui portfolio',
+        variant: "destructive"
+      })
+    } finally {
+      setSaving(false)
+      setUploading(false)
     }
   }
 
-  const getTypeBadge = (type: string) => {
-    if (type === 'karya') {
-      return <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200">Karya</Badge>
-    } else if (type === 'foto') {
-      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Foto</Badge>
-    } else if (type === 'video') {
-      return <Badge className="bg-red-100 text-red-800 hover:bg-red-200">Video</Badge>
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || [])
+    if (selectedFiles.length === 0) return
+
+    // Validate each file
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf']
+    const maxSize = 5 * 1024 * 1024 // 5MB
+
+    const validFiles: File[] = []
+
+    for (const file of selectedFiles) {
+      // Validate file size
+      if (file.size > maxSize) {
+        toast({
+          title: "Error",
+          description: `File ${file.name} terlalu besar (maks 5MB)`,
+          variant: "destructive"
+        })
+        continue
+      }
+
+      // Validate file type
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Error",
+          description: `File ${file.name} format tidak didukung`,
+          variant: "destructive"
+        })
+        continue
+      }
+
+      validFiles.push(file)
+
+      // Create preview for images
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setFilePreviews(prev => [...prev, reader.result as string])
+        }
+        reader.readAsDataURL(file)
+      }
     }
-    return <Badge variant="secondary">{type}</Badge>
+
+    if (validFiles.length > 0) {
+      setFiles(prev => [...prev, ...validFiles])
+    }
+  }
+
+  const handleRemoveFile = (index: number) => {
+    // If it's an existing file (in previews), remove from previews
+    if (index < filePreviews.length) {
+      setFilePreviews(prev => prev.filter((_, i) => i !== index))
+    }
+    // If it's a new file, adjust index and remove from files
+    const newFileIndex = index - filePreviews.length
+    if (newFileIndex >= 0) {
+      setFiles(prev => prev.filter((_, i) => i !== newFileIndex))
+    }
+  }
+
+  if (loading) {
+    return (
+      <DashboardLayout role="guru" userName="Ibu Guru">
+        <div className="flex items-center justify-center min-h-96">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+      </DashboardLayout>
+    )
   }
 
   return (
     <DashboardLayout role="guru" userName="Ibu Guru">
       <div className="space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.location.href = '/dashboard/guru/portofolio'}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Kembali
+          </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Portofolio Anak</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Edit Portofolio</h1>
             <p className="text-muted-foreground mt-2">
-              Kelola karya dan dokumentasi kegiatan siswa
+              Perbarui karya atau dokumentasi kegiatan siswa
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={fetchPortfolios}
-              disabled={loading}
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-            <Button onClick={() => window.location.href = '/dashboard/guru/portofolio/tambah'}>
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah Portofolio
-            </Button>
-          </div>
         </div>
 
-        {/* Filter */}
-        <div className="flex gap-4">
-          <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Filter Tipe" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="semua">Semua Tipe</SelectItem>
-              <SelectItem value="karya">Hasil Karya</SelectItem>
-              <SelectItem value="foto">Foto Kegiatan</SelectItem>
-              <SelectItem value="video">Video Kegiatan</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterStudent} onValueChange={setFilterStudent} disabled={studentsLoading}>
-            <SelectTrigger className="w-64">
-              {studentsLoading ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Memuat...</span>
-                </div>
-              ) : students.length === 0 ? (
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  <span>Tidak ada siswa</span>
-                </div>
-              ) : (
-                <SelectValue placeholder="Pilih Siswa" />
-              )}
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="semua">Semua Siswa</SelectItem>
-              {students.map((student) => (
-                <SelectItem key={student.id} value={student.id}>
-                  {student.name} ({student.nis})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Statistik Portofolio */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <span className="text-sm font-medium">Total Portfolio</span>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{portfolios.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">Semua siswa</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <span className="text-sm font-medium">Hasil Karya</span>
-              <Image className="h-4 w-4 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">
-                {portfolios.filter(p => p.type === 'karya').length}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Gambar, kerajinan, dll.</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <span className="text-sm font-medium">Foto Kegiatan</span>
-              <Image className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                {portfolios.filter(p => p.type === 'foto').length}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Dokumentasi kegiatan</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <span className="text-sm font-medium">Video Kegiatan</span>
-              <Video className="h-4 w-4 text-red-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {portfolios.filter(p => p.type === 'video').length}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Rekam kegiatan</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Gallery Portofolio */}
         <Card>
           <CardHeader>
-            <CardTitle>Gallery Portofolio</CardTitle>
+            <CardTitle>Edit Portfolio</CardTitle>
           </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-              </div>
-            ) : portfolios.length === 0 ? (
-              <div className="text-center text-gray-500 py-12">
-                <FileText className="w-12 h-12 mx-auto mb-2 text-gray-400" />
-                <p>Belum ada portfolio</p>
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {portfolios.map((portfolio) => (
-                  <div key={portfolio.id} className="group relative rounded-lg overflow-hidden border bg-muted/50 hover:shadow-lg transition-shadow">
-                    <div className={`aspect-video flex items-center justify-center ${
-                      portfolio.type === 'karya' ? 'bg-purple-50' :
-                      portfolio.type === 'foto' ? 'bg-blue-50' :
-                      'bg-red-50'
-                    }`}>
-                      {portfolio.type === 'karya' && <Image className="h-12 w-12 text-purple-400" />}
-                      {portfolio.type === 'foto' && <Image className="h-12 w-12 text-blue-400" />}
-                      {portfolio.type === 'video' && <Video className="h-12 w-12 text-red-400" />}
-                      {portfolio.fileUrl && (
-                        <img 
-                          src={portfolio.fileUrl} 
-                          alt={portfolio.title}
-                          className="absolute inset-0 w-full h-full object-cover"
-                        />
-                      )}
-                    </div>
-                    <div className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h3 className="font-medium text-sm">{portfolio.title}</h3>
-                          <p className="text-xs text-muted-foreground">{portfolio.student.name}</p>
-                        </div>
-                        {getTypeBadge(portfolio.type)}
+          <CardContent className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Pilih Siswa <span className="text-red-500">*</span></label>
+                <Select
+                  value={formData.studentId}
+                  onValueChange={(value) => setFormData({ ...formData, studentId: value })}
+                  disabled={studentsLoading}
+                >
+                  <SelectTrigger>
+                    {studentsLoading ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Memuat siswa...</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(portfolio.date).toLocaleDateString('id-ID', {
-                          day: '2-digit',
-                          month: 'long',
-                          year: 'numeric'
-                        })}
+                    ) : students.length === 0 ? (
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        <span>Tidak ada siswa</span>
+                      </div>
+                    ) : (
+                      <SelectValue placeholder="Pilih siswa" />
+                    )}
+                  </SelectTrigger>
+                  <SelectContent>
+                    {students.map((student) => (
+                      <SelectItem key={student.id} value={student.id}>
+                        {student.name} ({student.nis})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Tipe Portfolio <span className="text-red-500">*</span></label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value) => setFormData({ ...formData, type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih tipe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="karya">Hasil Karya</SelectItem>
+                    <SelectItem value="foto">Foto Kegiatan</SelectItem>
+                    <SelectItem value="video">Video Kegiatan</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Judul <span className="text-red-500">*</span></label>
+                <Input
+                  placeholder="Masukkan judul portfolio"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Tanggal <span className="text-red-500">*</span></label>
+                <Input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Unggah File/Gambar (Opsional)</label>
+              <div className="space-y-4">
+                <div
+                  className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors hover:border-primary ${
+                    filePreviews.length > 0 || files.length > 0 ? 'border-primary bg-primary/5' : 'border-input'
+                  }`}
+                >
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/gif,application/pdf"
+                    onChange={handleFileChange}
+                    disabled={uploading || saving}
+                    id="file-upload"
+                    className="hidden"
+                    multiple
+                  />
+                  <label
+                    htmlFor="file-upload"
+                    className="flex flex-col items-center gap-2 cursor-pointer"
+                  >
+                    <Upload className="w-8 h-8 text-muted-foreground" />
+                    <div className="text-sm">
+                      <p className="font-medium text-foreground">
+                        {filePreviews.length + files.length > 0
+                          ? `${filePreviews.length + files.length} file dipilih. Klik untuk tambah lagi.`
+                          : 'Klik untuk memilih file'}
                       </p>
-                      {portfolio.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                          {portfolio.description}
-                        </p>
-                      )}
-                      {portfolio.videoUrl && (
-                        <a 
-                          href={portfolio.videoUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-600 hover:underline mt-1 block"
-                        >
-                          Lihat Video
-                        </a>
-                      )}
-                      <div className="flex gap-2 mt-3">
-                        <Button size="sm" variant="ghost" onClick={() => deletePortfolio(portfolio.id)} className="ml-auto">
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
+                      <p className="text-muted-foreground">
+                        JPG, PNG, GIF, atau PDF (maks 5MB per file)
+                      </p>
                     </div>
+                  </label>
+                </div>
+
+                {/* File Previews */}
+                {(filePreviews.length > 0 || files.length > 0) && (
+                  <div className="grid grid-cols-4 gap-3">
+                    {[...filePreviews, ...files.map(f => f.type.startsWith('image/') ? URL.createObjectURL(f) : '')].map((preview, index) => (
+                      <div key={index} className="relative group">
+                        <div className="relative w-full aspect-square rounded-lg border overflow-hidden bg-muted">
+                          {preview ? (
+                            <img
+                              src={preview}
+                              alt={`Preview ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <span className="text-2xl">📄</span>
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFile(index)}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center hover:bg-destructive/90 transition-colors opacity-0 group-hover:opacity-100"
+                          disabled={saving || uploading}
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            )}
+              <p className="text-xs text-muted-foreground">
+                Unggah file atau gambar untuk portofolio ini. Bisa memilih beberapa file sekaligus.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Link Video Kegiatan (Opsional)</label>
+              <div className="flex items-center gap-2">
+                <Video className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <Input
+                  type="url"
+                  placeholder="Masukkan link video (YouTube, dll)"
+                  value={formData.videoUrl}
+                  onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Masukkan URL video dokumentasi kegiatan (opsional)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Deskripsi</label>
+              <Textarea
+                placeholder="Jelaskan kegiatan atau karya ini..."
+                rows={5}
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => window.location.href = '/dashboard/guru/portofolio'}
+                disabled={saving}
+              >
+                Batal
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={saving}
+              >
+                {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                <Save className="w-4 h-4 mr-2" />
+                {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

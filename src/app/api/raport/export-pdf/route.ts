@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+import fs from 'fs/promises'
+import path from 'path'
 
 const scoreLabels: Record<string, string> = {
   BB: 'Belum Berkembang',
@@ -34,8 +36,35 @@ function wrapText(text: string, maxChars: number): string[] {
   return lines
 }
 
+function wrapTextForJustify(text: string, maxWidth: number): string[][] {
+  const words = text.split(' ').filter(w => w.length > 0)
+  const lines: string[][] = []
+  let currentLine: string[] = []
+  let currentLength = 0
+
+  for (const word of words) {
+    const wordLen = word.length
+    const spaceLen = 1
+
+    if (currentLength + wordLen + (currentLine.length > 0 ? spaceLen : 0) > maxWidth && currentLine.length > 0) {
+      lines.push([...currentLine])
+      currentLine = [word]
+      currentLength = wordLen
+    } else {
+      currentLine.push(word)
+      currentLength += wordLen + (currentLine.length > 0 ? spaceLen : 0)
+    }
+  }
+
+  if (currentLine.length > 0) {
+    lines.push(currentLine)
+  }
+
+  return lines
+}
+
 function justifyText(text: string, maxChars: number): string[] {
-  const words = text.split(' ')
+  const words = text.split(' ').filter(w => w.length > 0)
   const lines: string[] = []
   let currentLine: string[] = []
   let currentLength = 0
@@ -45,26 +74,18 @@ function justifyText(text: string, maxChars: number): string[] {
     const wordLen = word.length
     const spaceLen = 1
 
-    if (currentLength + wordLen + (currentLine.length > 0 ? spaceLen : 0) > maxChars && currentLine.length > 0) {
-      if (currentLine.length > 1) {
-        const totalChars = currentLine.join('').length
-        const spacesNeeded = maxChars - totalChars
-        const baseSpaces = Math.floor(spacesNeeded / (currentLine.length - 1))
-        const extraSpaces = spacesNeeded % (currentLine.length - 1)
-
-        let result = currentLine[0]
-        for (let j = 1; j < currentLine.length; j++) {
-          const spaceCount = 1 + baseSpaces + (j <= extraSpaces ? 1 : 0)
-          for (let k = 0; k < spaceCount; k++) {
-            result += ' '
-          }
-          result += currentLine[j]
-        }
-        lines.push(result)
-      } else {
+    if (wordLen > maxChars) {
+      if (currentLine.length > 0) {
         lines.push(currentLine.join(' '))
       }
+      lines.push(word)
+      currentLine = []
+      currentLength = 0
+      continue
+    }
 
+    if (currentLength + wordLen + (currentLine.length > 0 ? spaceLen : 0) > maxChars && currentLine.length > 0) {
+      lines.push(currentLine.join(' '))
       currentLine = [word]
       currentLength = wordLen
     } else {
@@ -80,6 +101,53 @@ function justifyText(text: string, maxChars: number): string[] {
   return lines
 }
 
+async function loadKemenagLogo(pdfDoc: PDFDocument) {
+  try {
+    const logoPath = path.join(process.cwd(), 'upload', 'Logo Kemenag.png')
+    const logoImageBytes = await fs.readFile(logoPath)
+    const logoImage = await pdfDoc.embedPng(logoImageBytes)
+    return logoImage
+  } catch (error) {
+    console.warn('Failed to load Kemenag logo:', error)
+    return null
+  }
+}
+
+async function loadRALogo(pdfDoc: PDFDocument) {
+  try {
+    const logoPath = path.join(process.cwd(), 'upload', 'LOGO RA.png')
+    const logoImageBytes = await fs.readFile(logoPath)
+    const logoImage = await pdfDoc.embedPng(logoImageBytes)
+    return logoImage
+  } catch (error) {
+    console.warn('Failed to load RA logo:', error)
+    return null
+  }
+}
+
+// Calculate dimensions while maintaining aspect ratio
+function calculateDimensions(
+  originalWidth: number,
+  originalHeight: number,
+  targetSize: number
+): { width: number; height: number } {
+  const aspectRatio = originalWidth / originalHeight
+
+  if (aspectRatio > 1) {
+    // Wider than tall
+    return {
+      width: targetSize,
+      height: targetSize / aspectRatio
+    }
+  } else {
+    // Taller than wide or square
+    return {
+      width: targetSize * aspectRatio,
+      height: targetSize
+    }
+  }
+}
+
 async function createPDFBuffer(data: any): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create()
 
@@ -87,6 +155,10 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
 
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+
+  // Load logos
+  const kemenagLogo = await loadKemenagLogo(pdfDoc)
+  const raLogo = await loadRALogo(pdfDoc)
 
   const leftMargin = 70
   const rightMargin = 525
@@ -118,9 +190,49 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
     })
   }
 
-  drawText('LOGO KEMENTRIAN AGAMA', leftMargin, y, 10, fontBold)
-  drawText('LOGO RA INSAN MADANI', rightMargin - 140, y, 10, fontBold)
-  y -= 30
+  // Draw Kemenag logo if available, otherwise draw text
+  if (kemenagLogo) {
+    const kemenagDims = calculateDimensions(kemenagLogo.width, kemenagLogo.height, 65)
+    page.drawImage(kemenagLogo, {
+      x: leftMargin,
+      y: y - 20,
+      width: kemenagDims.width,
+      height: kemenagDims.height
+    })
+  } else {
+    drawText('LOGO KEMENTRIAN AGAMA', leftMargin, y, 10, fontBold)
+  }
+
+  // Draw RA logo if available, otherwise draw text
+  if (raLogo) {
+    const raDims = calculateDimensions(raLogo.width, raLogo.height, 110)
+    // Adjust y position to align with Kemenag logo (move down by 24px)
+    page.drawImage(raLogo, {
+      x: rightMargin - raDims.width,
+      y: y - 44,
+      width: raDims.width,
+      height: raDims.height
+    })
+  } else {
+    drawText('LOGO RA INSAN MADANI', rightMargin - 140, y, 10, fontBold)
+  }
+
+  // Draw title and subtitle in the center
+  const centerX = 595 / 2
+  const titleText = 'RA INSAN MADANI'
+  const subtitleText = 'Laporan Perkembangan Anak'
+
+  // Calculate center position for title - aligned with logos
+  const titleWidth = fontBold.widthOfTextAtSize(titleText, 16)
+  const titleX = centerX - titleWidth / 2
+  drawText(titleText, titleX, y, 16, fontBold)
+
+  // Calculate center position for subtitle
+  const subtitleWidth = font.widthOfTextAtSize(subtitleText, 10)
+  const subtitleX = centerX - subtitleWidth / 2
+  drawText(subtitleText, subtitleX, y - 15, 10, font)
+
+  y -= 40
 
   drawLine(y)
   y -= 25
@@ -208,12 +320,60 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
     const observation = assessment?.observation || ''
 
     if (observation) {
-      const justifiedLines = justifyText(observation, 75)
-      justifiedLines.forEach((line, index) => {
-        if (index > 0 && index % 12 === 0) {
+      const lines = wrapTextForJustify(observation, 75)
+      const fontSize = 9
+      const baseSpaceWidth = font.widthOfTextAtSize(' ', fontSize)
+      const minSpaceMultiplier = 0.2 // Use 20% of normal space for extremely tight text
+
+      lines.forEach((words, lineIndex) => {
+        // Skip page break check for first line
+        if (lineIndex > 0 && lineIndex % 12 === 0) {
           checkNewPage(60)
         }
-        drawText(line, leftMargin + 10, y, 9, font)
+
+        // Calculate total width of text (words + minimum spaces)
+        let totalTextWidth = 0
+        words.forEach(word => {
+          totalTextWidth += font.widthOfTextAtSize(word, fontSize)
+        })
+        // Add minimum spaces between words
+        if (words.length > 1) {
+          totalTextWidth += (words.length - 1) * (baseSpaceWidth * minSpaceMultiplier)
+        }
+
+        const availableWidth = rightMargin - leftMargin - 10
+        const isLastLine = lineIndex === lines.length - 1
+        const isJustifiable = words.length > 1 && !isLastLine
+
+        if (isJustifiable && totalTextWidth < availableWidth) {
+          // Justify the line by distributing extra space between words
+          const extraSpace = availableWidth - totalTextWidth
+          const gapCount = words.length - 1
+          const additionalSpacePerGap = extraSpace / gapCount
+
+          let x = leftMargin + 10
+          words.forEach((word, wordIndex) => {
+            drawText(word, x, y, fontSize, font)
+            x += font.widthOfTextAtSize(word, fontSize)
+
+            // Add space after each word except the last
+            if (wordIndex < words.length - 1) {
+              // Use tighter base space + distributed extra space
+              x += (baseSpaceWidth * minSpaceMultiplier) + additionalSpacePerGap
+            }
+          })
+        } else {
+          // Left align for single-word lines or the last line with normal spacing
+          let x = leftMargin + 10
+          words.forEach((word, wordIndex) => {
+            if (wordIndex > 0) {
+              x += baseSpaceWidth // Use normal space for non-justified lines
+            }
+            drawText(word, x, y, fontSize, font)
+            x += font.widthOfTextAtSize(word, fontSize)
+          })
+        }
+
         y -= lineHeight
       })
     } else {
@@ -228,18 +388,59 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   })
 
   checkNewPage(100)
-  drawText('Observasi Kegiatan : [Textarea - 3 baris]', leftMargin, y, 9, fontBold)
+  drawText('Observasi Kegiatan :', leftMargin, y, 9, fontBold)
   y -= 15
 
   const obsKegiatan = data.assessments?.catatan_perkembangan?.observation || ''
 
   if (obsKegiatan) {
-    const justifiedLines = justifyText(obsKegiatan, 75)
-    justifiedLines.forEach((line, index) => {
-      if (index > 0 && index % 12 === 0) {
+    const lines = wrapTextForJustify(obsKegiatan, 75)
+    const fontSize = 9
+    const baseSpaceWidth = font.widthOfTextAtSize(' ', fontSize)
+    const minSpaceMultiplier = 0.2
+
+    lines.forEach((words, lineIndex) => {
+      if (lineIndex > 0 && lineIndex % 12 === 0) {
         checkNewPage(60)
       }
-      drawText(line, leftMargin + 10, y, 9, font)
+
+      let totalTextWidth = 0
+      words.forEach(word => {
+        totalTextWidth += font.widthOfTextAtSize(word, fontSize)
+      })
+      if (words.length > 1) {
+        totalTextWidth += (words.length - 1) * (baseSpaceWidth * minSpaceMultiplier)
+      }
+
+      const availableWidth = rightMargin - leftMargin - 10
+      const isLastLine = lineIndex === lines.length - 1
+      const isJustifiable = words.length > 1 && !isLastLine
+
+      if (isJustifiable && totalTextWidth < availableWidth) {
+        const extraSpace = availableWidth - totalTextWidth
+        const gapCount = words.length - 1
+        const additionalSpacePerGap = extraSpace / gapCount
+
+        let x = leftMargin + 10
+        words.forEach((word, wordIndex) => {
+          drawText(word, x, y, fontSize, font)
+          x += font.widthOfTextAtSize(word, fontSize)
+
+          if (wordIndex < words.length - 1) {
+            x += (baseSpaceWidth * minSpaceMultiplier) + additionalSpacePerGap
+          }
+        })
+      } else {
+        let x = leftMargin + 10
+        words.forEach((word, wordIndex) => {
+          if (wordIndex > 0) {
+            x += baseSpaceWidth
+          }
+          drawText(word, x, y, fontSize, font)
+          x += font.widthOfTextAtSize(word, fontSize)
+        })
+      }
+
       y -= lineHeight
     })
   } else {
@@ -256,18 +457,59 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   y -= 25
 
   checkNewPage(100)
-  drawText('Catatan Anekdot : [Textarea - 3 baris]', leftMargin, y, 9, fontBold)
+  drawText('Catatan Anekdot :', leftMargin, y, 9, fontBold)
   y -= 15
 
   const notes = data.assessments?.catatan_perkembangan?.notes || ''
 
   if (notes) {
-    const justifiedLines = justifyText(notes, 75)
-    justifiedLines.forEach((line, index) => {
-      if (index > 0 && index % 12 === 0) {
+    const lines = wrapTextForJustify(notes, 75)
+    const fontSize = 9
+    const baseSpaceWidth = font.widthOfTextAtSize(' ', fontSize)
+    const minSpaceMultiplier = 0.2
+
+    lines.forEach((words, lineIndex) => {
+      if (lineIndex > 0 && lineIndex % 12 === 0) {
         checkNewPage(60)
       }
-      drawText(line, leftMargin + 10, y, 9, font)
+
+      let totalTextWidth = 0
+      words.forEach(word => {
+        totalTextWidth += font.widthOfTextAtSize(word, fontSize)
+      })
+      if (words.length > 1) {
+        totalTextWidth += (words.length - 1) * (baseSpaceWidth * minSpaceMultiplier)
+      }
+
+      const availableWidth = rightMargin - leftMargin - 10
+      const isLastLine = lineIndex === lines.length - 1
+      const isJustifiable = words.length > 1 && !isLastLine
+
+      if (isJustifiable && totalTextWidth < availableWidth) {
+        const extraSpace = availableWidth - totalTextWidth
+        const gapCount = words.length - 1
+        const additionalSpacePerGap = extraSpace / gapCount
+
+        let x = leftMargin + 10
+        words.forEach((word, wordIndex) => {
+          drawText(word, x, y, fontSize, font)
+          x += font.widthOfTextAtSize(word, fontSize)
+
+          if (wordIndex < words.length - 1) {
+            x += (baseSpaceWidth * minSpaceMultiplier) + additionalSpacePerGap
+          }
+        })
+      } else {
+        let x = leftMargin + 10
+        words.forEach((word, wordIndex) => {
+          if (wordIndex > 0) {
+            x += baseSpaceWidth
+          }
+          drawText(word, x, y, fontSize, font)
+          x += font.widthOfTextAtSize(word, fontSize)
+        })
+      }
+
       y -= lineHeight
     })
   } else {
@@ -284,11 +526,44 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   y -= 25
 
   checkNewPage(70)
-  drawText('Dokumentasi Foto : [Unggah Foto]', leftMargin, y, 9, fontBold)
+  drawText('Dokumentasi Foto :', leftMargin, y, 9, fontBold)
   y -= 20
 
-  drawText('Foto 1  Foto 2  Foto 3', leftMargin, y, 9, font)
-  y -= 25
+  // Display photos if available
+  const photos = data.photos || []
+  if (photos.length > 0) {
+    const photoSize = 120
+    const photosPerRow = 3
+    const photoSpacing = 20
+    
+    for (let i = 0; i < Math.min(photos.length, 9); i++) {
+      try {
+        const photoPath = path.join(process.cwd(), 'public', photos[i])
+        const photoBytes = await fs.readFile(photoPath)
+        const photoImage = await pdfDoc.embedPng(photoBytes)
+        
+        const row = Math.floor(i / photosPerRow)
+        const col = i % photosPerRow
+        const x = leftMargin + col * (photoSize + photoSpacing)
+        const photoY = y - row * (photoSize + photoSpacing) - photoSize
+        
+        page.drawImage(photoImage, {
+          x,
+          y: photoY,
+          width: photoSize,
+          height: photoSize
+        })
+      } catch (error) {
+        console.warn(`Failed to load photo ${i}:`, error)
+      }
+    }
+    
+    const rowsNeeded = Math.ceil(Math.min(photos.length, 9) / photosPerRow)
+    y -= rowsNeeded * (photoSize + photoSpacing) + 10
+  } else {
+    drawText('(Tidak ada foto yang diunggah)', leftMargin, y, 9, font, rgb(0.5, 0.5, 0.5))
+    y -= 25
+  }
 
   drawLine(y, 1, rgb(0.3, 0.3, 0.3))
   y -= 25
@@ -308,18 +583,59 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   y -= 25
 
   checkNewPage(90)
-  drawText('Catatan Pendidik : [Textarea - 3 baris]', leftMargin, y, 9, fontBold)
+  drawText('Catatan Pendidik :', leftMargin, y, 9, fontBold)
   y -= 15
 
   const educatorNotes = data.educatorNotes || ''
 
   if (educatorNotes) {
-    const justifiedLines = justifyText(educatorNotes, 75)
-    justifiedLines.forEach((line, index) => {
-      if (index > 0 && index % 12 === 0) {
+    const lines = wrapTextForJustify(educatorNotes, 75)
+    const fontSize = 9
+    const baseSpaceWidth = font.widthOfTextAtSize(' ', fontSize)
+    const minSpaceMultiplier = 0.2
+
+    lines.forEach((words, lineIndex) => {
+      if (lineIndex > 0 && lineIndex % 12 === 0) {
         checkNewPage(60)
       }
-      drawText(line, leftMargin + 10, y, 9, font)
+
+      let totalTextWidth = 0
+      words.forEach(word => {
+        totalTextWidth += font.widthOfTextAtSize(word, fontSize)
+      })
+      if (words.length > 1) {
+        totalTextWidth += (words.length - 1) * (baseSpaceWidth * minSpaceMultiplier)
+      }
+
+      const availableWidth = rightMargin - leftMargin - 10
+      const isLastLine = lineIndex === lines.length - 1
+      const isJustifiable = words.length > 1 && !isLastLine
+
+      if (isJustifiable && totalTextWidth < availableWidth) {
+        const extraSpace = availableWidth - totalTextWidth
+        const gapCount = words.length - 1
+        const additionalSpacePerGap = extraSpace / gapCount
+
+        let x = leftMargin + 10
+        words.forEach((word, wordIndex) => {
+          drawText(word, x, y, fontSize, font)
+          x += font.widthOfTextAtSize(word, fontSize)
+
+          if (wordIndex < words.length - 1) {
+            x += (baseSpaceWidth * minSpaceMultiplier) + additionalSpacePerGap
+          }
+        })
+      } else {
+        let x = leftMargin + 10
+        words.forEach((word, wordIndex) => {
+          if (wordIndex > 0) {
+            x += baseSpaceWidth
+          }
+          drawText(word, x, y, fontSize, font)
+          x += font.widthOfTextAtSize(word, fontSize)
+        })
+      }
+
       y -= lineHeight
     })
   } else {
@@ -335,12 +651,19 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   drawLine(y, 1, rgb(0.3, 0.3, 0.3))
   y -= 40
 
-  checkNewPage(120)
+  checkNewPage(150)
 
-  drawText('Orang tua', leftMargin, y, 10, fontBold)
+  // Row 1: Labels (Orang Tua di kiri, Wali Kelas di kanan)
+  drawText('Orang Tua', leftMargin, y, 10, fontBold)
   drawText('Wali Kelas', rightMargin - 120, y, 10, fontBold)
-  y -= 40
+  y -= 70  // Gap sangat besar antara label dan nama
 
+  // Row 2: Names (ATAS separator)
+  drawText('Nama Orang Tua', leftMargin, y, 10, font)
+  drawText(data.teacherName || 'Nama Wali Kelas', rightMargin - 120, y, 10, font)
+  y -= 15
+
+  // Row 3: Signature lines (SEPARATOR)
   page.drawLine({
     start: { x: leftMargin, y },
     end: { x: leftMargin + 120, y },
@@ -355,19 +678,41 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
     color: rgb(0, 0, 0)
   })
 
+  y -= 12
+
+  // Row 4: NUPTK/NPK (DIBAWAH separator, dinaikkan agar dekat dengan separator)
+  drawText('', leftMargin, y, 10, font) // Empty for Orang Tua
+  drawText(`NUPTK/NPK : ${data.teacherNip || ''}`, rightMargin - 120, y, 9, font)
+
   y -= 50
 
-  drawText('Mengetahui,', rightMargin - 120, y, 10, fontBold)
-  y -= 15
-  drawText('Kepala Sekolah', rightMargin - 120, y, 10, fontBold)
-  y -= 40
+  // Kepala Sekolah section (CENTERED between Orang Tua and Wali Kelas)
+  const signatureCenterX = 595 / 2
 
+  drawText('Mengetahui,', signatureCenterX - 60, y, 10, fontBold)
+  y -= 15
+  drawText('Kepala Sekolah', signatureCenterX - 60, y, 10, fontBold)
+  y -= 65  // Gap sangat besar antara label "Kepala Sekolah" dan nama
+
+  // Nama Kepala Sekolah (ATAS separator)
+  const principalName = data.principalName || 'Nama Kepala Sekolah'
+  const principalNameWidth = fontBold.widthOfTextAtSize(principalName, 10)
+  drawText(principalName, signatureCenterX - principalNameWidth / 2, y, 10, font)
+  y -= 15
+
+  // Garis tanda tangan Kepala Sekolah (centered, length 120)
   page.drawLine({
-    start: { x: rightMargin - 120, y },
-    end: { x: rightMargin, y },
+    start: { x: signatureCenterX - 60, y },
+    end: { x: signatureCenterX + 60, y },
     thickness: 1,
     color: rgb(0, 0, 0)
   })
+
+  y -= 12
+  // NUPTK/NPK Kepala Sekolah (DIBAWAH separator, dekat dengan separator)
+  const nuptkText = `NUPTK/NPK : ${data.principalNip || ''}`
+  const nuptkTextWidth = font.widthOfTextAtSize(nuptkText, 9)
+  drawText(nuptkText, signatureCenterX - nuptkTextWidth / 2, y, 9, font)
 
   const pdfBytes = await pdfDoc.save()
   return pdfBytes
