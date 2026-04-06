@@ -264,6 +264,7 @@ model Portfolio {
   type        String   // karya/foto/video
   description String?
   fileUrl     String?
+  videoUrl    String?
   date        String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

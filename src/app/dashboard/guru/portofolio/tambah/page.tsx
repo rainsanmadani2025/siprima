@@ -35,6 +35,9 @@ export default function TambahPortofolioPage() {
     date: new Date().toISOString().split('T')[0]
   })
 
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
+
   useEffect(() => {
     fetchStudents()
   }, [])
@@ -61,6 +64,76 @@ export default function TambahPortofolioPage() {
     } finally {
       setStudentsLoading(false)
     }
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Error",
+        description: "Tipe file tidak didukung. Hanya gambar (JPEG, PNG, GIF, WebP) yang diizinkan",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024
+    if (file.size > maxSize) {
+      toast({
+        title: "Error",
+        description: "Ukuran file terlalu besar. Maksimal 5MB",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setSelectedFile(file)
+  }
+
+  const handleUpload = async () => {
+    if (!selectedFile) return
+
+    try {
+      setUploading(true)
+      const formData = new FormData()
+      formData.append('file', selectedFile)
+
+      const response = await fetch('/api/portfolios/upload', {
+        method: 'POST',
+        body: formData
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setFormData(prev => ({ ...prev, fileUrl: data.fileUrl }))
+        toast({
+          title: "Berhasil",
+          description: "File berhasil diupload"
+        })
+      } else {
+        throw new Error(data.error || 'Gagal mengupload file')
+      }
+    } catch (error: any) {
+      console.error('Error uploading file:', error)
+      toast({
+        title: "Error",
+        description: error.message || "Gagal mengupload file",
+        variant: "destructive"
+      })
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null)
+    setFormData(prev => ({ ...prev, fileUrl: '' }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -217,18 +290,83 @@ export default function TambahPortofolioPage() {
                 />
               </div>
 
-              {/* File URL */}
+              {/* File Upload / URL */}
               <div className="space-y-2">
-                <Label htmlFor="fileUrl">URL File/Gambar</Label>
+                <Label htmlFor="file">Upload File/Gambar</Label>
+                {!formData.fileUrl ? (
+                  <div className="space-y-2">
+                    {!selectedFile ? (
+                      <div>
+                        <Input
+                          id="file"
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                          onChange={handleFileSelect}
+                          className="cursor-pointer"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Format: JPEG, PNG, GIF, WebP (Maksimal 5MB)
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleUpload}
+                          disabled={uploading}
+                          className="flex-1"
+                        >
+                          {uploading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Mengupload...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="mr-2 h-4 w-4" />
+                              Upload {selectedFile.name}
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={handleRemoveFile}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="p-3 border rounded-md">
+                      <img
+                        src={formData.fileUrl}
+                        alt="Preview"
+                        className="max-w-full h-48 object-cover rounded-md"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRemoveFile}
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      Ganti Gambar
+                    </Button>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>atau masukkan URL:</span>
+                </div>
                 <Input
-                  id="fileUrl"
                   value={formData.fileUrl}
                   onChange={(e) => setFormData({ ...formData, fileUrl: e.target.value })}
                   placeholder="https://example.com/image.jpg"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Masukkan URL lengkap ke file atau gambar portofolio
-                </p>
               </div>
 
               {/* Video URL */}
