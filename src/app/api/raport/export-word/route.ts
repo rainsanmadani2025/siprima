@@ -64,6 +64,14 @@ async function loadLogo(filename: string): Promise<{ data: Buffer; type: string 
 async function createWordDocument(data: any) {
   const children: any[] = []
 
+  // Define no borders for tables
+  const noBorders = {
+    top: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+    bottom: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+    left: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+    right: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }
+  }
+
   // Load logos
   const kemenagLogo = await loadLogo('Logo Kemenag.png')
   const raLogo = await loadLogo('LOGO RA.png')
@@ -185,14 +193,6 @@ async function createWordDocument(data: any) {
 
   // Student Information - Using 6-column table to match sample
   // Column layout: Label | : | Value | Label | : | Value
-  // No borders for profile table
-  const noBorders = {
-    top: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
-    bottom: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
-    left: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
-    right: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }
-  }
-
   children.push(
     new Table({
       columnWidths: [1557, 76, 4604, 1558, 123, 1391], // DXA values from sample
