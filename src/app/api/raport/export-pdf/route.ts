@@ -791,8 +791,8 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   const principalName = sanitizeText(data.principalName || 'Kepala Sekolah')
   drawText(principalName, centerSignatureX, y - 90, 10, fontBold)
 
-  // Move down 15px (tight gap) for signature lines
-  y -= 15
+  // Move down 5px (tight gap) for signature lines
+  y -= 5
 
   // Draw signature lines for Orang Tua and Wali Kelas
   page.drawLine({
