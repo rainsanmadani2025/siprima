@@ -4,11 +4,12 @@ import { db } from '@/lib/db'
 // GET - Ambil portfolio by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const portfolio = await db.portfolio.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         student: {
           select: {
@@ -40,14 +41,15 @@ export async function GET(
 // PUT - Update portfolio
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const body = await request.json()
     const { studentId, title, type, description, fileUrl, videoUrl, date } = body
 
     const portfolio = await db.portfolio.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         studentId: studentId || undefined,
         title: title || undefined,
@@ -81,11 +83,12 @@ export async function PUT(
 // DELETE - Hapus portfolio
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     await db.portfolio.delete({
-      where: { id: params.id }
+      where: { id }
     })
 
     return NextResponse.json({ success: true, message: 'Portfolio berhasil dihapus' })
