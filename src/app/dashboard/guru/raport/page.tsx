@@ -649,13 +649,18 @@ export default function GuruRaportPage() {
 
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
-
-      // Open Word in new tab
-      window.open(url, '_blank')
-
+      const a = document.createElement('a')
+      a.href = url
+      // Download with PREVIEW- prefix to indicate this is for preview
+      a.download = `PREVIEW-Raport-${selectedStudent.name}-${getSemesterLabel(selectedSemester)}.docx`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      
       toast({
         title: "Berhasil",
-        description: "Word dibuka di tab baru"
+        description: "Preview Word didownload. Silakan buka file dengan aplikasi Word untuk melihat layout.",
       })
     } catch (error: any) {
       console.error('Error previewing Word:', error)
@@ -786,12 +791,12 @@ export default function GuruRaportPage() {
                       <FileDown className="mr-2 h-4 w-4" />
                       Export PDF
                     </Button>
-                    <Button onClick={handlePreviewWord} disabled={loadingPreviewWord} variant="outline" size="sm">
+                    <Button onClick={handlePreviewWord} disabled={loadingPreviewWord} variant="outline" size="sm" title="Download untuk melihat layout di Word">
                       {loadingPreviewWord && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       <Eye className="mr-2 h-4 w-4" />
                       Preview Word
                     </Button>
-                    <Button onClick={handleExportWord} disabled={loadingExportWord} variant="outline" size="sm">
+                    <Button onClick={handleExportWord} disabled={loadingExportWord} variant="outline" size="sm" title="Download file Word final">
                       {loadingExportWord && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       <Download className="mr-2 h-4 w-4" />
                       Export Word
