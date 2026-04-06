@@ -105,7 +105,8 @@ async function createWordDocument(data: any) {
             floating: {
               horizontalPosition: {
                 relative: "page",
-                offset: 850000 // In EMU (1/20 point) - approximately 42.5mm from left
+                align: "left",
+                offset: 1000000 // Small offset from left edge
               },
               verticalPosition: {
                 relative: "page",
@@ -135,7 +136,8 @@ async function createWordDocument(data: any) {
             floating: {
               horizontalPosition: {
                 relative: "page",
-                offset: 7650000 // In EMU - approximately 382.5mm from left
+                align: "right",
+                offset: 1000000 // Small offset from right edge
               },
               verticalPosition: {
                 relative: "page",
