@@ -16,6 +16,9 @@ function truncateText(text: string, maxLength: number): string {
 }
 
 function wrapText(text: string, maxChars: number): string[] {
+  // Replace newlines with spaces to avoid encoding errors
+  text = text.replace(/[\n\r]+/g, ' ')
+
   const words = text.split(' ')
   const lines: string[] = []
   let currentLine = ''
@@ -37,6 +40,9 @@ function wrapText(text: string, maxChars: number): string[] {
 }
 
 function wrapTextForJustify(text: string, maxWidth: number): string[][] {
+  // Replace newlines with spaces to avoid encoding errors
+  text = text.replace(/[\n\r]+/g, ' ')
+
   const words = text.split(' ').filter(w => w.length > 0)
   const lines: string[][] = []
   let currentLine: string[] = []
@@ -64,6 +70,9 @@ function wrapTextForJustify(text: string, maxWidth: number): string[][] {
 }
 
 function justifyText(text: string, maxChars: number): string[] {
+  // Replace newlines with spaces to avoid encoding errors
+  text = text.replace(/[\n\r]+/g, ' ')
+
   const words = text.split(' ').filter(w => w.length > 0)
   const lines: string[] = []
   let currentLine: string[] = []
@@ -146,6 +155,13 @@ function calculateDimensions(
       height: targetSize
     }
   }
+}
+
+function sanitizeText(text: string): string {
+  // Remove or replace characters that can't be encoded in WinAnsi
+  return text.replace(/[\n\r\t\x00-\x1F\x7F-\x9F]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 async function createPDFBuffer(data: any): Promise<Uint8Array> {
@@ -236,7 +252,7 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
 
   // Draw title and subtitle in the center
   const centerX = 595 / 2
-  const titleText = 'RA INSAN MADANI'
+  const titleText = sanitizeText(data.schoolName || 'RA INSAN MADANI')
   const subtitleText = 'Laporan Perkembangan Anak'
 
   // Calculate center position for title - aligned with logos
@@ -254,17 +270,22 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   drawLine(y)
   y -= 25
 
-  const address = truncateText(data.schoolAddress || '', 32)
+  const address = truncateText(sanitizeText(data.schoolAddress || ''), 32)
+  const studentName = sanitizeText(data.studentName || '')
+  const studentNis = sanitizeText(data.studentNis || '')
+  const studentNisn = sanitizeText(data.studentNisn || '')
+  const schoolName = sanitizeText(data.schoolName || '')
+  const className = sanitizeText(data.className || '')
 
   const infoData = [
-    { label: 'NAMA', value: `: ${data.studentName}`, x: leftMargin },
-    { label: 'NIS/NISN', value: `: ${data.studentNis} / ${data.studentNisn}`, x: leftMargin },
-    { label: 'Madrasah', value: `: ${data.schoolName}`, x: leftMargin },
+    { label: 'NAMA', value: `: ${studentName}`, x: leftMargin },
+    { label: 'NIS/NISN', value: `: ${studentNis} / ${studentNisn}`, x: leftMargin },
+    { label: 'Madrasah', value: `: ${schoolName}`, x: leftMargin },
     { label: 'Alamat', value: `: ${address}`, x: leftMargin },
-    { label: 'Kelas', value: `: ${data.className}`, x: 330 },
+    { label: 'Kelas', value: `: ${className}`, x: 330 },
     { label: 'Fase', value: `: Pondasi`, x: 330 },
-    { label: 'Semester', value: `: ${data.semester}`, x: 330 },
-    { label: 'Tahun Ajaran', value: `: ${data.academicYear}`, x: 330 },
+    { label: 'Semester', value: `: ${data.semester || '-'}`, x: 330 },
+    { label: 'Tahun Ajaran', value: `: ${data.academicYear || '-'}`, x: 330 },
   ]
 
   const startY = y
@@ -370,8 +391,10 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
 
           let x = leftMargin + 10
           words.forEach((word, wordIndex) => {
-            drawText(word, x, y, fontSize, font)
-            x += font.widthOfTextAtSize(word, fontSize)
+            // Sanitize each word before drawing
+            const sanitizedWord = sanitizeText(word)
+            drawText(sanitizedWord, x, y, fontSize, font)
+            x += font.widthOfTextAtSize(sanitizedWord, fontSize)
 
             // Add space after each word except the last
             if (wordIndex < words.length - 1) {
@@ -383,11 +406,13 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
           // Left align for single-word lines or the last line with normal spacing
           let x = leftMargin + 10
           words.forEach((word, wordIndex) => {
+            // Sanitize each word before drawing
+            const sanitizedWord = sanitizeText(word)
             if (wordIndex > 0) {
               x += baseSpaceWidth // Use normal space for non-justified lines
             }
-            drawText(word, x, y, fontSize, font)
-            x += font.widthOfTextAtSize(word, fontSize)
+            drawText(sanitizedWord, x, y, fontSize, font)
+            x += font.widthOfTextAtSize(sanitizedWord, fontSize)
           })
         }
 
@@ -409,7 +434,7 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   y -= 15
 
   const catatanData = data.assessments?.catatan_perkembangan
-  const obsKegiatan = catatanData?.observation || ''
+  const obsKegiatan = sanitizeText(catatanData?.observation || '')
 
   console.log('[createPDFBuffer] catatan_perkembangan data:', catatanData ? 'exists' : 'not found')
   console.log('[createPDFBuffer] obsKegiatan length:', obsKegiatan.length)
@@ -444,8 +469,9 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
 
         let x = leftMargin + 10
         words.forEach((word, wordIndex) => {
-          drawText(word, x, y, fontSize, font)
-          x += font.widthOfTextAtSize(word, fontSize)
+          const sanitizedWord = sanitizeText(word)
+          drawText(sanitizedWord, x, y, fontSize, font)
+          x += font.widthOfTextAtSize(sanitizedWord, fontSize)
 
           if (wordIndex < words.length - 1) {
             x += (baseSpaceWidth * minSpaceMultiplier) + additionalSpacePerGap
@@ -454,11 +480,12 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
       } else {
         let x = leftMargin + 10
         words.forEach((word, wordIndex) => {
+          const sanitizedWord = sanitizeText(word)
           if (wordIndex > 0) {
             x += baseSpaceWidth
           }
-          drawText(word, x, y, fontSize, font)
-          x += font.widthOfTextAtSize(word, fontSize)
+          drawText(sanitizedWord, x, y, fontSize, font)
+          x += font.widthOfTextAtSize(sanitizedWord, fontSize)
         })
       }
 
@@ -478,10 +505,10 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   y -= 25
 
   checkNewPage(100)
-  drawText('Catatan Anekdot : [Textarea - 3 baris]', leftMargin, y, 9, fontBold)
+  drawText('Catatan Anekdot :', leftMargin, y, 9, fontBold)
   y -= 15
 
-  const notes = data.assessments?.catatan_perkembangan?.notes || ''
+  const notes = sanitizeText(data.assessments?.catatan_perkembangan?.notes || '')
 
   if (notes) {
     const lines = wrapTextForJustify(notes, 75)
@@ -513,8 +540,9 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
 
         let x = leftMargin + 10
         words.forEach((word, wordIndex) => {
-          drawText(word, x, y, fontSize, font)
-          x += font.widthOfTextAtSize(word, fontSize)
+          const sanitizedWord = sanitizeText(word)
+          drawText(sanitizedWord, x, y, fontSize, font)
+          x += font.widthOfTextAtSize(sanitizedWord, fontSize)
 
           if (wordIndex < words.length - 1) {
             x += (baseSpaceWidth * minSpaceMultiplier) + additionalSpacePerGap
@@ -523,11 +551,12 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
       } else {
         let x = leftMargin + 10
         words.forEach((word, wordIndex) => {
+          const sanitizedWord = sanitizeText(word)
           if (wordIndex > 0) {
             x += baseSpaceWidth
           }
-          drawText(word, x, y, fontSize, font)
-          x += font.widthOfTextAtSize(word, fontSize)
+          drawText(sanitizedWord, x, y, fontSize, font)
+          x += font.widthOfTextAtSize(sanitizedWord, fontSize)
         })
       }
 
@@ -576,7 +605,7 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   drawText('Catatan Pendidik :', leftMargin, y, 9, fontBold)
   y -= 15
 
-  const educatorNotes = data.educatorNotes || ''
+  const educatorNotes = sanitizeText(data.educatorNotes || '')
 
   if (educatorNotes) {
     const lines = wrapTextForJustify(educatorNotes, 75)
@@ -608,8 +637,9 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
 
         let x = leftMargin + 10
         words.forEach((word, wordIndex) => {
-          drawText(word, x, y, fontSize, font)
-          x += font.widthOfTextAtSize(word, fontSize)
+          const sanitizedWord = sanitizeText(word)
+          drawText(sanitizedWord, x, y, fontSize, font)
+          x += font.widthOfTextAtSize(sanitizedWord, fontSize)
 
           if (wordIndex < words.length - 1) {
             x += (baseSpaceWidth * minSpaceMultiplier) + additionalSpacePerGap
@@ -618,11 +648,12 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
       } else {
         let x = leftMargin + 10
         words.forEach((word, wordIndex) => {
+          const sanitizedWord = sanitizeText(word)
           if (wordIndex > 0) {
             x += baseSpaceWidth
           }
-          drawText(word, x, y, fontSize, font)
-          x += font.widthOfTextAtSize(word, fontSize)
+          drawText(sanitizedWord, x, y, fontSize, font)
+          x += font.widthOfTextAtSize(sanitizedWord, fontSize)
         })
       }
 
@@ -661,7 +692,16 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
     color: rgb(0, 0, 0)
   })
 
-  y -= 50
+  y -= 10
+  // Draw teacher name
+  const teacherName = sanitizeText(data.teacherName || 'Guru')
+  drawText(teacherName, rightMargin - 120, y, 10, fontBold)
+  if (data.teacherNip) {
+    y -= 12
+    drawText(`NUPTK : ${data.teacherNip}`, rightMargin - 120, y, 8, font)
+  }
+
+  y -= 25
 
   drawText('Mengetahui,', rightMargin - 120, y, 10, fontBold)
   y -= 15
@@ -674,6 +714,15 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
     thickness: 1,
     color: rgb(0, 0, 0)
   })
+
+  y -= 10
+  // Draw principal name
+  const principalName = sanitizeText(data.principalName || 'Kepala Sekolah')
+  drawText(principalName, rightMargin - 120, y, 10, fontBold)
+  if (data.principalNip) {
+    y -= 12
+    drawText(`NUPTK : ${data.principalNip}`, rightMargin - 120, y, 8, font)
+  }
 
   const pdfBytes = await pdfDoc.save()
   return pdfBytes
