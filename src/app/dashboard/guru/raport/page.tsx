@@ -504,7 +504,7 @@ export default function GuruRaportPage() {
           principalName: principalInfo?.name || 'Kepala Sekolah',
           principalNip: principalInfo?.nip || '',
           assessments: reportData.assessments,
-          photos: reportData.photos || []
+          photos: reportData.photos || [],
           attendance: attendance,
           educatorNotes: educatorNotes
         }),
