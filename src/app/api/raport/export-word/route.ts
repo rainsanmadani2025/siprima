@@ -100,7 +100,7 @@ async function createWordDocument(data: any) {
                         type: kemenagLogo.type as any
                       })
                     ],
-                    spacing: { before: 100, after: 0 }
+                    spacing: { before: 140, after: 0 }
                   })
                 ] : []
               }),
@@ -138,7 +138,7 @@ async function createWordDocument(data: any) {
                         type: raLogo.type as any
                       })
                     ],
-                    spacing: { before: 180, after: 0 }
+                    spacing: { before: 160, after: 0 }
                   })
                 ] : []
               })
