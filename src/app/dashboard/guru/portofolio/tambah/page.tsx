@@ -294,7 +294,7 @@ export default function TambahPortofolioPage() {
               <div className="space-y-2">
                 <Label htmlFor="file">Upload File/Gambar</Label>
                 {!formData.fileUrl ? (
-                  <div className="space-y-2">
+                  <div className="space-y-3 p-4 border rounded-md bg-muted/50">
                     {!selectedFile ? (
                       <div>
                         <Input
@@ -304,44 +304,55 @@ export default function TambahPortofolioPage() {
                           onChange={handleFileSelect}
                           className="cursor-pointer"
                         />
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-xs text-muted-foreground mt-2">
                           Format: JPEG, PNG, GIF, WebP (Maksimal 5MB)
                         </p>
+                        <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950/20 rounded text-xs text-blue-700 dark:text-blue-300">
+                          <strong>Langkah 1:</strong> Pilih file gambar di atas
+                        </div>
                       </div>
                     ) : (
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={handleUpload}
-                          disabled={uploading}
-                          className="flex-1"
-                        >
-                          {uploading ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Mengupload...
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="mr-2 h-4 w-4" />
-                              Upload {selectedFile.name}
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={handleRemoveFile}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+                      <div className="space-y-3">
+                        <div className="p-2 bg-green-50 dark:bg-green-950/20 rounded text-xs text-green-700 dark:text-green-300">
+                          <strong>Langkah 2:</strong> File dipilih: {selectedFile.name}. Klik tombol di bawah untuk mengupload.
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="default"
+                            onClick={handleUpload}
+                            disabled={uploading}
+                            className="flex-1"
+                          >
+                            {uploading ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Mengupload...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="mr-2 h-4 w-4" />
+                                Upload {selectedFile.name}
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={handleRemoveFile}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <div className="p-3 border rounded-md">
+                  <div className="space-y-3 p-4 border rounded-md bg-green-50 dark:bg-green-950/20">
+                    <div className="p-2 bg-white dark:bg-gray-800 rounded text-xs text-green-700 dark:text-green-300 mb-2">
+                      <strong>✓ File berhasil diupload!</strong>
+                    </div>
+                    <div className="p-3 border rounded-md bg-white dark:bg-gray-800">
                       <img
                         src={formData.fileUrl}
                         alt="Preview"
@@ -360,7 +371,7 @@ export default function TambahPortofolioPage() {
                   </div>
                 )}
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>atau masukkan URL:</span>
+                  <span>atau masukkan URL langsung:</span>
                 </div>
                 <Input
                   value={formData.fileUrl}
