@@ -148,7 +148,7 @@ export default function GuruPenilaianPage() {
   const [stats, setStats] = useState<AssessmentStatistics | null>(null)
   const [students, setStudents] = useState<Student[]>([])
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
-  const [selectedPeriod, setSelectedPeriod] = useState(new Date().toISOString().slice(0, 7))
+  const [selectedSemester, setSelectedSemester] = useState('Ganjil')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [savingNotes, setSavingNotes] = useState(false)
@@ -177,9 +177,9 @@ export default function GuruPenilaianPage() {
   useEffect(() => {
     fetchStatistics()
     fetchStudents()
-  }, [selectedPeriod])
+  }, [selectedSemester])
 
-  // Reset form values when period changes
+  // Reset form values when semester changes
   useEffect(() => {
     setFormValues({})
     setSharedNotes({ observation: '', anecdotalNotes: '' })
@@ -187,7 +187,7 @@ export default function GuruPenilaianPage() {
     setObservationTemplateIndex(-1)
     setAnecdotalTemplateIndex(-1)
     setUploadedPhotos([])
-  }, [selectedPeriod])
+  }, [selectedSemester])
 
   const fetchStatistics = async () => {
     try {
@@ -197,7 +197,7 @@ export default function GuruPenilaianPage() {
         return
       }
 
-      const response = await fetch(`/api/guru/assessment-statistics?userId=${userId}&month=${selectedPeriod}`)
+      const response = await fetch(`/api/guru/assessment-statistics?userId=${userId}&semester=${selectedSemester}`)
 
       if (!response.ok) {
         console.warn('[Statistics] Response not OK:', response.status)
@@ -401,8 +401,8 @@ export default function GuruPenilaianPage() {
       setSaving(true)
       const userId = localStorage.getItem('userId')
 
-      // Generate date from selected period (first day of the month)
-      const date = `${selectedPeriod}-01`
+      // Generate date from selected semester
+      const date = selectedSemester === 'Ganjil' ? '2025-01-01' : '2025-07-01'
 
       const response = await fetch('/api/guru/save-assessment', {
         method: 'POST',
@@ -414,7 +414,7 @@ export default function GuruPenilaianPage() {
           score: formValue.score,
           observation: formValue.notes || '',
           notes: sharedNotes.anecdotalNotes || '',
-          semester: selectedPeriod.split('-')[1] === '01' ? 'Ganjil' : 'Genap',
+          semester: selectedSemester,
           academicYear: '2025/2026',
           date: date
         })
@@ -477,13 +477,13 @@ export default function GuruPenilaianPage() {
       setSavingNotes(true)
       const userId = localStorage.getItem('userId')
 
-      // Generate date from selected period (first day of the month)
-      const date = `${selectedPeriod}-01`
+      // Generate date from selected semester
+      const date = selectedSemester === 'Ganjil' ? '2025-01-01' : '2025-07-01'
 
       // Get existing assessment data to preserve attendance and educatorNotes
       let existingDocData: any = {}
       try {
-        const getAssessResponse = await fetch(`/api/guru/get-assessment?teacherId=${userId}&studentId=${selectedStudent.id}&date=${selectedPeriod}`)
+        const getAssessResponse = await fetch(`/api/guru/get-assessment?teacherId=${userId}&studentId=${selectedStudent.id}&date=${selectedSemester === 'Ganjil' ? '2025-01' : '2025-07'}`)
         if (getAssessResponse.ok) {
           const getAssessData = await getAssessResponse.json()
           if (getAssessData.success && getAssessData.assessments) {
@@ -517,7 +517,7 @@ export default function GuruPenilaianPage() {
           observation: sharedNotes.observation || '',
           notes: sharedNotes.anecdotalNotes || '',
           documentation: JSON.stringify(documentation),
-          semester: selectedPeriod.split('-')[1] === '01' ? 'Ganjil' : 'Genap',
+          semester: selectedSemester,
           academicYear: '2025/2026',
           date: date
         })
@@ -557,10 +557,8 @@ export default function GuruPenilaianPage() {
     }
   }
 
-  const getMonthLabel = (month: string) => {
-    const [year, monthNum] = month.split('-')
-    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
-    return `${months[parseInt(monthNum) - 1]} ${year}`
+  const getSemesterLabel = (semester: string) => {
+    return semester === 'Ganjil' ? 'Semester 1 (Ganjil)' : 'Semester 2 (Genap)'
   }
 
   const getCurrentTemplateStyle = (aspect: string) => {
@@ -599,21 +597,13 @@ export default function GuruPenilaianPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+            <Select value={selectedSemester} onValueChange={setSelectedSemester}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Pilih Periode" />
+                <SelectValue placeholder="Pilih Semester" />
               </SelectTrigger>
               <SelectContent>
-                {[
-                  new Date().toISOString().slice(0, 7),
-                  '2025-01', '2025-02', '2025-03', '2025-04', '2025-05',
-                  '2025-06', '2025-07', '2025-08', '2025-09', '2025-10',
-                  '2025-11', '2025-12'
-                ].map(month => (
-                  <SelectItem key={month} value={month}>
-                    {getMonthLabel(month)}
-                  </SelectItem>
-                ))}
+                <SelectItem value="Ganjil">Semester 1 (Ganjil)</SelectItem>
+                <SelectItem value="Genap">Semester 2 (Genap)</SelectItem>
               </SelectContent>
             </Select>
             <Button variant="outline">
@@ -713,7 +703,7 @@ export default function GuruPenilaianPage() {
                     Siswa: {selectedStudent.name} ({selectedStudent.nis})
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Kelas {selectedStudent.className} • Periode: {getMonthLabel(selectedPeriod)}
+                    Kelas {selectedStudent.className} • Periode: {getSemesterLabel(selectedSemester)}
                   </p>
                 </div>
 

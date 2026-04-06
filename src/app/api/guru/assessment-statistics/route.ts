@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const userId = searchParams.get('userId')
-    const month = searchParams.get('month')
+    const semester = searchParams.get('semester')
 
     if (!userId) {
       return NextResponse.json(
@@ -14,9 +14,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    if (!month) {
+    if (!semester) {
       return NextResponse.json(
-        { success: false, error: 'Parameter month diperlukan' },
+        { success: false, error: 'Parameter semester diperlukan' },
         { status: 400 }
       )
     }
@@ -43,9 +43,7 @@ export async function GET(request: NextRequest) {
       include: {
         assessments: {
           where: {
-            date: {
-              startsWith: month
-            }
+            semester: semester
           }
         }
       }
