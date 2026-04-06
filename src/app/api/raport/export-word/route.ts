@@ -75,7 +75,7 @@ async function createWordDocument(data: any) {
     headerChildren.push(
       new ImageRun({
         data: kemenagLogo.data,
-        transformation: { width: 70, height: 90 },
+        transformation: { width: 80, height: 100 },
         type: kemenagLogo.type as any
       })
     )
@@ -83,7 +83,7 @@ async function createWordDocument(data: any) {
   
   headerChildren.push(
     new TextRun({
-      text: data.schoolName || 'RA INSAN MADANI',
+      text: '    ' + (data.schoolName || 'RA INSAN MADANI') + '    ',
       bold: true,
       size: 32,
       color: '000000'
@@ -94,7 +94,7 @@ async function createWordDocument(data: any) {
     headerChildren.push(
       new ImageRun({
         data: raLogo.data,
-        transformation: { width: 50, height: 45 },
+        transformation: { width: 80, height: 100 },
         type: raLogo.type as any
       })
     )
@@ -133,8 +133,13 @@ async function createWordDocument(data: any) {
 
   // Student Information - Using 6-column table to match sample
   // Column layout: Label | : | Value | Label | : | Value
-  const tableBorder = { style: BorderStyle.SINGLE, size: 6, color: '000000' }
-  const cellBorders = { top: tableBorder, bottom: tableBorder, left: tableBorder, right: tableBorder }
+  // No borders for profile table
+  const noBorders = {
+    top: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+    bottom: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+    left: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+    right: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }
+  }
 
   children.push(
     new Table({
@@ -146,166 +151,166 @@ async function createWordDocument(data: any) {
             // NAMA
             new TableCell({
               width: { size: 1557, type: WidthType.DXA },
-              borders: cellBorders,
+              borders: noBorders,
               verticalAlign: VerticalAlign.CENTER,
               children: [
                 new Paragraph({
                   children: [new TextRun({ text: 'Nama  ', size: 20 })],
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 }),
                 new Paragraph({
                   children: [new TextRun({ text: 'NIS/NISN  ', size: 20 })],
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 }),
                 new Paragraph({
                   children: [new TextRun({ text: 'Madrasah  ', size: 20 })],
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 }),
                 new Paragraph({
                   children: [new TextRun({ text: 'Alamat ', size: 20 })],
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 })
               ]
             }),
             // : column (left)
             new TableCell({
               width: { size: 76, type: WidthType.DXA },
-              borders: cellBorders,
+              borders: noBorders,
               verticalAlign: VerticalAlign.CENTER,
               children: [
                 new Paragraph({
                   children: [new TextRun({ text: ':', size: 20 })],
                   alignment: AlignmentType.CENTER,
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 }),
                 new Paragraph({
                   children: [new TextRun({ text: ':', size: 20 })],
                   alignment: AlignmentType.CENTER,
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 }),
                 new Paragraph({
                   children: [new TextRun({ text: ':', size: 20 })],
                   alignment: AlignmentType.CENTER,
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 }),
                 new Paragraph({
                   children: [new TextRun({ text: ':', size: 20 })],
                   alignment: AlignmentType.CENTER,
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 })
               ]
             }),
             // Values column (left)
             new TableCell({
               width: { size: 4604, type: WidthType.DXA },
-              borders: cellBorders,
+              borders: noBorders,
               verticalAlign: VerticalAlign.CENTER,
               children: [
                 new Paragraph({
                   children: [new TextRun({ text: ` ${data.studentName}`, size: 20 })],
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 }),
                 new Paragraph({
                   children: [new TextRun({ text: ` ${data.studentNis} / ${data.studentNisn || '-'}`, size: 20 })],
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 }),
                 new Paragraph({
                   children: [new TextRun({ text: ` ${data.schoolName}`, size: 20 })],
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 }),
                 new Paragraph({
                   children: [new TextRun({ text: ` ${data.schoolAddress || '-'}`, size: 20 })],
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 })
               ]
             }),
             // Kelas
             new TableCell({
               width: { size: 1558, type: WidthType.DXA },
-              borders: cellBorders,
+              borders: noBorders,
               verticalAlign: VerticalAlign.CENTER,
               children: [
                 new Paragraph({
                   children: [new TextRun({ text: 'Kelas', size: 20 })],
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 }),
                 new Paragraph({
                   children: [new TextRun({ text: 'Fase ', size: 20 })],
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 }),
                 new Paragraph({
                   children: [new TextRun({ text: 'Semester ', size: 20 })],
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 }),
                 new Paragraph({
                   children: [new TextRun({ text: 'Tahun ', size: 20 })],
                   tabStops: [{ type: 'right', position: 1929 }],
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 }),
                 new Paragraph({
                   children: [new TextRun({ text: 'Ajaran ', size: 20 })],
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 })
               ]
             }),
             // : column (right)
             new TableCell({
               width: { size: 123, type: WidthType.DXA },
-              borders: cellBorders,
+              borders: noBorders,
               verticalAlign: VerticalAlign.CENTER,
               children: [
                 new Paragraph({
                   children: [new TextRun({ text: ':', size: 20 })],
                   alignment: AlignmentType.CENTER,
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 }),
                 new Paragraph({
                   children: [new TextRun({ text: ':', size: 20 })],
                   alignment: AlignmentType.CENTER,
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 }),
                 new Paragraph({
                   children: [new TextRun({ text: ':', size: 20 })],
                   alignment: AlignmentType.CENTER,
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 }),
                 new Paragraph({
                   children: [new TextRun({ text: ':', size: 20 })],
                   alignment: AlignmentType.CENTER,
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 }),
                 new Paragraph({
                   children: [new TextRun({ text: '', size: 20 })],
                   alignment: AlignmentType.CENTER,
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 })
               ]
             }),
             // Values column (right)
             new TableCell({
               width: { size: 1391, type: WidthType.DXA },
-              borders: cellBorders,
+              borders: noBorders,
               verticalAlign: VerticalAlign.CENTER,
               children: [
                 new Paragraph({
                   children: [new TextRun({ text: ` ${data.className}`, size: 20 })],
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 }),
                 new Paragraph({
                   children: [new TextRun({ text: ` Pondasi`, size: 20 })],
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 }),
                 new Paragraph({
                   children: [new TextRun({ text: ` ${data.semester}`, size: 20 })],
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 }),
                 new Paragraph({
                   children: [new TextRun({ text: ` ${data.academicYear}`, size: 20 })],
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 }),
                 new Paragraph({
                   children: [new TextRun({ text: '', size: 20 })],
-                  spacing: { line: 360 }
+                  spacing: { line: 280 }
                 })
               ]
             })
@@ -704,6 +709,7 @@ async function createWordDocument(data: any) {
   // Tanda Tangan Section - 2 rows with 3 columns to match sample
   // Row 1: Orang Tua (left), Empty (center), Wali Kelas (right)
   // Row 2: Empty, Kepala Sekolah (center), Empty
+  // No borders for signature table
   children.push(
     new Table({
       columnWidths: [2300, 4000, 3066], // Approximate widths to match sample
@@ -715,6 +721,7 @@ async function createWordDocument(data: any) {
             // Orang Tua
             new TableCell({
               width: { size: 2300, type: WidthType.DXA },
+              borders: noBorders,
               verticalAlign: VerticalAlign.TOP,
               children: [
                 new Paragraph({
@@ -771,6 +778,7 @@ async function createWordDocument(data: any) {
             // Empty center column
             new TableCell({
               width: { size: 4000, type: WidthType.DXA },
+              borders: noBorders,
               verticalAlign: VerticalAlign.TOP,
               children: [
                 new Paragraph({
@@ -781,6 +789,7 @@ async function createWordDocument(data: any) {
             // Wali Kelas
             new TableCell({
               width: { size: 3066, type: WidthType.DXA },
+              borders: noBorders,
               verticalAlign: VerticalAlign.TOP,
               children: [
                 new Paragraph({
@@ -856,6 +865,7 @@ async function createWordDocument(data: any) {
             // Empty left column
             new TableCell({
               width: { size: 2300, type: WidthType.DXA },
+              borders: noBorders,
               verticalAlign: VerticalAlign.TOP,
               children: [
                 new Paragraph({
@@ -872,6 +882,7 @@ async function createWordDocument(data: any) {
             // Kepala Sekolah (center)
             new TableCell({
               width: { size: 4000, type: WidthType.DXA },
+              borders: noBorders,
               verticalAlign: VerticalAlign.TOP,
               children: [
                 new Paragraph({
@@ -944,6 +955,7 @@ async function createWordDocument(data: any) {
             // Empty right column
             new TableCell({
               width: { size: 3066, type: WidthType.DXA },
+              borders: noBorders,
               verticalAlign: VerticalAlign.TOP,
               children: [
                 new Paragraph({
