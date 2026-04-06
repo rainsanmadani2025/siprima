@@ -134,21 +134,32 @@ async function loadRALogo(pdfDoc: PDFDocument) {
   }
 }
 
-async function loadStudentPhoto(pdfDoc: PDFDocument, photoPath: string) {
+async function loadStudentPhoto(pdfDoc: PDFDocument, photoData: string) {
   try {
-    const fullPath = path.join(process.cwd(), 'upload', photoPath)
-    const photoBytes = await fs.readFile(fullPath)
-    // Try to embed as PNG or JPEG
-    if (photoPath.toLowerCase().endsWith('.png')) {
-      return await pdfDoc.embedPng(photoBytes)
-    } else if (photoPath.toLowerCase().match(/\.(jpg|jpeg)$/)) {
-      return await pdfDoc.embedJpg(photoBytes)
+    let imageBytes: Uint8Array
+
+    // Check if it's a base64 data URL
+    if (photoData.startsWith('data:')) {
+      // Extract the base64 part (after the comma)
+      const base64Data = photoData.split(',')[1]
+      imageBytes = Buffer.from(base64Data, 'base64')
+    } else {
+      // It's a file path
+      const fullPath = path.join(process.cwd(), 'upload', photoData)
+      imageBytes = await fs.readFile(fullPath)
+    }
+
+    // Detect image type and embed
+    if (photoData.startsWith('data:image/png') || photoData.toLowerCase().endsWith('.png')) {
+      return await pdfDoc.embedPng(imageBytes)
+    } else if (photoData.startsWith('data:image/jpeg') || photoData.startsWith('data:image/jpg') || photoData.toLowerCase().match(/\.(jpg|jpeg)$/)) {
+      return await pdfDoc.embedJpg(imageBytes)
     } else {
       // Try PNG first, then JPEG
       try {
-        return await pdfDoc.embedPng(photoBytes)
+        return await pdfDoc.embedPng(imageBytes)
       } catch {
-        return await pdfDoc.embedJpg(photoBytes)
+        return await pdfDoc.embedJpg(imageBytes)
       }
     }
   } catch (error) {
@@ -604,12 +615,16 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
 
   // Display student photos if available
   const photos = data.photos || []
+  console.log('[createPDFBuffer] Photos data:', photos)
+  console.log('[createPDFBuffer] Photos length:', photos.length)
+
   if (photos.length > 0) {
     const photoSize = 120
     const photoGap = 15
     let photoX = leftMargin
 
     for (let i = 0; i < Math.min(photos.length, 3); i++) {
+      console.log(`[createPDFBuffer] Loading photo ${i + 1}:`, photos[i])
       const photo = await loadStudentPhoto(pdfDoc, photos[i])
       if (photo) {
         const dims = calculateDimensions(photo.width, photo.height, photoSize)
@@ -752,29 +767,25 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   checkNewPage(120)
 
   // Calculate positions for three signatures
-  // Orang Tua (left), Kepala Sekolah (center), Wali Kelas (right)
+  // Orang Tua (left), Kepala Sekolah (center - 1 paragraph below), Wali Kelas (right)
   const leftSignatureX = leftMargin
   const centerSignatureX = (leftMargin + rightMargin) / 2 - 60
   const rightSignatureX = rightMargin - 120
   const signatureWidth = 120
 
-  // Draw labels
+  // Draw labels for Orang Tua and Wali Kelas (same line)
   drawText('Orang Tua/Wali', leftSignatureX, y, 10, fontBold)
-  drawText('Kepala Sekolah', centerSignatureX, y, 10, fontBold)
   drawText('Wali Kelas', rightSignatureX, y, 10, fontBold)
+
+  // Draw Kepala Sekolah label 1 paragraph (30px) below
+  drawText('Kepala Sekolah', centerSignatureX, y - 30, 10, fontBold)
+
   y -= 40
 
-  // Draw signature lines
+  // Draw signature lines for Orang Tua and Wali Kelas
   page.drawLine({
     start: { x: leftSignatureX, y },
     end: { x: leftSignatureX + signatureWidth, y },
-    thickness: 1,
-    color: rgb(0, 0, 0)
-  })
-
-  page.drawLine({
-    start: { x: centerSignatureX, y },
-    end: { x: centerSignatureX + signatureWidth, y },
     thickness: 1,
     color: rgb(0, 0, 0)
   })
@@ -786,25 +797,31 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
     color: rgb(0, 0, 0)
   })
 
+  // Draw signature line for Kepala Sekolah 1 paragraph below
+  page.drawLine({
+    start: { x: centerSignatureX, y: y - 30 },
+    end: { x: centerSignatureX + signatureWidth, y: y - 30 },
+    thickness: 1,
+    color: rgb(0, 0, 0)
+  })
+
   y -= 10
 
-  // Draw teacher name
+  // Draw teacher name and NUPTK (Wali Kelas)
   const teacherName = sanitizeText(data.teacherName || 'Guru')
   drawText(teacherName, rightSignatureX, y, 10, fontBold)
   if (data.teacherNip) {
     y -= 12
     drawText(`NUPTK : ${data.teacherNip}`, rightSignatureX, y, 8, font)
+    y += 12
   }
 
-  // Reset y for principal name
-  y += 12
-
-  // Draw principal name
+  // Draw principal name and NUPTK (Kepala Sekolah - 1 paragraph below)
   const principalName = sanitizeText(data.principalName || 'Kepala Sekolah')
-  drawText(principalName, centerSignatureX, y, 10, fontBold)
+  drawText(principalName, centerSignatureX, y - 30, 10, fontBold)
   if (data.principalNip) {
     y -= 12
-    drawText(`NUPTK : ${data.principalNip}`, centerSignatureX, y, 8, font)
+    drawText(`NUPTK : ${data.principalNip}`, centerSignatureX, y - 30, 8, font)
     y += 12
   }
 
