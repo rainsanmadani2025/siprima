@@ -596,21 +596,7 @@ export default function GuruPenilaianPage() {
               Catat penilaian perkembangan siswa berdasarkan 3 aspek perkembangan anak
             </p>
           </div>
-          <div className="flex gap-2">
-            <Select value={selectedSemester} onValueChange={setSelectedSemester}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Pilih Semester" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Ganjil">Semester 1 (Ganjil)</SelectItem>
-                <SelectItem value="Genap">Semester 2 (Genap)</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline">
-              <Download className="mr-2 h-4 w-4" />
-              Export
-            </Button>
-          </div>
+
         </div>
 
         {/* Statistik Penilaian */}
@@ -677,21 +663,32 @@ export default function GuruPenilaianPage() {
                 Form Penilaian
               </CardTitle>
               {students.length > 0 && (
-                <Select
-                  value={selectedStudent?.id || ''}
-                  onValueChange={handleStudentChange}
-                >
-                  <SelectTrigger className="w-80">
-                    <SelectValue placeholder="Pilih Siswa" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {students.map((student) => (
-                      <SelectItem key={student.id} value={student.id}>
-                        {student.name} ({student.nis})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select
+                    value={selectedStudent?.id || ''}
+                    onValueChange={handleStudentChange}
+                  >
+                    <SelectTrigger className="w-80">
+                      <SelectValue placeholder="Pilih Siswa" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {students.map((student) => (
+                        <SelectItem key={student.id} value={student.id}>
+                          {student.name} ({student.nis})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={selectedSemester} onValueChange={setSelectedSemester}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Pilih Semester" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Ganjil">Semester 1 (Ganjil)</SelectItem>
+                      <SelectItem value="Genap">Semester 2 (Genap)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               )}
             </div>
           </CardHeader>
