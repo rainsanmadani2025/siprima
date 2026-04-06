@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType, VerticalAlign, ImageRun } from 'docx'
+import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType, VerticalAlign, ImageRun, ShadingType } from 'docx'
+import fs from 'fs'
+import path from 'path'
 
 // Score labels mapping
 const scoreLabels: Record<string, string> = {
@@ -42,20 +44,65 @@ function getImageType(base64: string): { extension: string; mimeType: string } {
   return { extension: 'jpg', mimeType: 'image/jpeg' }
 }
 
+async function loadLogo(filename: string): Promise<{ data: Buffer; type: string } | null> {
+  try {
+    const logoPath = path.join(process.cwd(), 'upload', filename)
+    const logoData = fs.readFileSync(logoPath)
+    
+    if (filename.toLowerCase().includes('.png')) {
+      return { data: logoData, type: 'image/png' }
+    } else if (filename.toLowerCase().includes('.jpg') || filename.toLowerCase().includes('.jpeg')) {
+      return { data: logoData, type: 'image/jpeg' }
+    }
+    return null
+  } catch (error) {
+    console.error(`Error loading logo ${filename}:`, error)
+    return null
+  }
+}
+
 async function createWordDocument(data: any) {
   const children: any[] = []
 
-  // Header Section
+  // Load logos
+  const kemenagLogo = await loadLogo('Logo Kemenag.png')
+  const raLogo = await loadLogo('LOGO RA.png')
+
+  // Header Section with Logos
+  const headerChildren: any[] = []
+  
+  if (kemenagLogo) {
+    headerChildren.push(
+      new ImageRun({
+        data: kemenagLogo.data,
+        transformation: { width: 70, height: 90 },
+        type: kemenagLogo.type as any
+      })
+    )
+  }
+  
+  headerChildren.push(
+    new TextRun({
+      text: data.schoolName || 'RA INSAN MADANI',
+      bold: true,
+      size: 32,
+      color: '000000'
+    })
+  )
+  
+  if (raLogo) {
+    headerChildren.push(
+      new ImageRun({
+        data: raLogo.data,
+        transformation: { width: 50, height: 45 },
+        type: raLogo.type as any
+      })
+    )
+  }
+
   children.push(
     new Paragraph({
-      children: [
-        new TextRun({
-          text: data.schoolName || 'RA INSAN MADANI',
-          bold: true,
-          size: 32,
-          color: '000000'
-        })
-      ],
+      children: headerChildren,
       alignment: AlignmentType.CENTER,
       spacing: { after: 100 }
     }),
@@ -73,67 +120,192 @@ async function createWordDocument(data: any) {
     })
   )
 
-  // Horizontal line
+  // Double horizontal line
   children.push(
     new Paragraph({
       children: [new TextRun('')],
       border: {
-        bottom: { color: '000000', space: 1, style: BorderStyle.SINGLE, size: 6 }
+        bottom: { color: '000000', space: 1, style: BorderStyle.DOUBLE, size: 12 }
       },
       spacing: { after: 300 }
     })
   )
 
-  // Student Information - Using 2-column table to match HTML preview
+  // Student Information - Using 6-column table to match sample
+  // Column layout: Label | : | Value | Label | : | Value
+  const tableBorder = { style: BorderStyle.SINGLE, size: 6, color: '000000' }
+  const cellBorders = { top: tableBorder, bottom: tableBorder, left: tableBorder, right: tableBorder }
+
   children.push(
     new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
+      columnWidths: [1557, 76, 4604, 1558, 123, 1391], // DXA values from sample
+      margins: { top: 100, bottom: 100, left: 100, right: 100 },
       rows: [
         new TableRow({
           children: [
-            // Left column
+            // NAMA
             new TableCell({
-              width: { size: 50, type: WidthType.PERCENTAGE },
-              verticalAlign: VerticalAlign.TOP,
+              width: { size: 1557, type: WidthType.DXA },
+              borders: cellBorders,
+              verticalAlign: VerticalAlign.CENTER,
               children: [
                 new Paragraph({
-                  children: [new TextRun({ text: `Nama : ${data.studentName}`, size: 20 })],
-                  spacing: { after: 80 }
+                  children: [new TextRun({ text: 'Nama  ', size: 20 })],
+                  spacing: { line: 360 }
                 }),
                 new Paragraph({
-                  children: [new TextRun({ text: `NIS/NISN : ${data.studentNis} / ${data.studentNisn || '-'}`, size: 20 })],
-                  spacing: { after: 80 }
+                  children: [new TextRun({ text: 'NIS/NISN  ', size: 20 })],
+                  spacing: { line: 360 }
                 }),
                 new Paragraph({
-                  children: [new TextRun({ text: `Madrasah : ${data.schoolName}`, size: 20 })],
-                  spacing: { after: 80 }
+                  children: [new TextRun({ text: 'Madrasah  ', size: 20 })],
+                  spacing: { line: 360 }
                 }),
                 new Paragraph({
-                  children: [new TextRun({ text: `Alamat : ${data.schoolAddress || '-'}`, size: 20 })],
-                  spacing: { after: 0 }
+                  children: [new TextRun({ text: 'Alamat ', size: 20 })],
+                  spacing: { line: 360 }
                 })
               ]
             }),
-            // Right column
+            // : column (left)
             new TableCell({
-              width: { size: 50, type: WidthType.PERCENTAGE },
-              verticalAlign: VerticalAlign.TOP,
+              width: { size: 76, type: WidthType.DXA },
+              borders: cellBorders,
+              verticalAlign: VerticalAlign.CENTER,
               children: [
                 new Paragraph({
-                  children: [new TextRun({ text: `Kelas : ${data.className}`, size: 20 })],
-                  spacing: { after: 80 }
+                  children: [new TextRun({ text: ':', size: 20 })],
+                  alignment: AlignmentType.CENTER,
+                  spacing: { line: 360 }
                 }),
                 new Paragraph({
-                  children: [new TextRun({ text: `Fase : Pondasi`, size: 20 })],
-                  spacing: { after: 80 }
+                  children: [new TextRun({ text: ':', size: 20 })],
+                  alignment: AlignmentType.CENTER,
+                  spacing: { line: 360 }
                 }),
                 new Paragraph({
-                  children: [new TextRun({ text: `Semester : ${data.semester}`, size: 20 })],
-                  spacing: { after: 80 }
+                  children: [new TextRun({ text: ':', size: 20 })],
+                  alignment: AlignmentType.CENTER,
+                  spacing: { line: 360 }
                 }),
                 new Paragraph({
-                  children: [new TextRun({ text: `Tahun Ajaran : ${data.academicYear}`, size: 20 })],
-                  spacing: { after: 0 }
+                  children: [new TextRun({ text: ':', size: 20 })],
+                  alignment: AlignmentType.CENTER,
+                  spacing: { line: 360 }
+                })
+              ]
+            }),
+            // Values column (left)
+            new TableCell({
+              width: { size: 4604, type: WidthType.DXA },
+              borders: cellBorders,
+              verticalAlign: VerticalAlign.CENTER,
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: ` ${data.studentName}`, size: 20 })],
+                  spacing: { line: 360 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: ` ${data.studentNis} / ${data.studentNisn || '-'}`, size: 20 })],
+                  spacing: { line: 360 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: ` ${data.schoolName}`, size: 20 })],
+                  spacing: { line: 360 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: ` ${data.schoolAddress || '-'}`, size: 20 })],
+                  spacing: { line: 360 }
+                })
+              ]
+            }),
+            // Kelas
+            new TableCell({
+              width: { size: 1558, type: WidthType.DXA },
+              borders: cellBorders,
+              verticalAlign: VerticalAlign.CENTER,
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: 'Kelas', size: 20 })],
+                  spacing: { line: 360 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: 'Fase ', size: 20 })],
+                  spacing: { line: 360 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: 'Semester ', size: 20 })],
+                  spacing: { line: 360 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: 'Tahun ', size: 20 })],
+                  tabStops: [{ type: 'right', position: 1929 }],
+                  spacing: { line: 360 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: 'Ajaran ', size: 20 })],
+                  spacing: { line: 360 }
+                })
+              ]
+            }),
+            // : column (right)
+            new TableCell({
+              width: { size: 123, type: WidthType.DXA },
+              borders: cellBorders,
+              verticalAlign: VerticalAlign.CENTER,
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: ':', size: 20 })],
+                  alignment: AlignmentType.CENTER,
+                  spacing: { line: 360 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: ':', size: 20 })],
+                  alignment: AlignmentType.CENTER,
+                  spacing: { line: 360 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: ':', size: 20 })],
+                  alignment: AlignmentType.CENTER,
+                  spacing: { line: 360 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: ':', size: 20 })],
+                  alignment: AlignmentType.CENTER,
+                  spacing: { line: 360 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: '', size: 20 })],
+                  alignment: AlignmentType.CENTER,
+                  spacing: { line: 360 }
+                })
+              ]
+            }),
+            // Values column (right)
+            new TableCell({
+              width: { size: 1391, type: WidthType.DXA },
+              borders: cellBorders,
+              verticalAlign: VerticalAlign.CENTER,
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: ` ${data.className}`, size: 20 })],
+                  spacing: { line: 360 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: ` Pondasi`, size: 20 })],
+                  spacing: { line: 360 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: ` ${data.semester}`, size: 20 })],
+                  spacing: { line: 360 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: ` ${data.academicYear}`, size: 20 })],
+                  spacing: { line: 360 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: '', size: 20 })],
+                  spacing: { line: 360 }
                 })
               ]
             })
@@ -169,17 +341,18 @@ async function createWordDocument(data: any) {
       })
     )
 
-    // Scores - Individual checkboxes like HTML: [ ] BB  [X] MB  [ ] BSH  [ ] BSB
+    // Scores - Using circles like sample: ○ BB ● MB ○ BSH ○ BSB
     const scores = ['BB', 'MB', 'BSH', 'BSB']
     const scoreRuns: TextRun[] = []
 
     scores.forEach((s, index) => {
       const isSelected = s === score
+      // Use Unicode circles: ○ (white) and ● (black)
       scoreRuns.push(
         new TextRun({
-          text: `[${isSelected ? 'X' : ' '}] ${s}`,
+          text: `${isSelected ? '\u25CF' : '\u25CB'} ${isSelected ? s : s}`,
           bold: isSelected,
-          size: 20
+          size: 24
         })
       )
 
@@ -188,7 +361,7 @@ async function createWordDocument(data: any) {
         scoreRuns.push(
           new TextRun({
             text: '    ',
-            size: 20
+            size: 24
           })
         )
       }
@@ -346,8 +519,9 @@ async function createWordDocument(data: any) {
           if (imageBuffer) {
             rowCells.push(
               new TableCell({
-                width: { size: 33.33, type: WidthType.PERCENTAGE },
+                width: { size: 3120, type: WidthType.DXA },
                 verticalAlign: VerticalAlign.CENTER,
+                borders: cellBorders,
                 children: [
                   new Paragraph({
                     children: [
@@ -369,8 +543,9 @@ async function createWordDocument(data: any) {
             // If image parsing fails, show placeholder
             rowCells.push(
               new TableCell({
-                width: { size: 33.33, type: WidthType.PERCENTAGE },
+                width: { size: 3120, type: WidthType.DXA },
                 verticalAlign: VerticalAlign.CENTER,
+                borders: cellBorders,
                 children: [
                   new Paragraph({
                     children: [
@@ -390,7 +565,8 @@ async function createWordDocument(data: any) {
           // Empty cell for grid alignment
           rowCells.push(
             new TableCell({
-              width: { size: 33.33, type: WidthType.PERCENTAGE },
+              width: { size: 3120, type: WidthType.DXA },
+              borders: cellBorders,
               children: []
             })
           )
@@ -414,7 +590,8 @@ async function createWordDocument(data: any) {
           spacing: { after: 200 }
         }),
         new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
+          columnWidths: [3120, 3120, 3120],
+          margins: { top: 100, bottom: 100, left: 100, right: 100 },
           rows: photoRows
         })
       )
@@ -487,7 +664,7 @@ async function createWordDocument(data: any) {
     new Paragraph({
       children: [new TextRun('')],
       border: {
-        bottom: { color: '000000', space: 1, style: BorderStyle.SINGLE, size: 6 }
+        bottom: { color: '808080', space: 1, style: BorderStyle.SINGLE, size: 3 }
       },
       spacing: { after: 300 }
     })
@@ -518,30 +695,26 @@ async function createWordDocument(data: any) {
     new Paragraph({
       children: [new TextRun('')],
       border: {
-        bottom: { color: '000000', space: 1, style: BorderStyle.SINGLE, size: 6 }
+        bottom: { color: '808080', space: 1, style: BorderStyle.SINGLE, size: 3 }
       },
       spacing: { after: 800 }
     })
   )
 
-  // Tanda Tangan Section - Using 3-column table to match HTML preview
-  children.push(
-    new Paragraph({
-      text: '',
-      spacing: { before: 600, after: 0 }
-    })
-  )
-
-  // Create table with 3 equal columns for signatures
+  // Tanda Tangan Section - 2 rows with 3 columns to match sample
+  // Row 1: Orang Tua (left), Empty (center), Wali Kelas (right)
+  // Row 2: Empty, Kepala Sekolah (center), Empty
   children.push(
     new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
+      columnWidths: [2300, 4000, 3066], // Approximate widths to match sample
+      margins: { top: 100, bottom: 100, left: 100, right: 100 },
       rows: [
+        // Row 1: Orang Tua, Empty, Wali Kelas
         new TableRow({
           children: [
-            // Column 1: Orang Tua
+            // Orang Tua
             new TableCell({
-              width: { size: 33.33, type: WidthType.PERCENTAGE },
+              width: { size: 2300, type: WidthType.DXA },
               verticalAlign: VerticalAlign.TOP,
               children: [
                 new Paragraph({
@@ -552,22 +725,62 @@ async function createWordDocument(data: any) {
                       size: 20
                     })
                   ],
+                  alignment: AlignmentType.CENTER,
                   spacing: { after: 600 }
                 }),
                 new Paragraph({
                   children: [
                     new TextRun({
-                      text: data.parentName || '................................',
+                      text: '',
                       size: 20
                     })
                   ],
+                  spacing: { after: 600 }
+                }),
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: '',
+                      size: 20
+                    })
+                  ],
+                  spacing: { after: 600 }
+                }),
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: '',
+                      size: 20
+                    })
+                  ],
+                  alignment: AlignmentType.CENTER,
+                  spacing: { after: 0 }
+                }),
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: data.parentName || 'Bapak',
+                      size: 20
+                    })
+                  ],
+                  alignment: AlignmentType.CENTER,
                   spacing: { after: 0 }
                 })
               ]
             }),
-            // Column 2: Wali Kelas
+            // Empty center column
             new TableCell({
-              width: { size: 33.33, type: WidthType.PERCENTAGE },
+              width: { size: 4000, type: WidthType.DXA },
+              verticalAlign: VerticalAlign.TOP,
+              children: [
+                new Paragraph({
+                  children: [new TextRun('')]
+                })
+              ]
+            }),
+            // Wali Kelas
+            new TableCell({
+              width: { size: 3066, type: WidthType.DXA },
               verticalAlign: VerticalAlign.TOP,
               children: [
                 new Paragraph({
@@ -578,19 +791,46 @@ async function createWordDocument(data: any) {
                       size: 20
                     })
                   ],
+                  alignment: AlignmentType.CENTER,
                   spacing: { after: 600 }
                 }),
                 new Paragraph({
                   children: [
                     new TextRun({
-                      text: data.teacherName || '................................',
+                      text: '',
                       size: 20
                     })
                   ],
+                  spacing: { after: 600 }
+                }),
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: '',
+                      size: 20
+                    })
+                  ],
+                  spacing: { after: 600 }
+                }),
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: '',
+                      size: 20
+                    })
+                  ],
+                  alignment: AlignmentType.CENTER,
                   spacing: { after: 50 }
                 }),
                 new Paragraph({
-                  children: [new TextRun('_'.repeat(30))],
+                  children: [
+                    new TextRun({
+                      text: `${data.teacherName || 'Siti Fatimah'}, S.Pd`,
+                      size: 20,
+                      underline: {}
+                    })
+                  ],
+                  alignment: AlignmentType.CENTER,
                   spacing: { after: 100 }
                 }),
                 ...(data.teacherNip ? [
@@ -602,14 +842,36 @@ async function createWordDocument(data: any) {
                         color: '666666'
                       })
                     ],
+                    alignment: AlignmentType.CENTER,
                     spacing: { after: 0 }
                   })
                 ] : [])
               ]
-            }),
-            // Column 3: Kepala Sekolah
+            })
+          ]
+        }),
+        // Row 2: Empty, Kepala Sekolah, Empty
+        new TableRow({
+          children: [
+            // Empty left column
             new TableCell({
-              width: { size: 33.33, type: WidthType.PERCENTAGE },
+              width: { size: 2300, type: WidthType.DXA },
+              verticalAlign: VerticalAlign.TOP,
+              children: [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: '',
+                      size: 20
+                    })
+                  ],
+                  spacing: { after: 600 }
+                })
+              ]
+            }),
+            // Kepala Sekolah (center)
+            new TableCell({
+              width: { size: 4000, type: WidthType.DXA },
               verticalAlign: VerticalAlign.TOP,
               children: [
                 new Paragraph({
@@ -620,6 +882,7 @@ async function createWordDocument(data: any) {
                       size: 20
                     })
                   ],
+                  alignment: AlignmentType.CENTER,
                   spacing: { after: 0 }
                 }),
                 new Paragraph({
@@ -630,19 +893,37 @@ async function createWordDocument(data: any) {
                       size: 20
                     })
                   ],
+                  alignment: AlignmentType.CENTER,
                   spacing: { after: 600 }
                 }),
                 new Paragraph({
                   children: [
                     new TextRun({
-                      text: data.principalName || '................................',
+                      text: '',
                       size: 20
                     })
                   ],
+                  spacing: { after: 600 }
+                }),
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: '',
+                      size: 20
+                    })
+                  ],
+                  alignment: AlignmentType.CENTER,
                   spacing: { after: 50 }
                 }),
                 new Paragraph({
-                  children: [new TextRun('_'.repeat(30))],
+                  children: [
+                    new TextRun({
+                      text: `${data.principalName || 'Neneng Mulyawati'}, S.Pd`,
+                      size: 20,
+                      underline: {}
+                    })
+                  ],
+                  alignment: AlignmentType.CENTER,
                   spacing: { after: 100 }
                 }),
                 ...(data.principalNip ? [
@@ -654,9 +935,20 @@ async function createWordDocument(data: any) {
                         color: '666666'
                       })
                     ],
+                    alignment: AlignmentType.CENTER,
                     spacing: { after: 0 }
                   })
                 ] : [])
+              ]
+            }),
+            // Empty right column
+            new TableCell({
+              width: { size: 3066, type: WidthType.DXA },
+              verticalAlign: VerticalAlign.TOP,
+              children: [
+                new Paragraph({
+                  children: [new TextRun('')]
+                })
               ]
             })
           ]
