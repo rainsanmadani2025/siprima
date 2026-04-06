@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle } from 'docx'
+import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType, VerticalAlign } from 'docx'
 
 const scoreLabels: Record<string, string> = {
   BB: 'Belum Berkembang',
@@ -397,152 +397,146 @@ async function createWordDocument(data: any) {
     })
   )
 
-  // Tanda Tangan Section
-  // Row 1: Orang Tua (kiri) dan Wali Kelas (kanan)
+  // Tanda Tangan Section - Using 3-column table to match HTML preview
   children.push(
     new Paragraph({
-      children: [
-        new TextRun({
-          text: 'Orang Tua',
-          bold: true,
-          size: 20
+      text: '',
+      spacing: { before: 600, after: 0 }
+    })
+  )
+
+  // Create table with 3 equal columns for signatures
+  children.push(
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          children: [
+            // Column 1: Orang Tua
+            new TableCell({
+              width: { size: 33.33, type: WidthType.PERCENTAGE },
+              verticalAlign: VerticalAlign.TOP,
+              children: [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: 'Orang Tua',
+                      bold: true,
+                      size: 20
+                    })
+                  ],
+                  spacing: { after: 600 }
+                }),
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: data.parentName || '................................',
+                      size: 20
+                    })
+                  ],
+                  spacing: { after: 0 }
+                })
+              ]
+            }),
+            // Column 2: Wali Kelas
+            new TableCell({
+              width: { size: 33.33, type: WidthType.PERCENTAGE },
+              verticalAlign: VerticalAlign.TOP,
+              children: [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: 'Wali Kelas',
+                      bold: true,
+                      size: 20
+                    })
+                  ],
+                  spacing: { after: 600 }
+                }),
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: data.teacherName || '................................',
+                      size: 20
+                    })
+                  ],
+                  spacing: { after: 50 }
+                }),
+                new Paragraph({
+                  children: [new TextRun('_'.repeat(30))],
+                  spacing: { after: 100 }
+                }),
+                ...(data.teacherNip ? [
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: `NUPTK : ${data.teacherNip}`,
+                        size: 16,
+                        color: '666666'
+                      })
+                    ],
+                    spacing: { after: 0 }
+                  })
+                ] : [])
+              ]
+            }),
+            // Column 3: Kepala Sekolah
+            new TableCell({
+              width: { size: 33.33, type: WidthType.PERCENTAGE },
+              verticalAlign: VerticalAlign.TOP,
+              children: [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: 'Mengetahui,',
+                      bold: true,
+                      size: 20
+                    })
+                  ],
+                  spacing: { after: 0 }
+                }),
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: 'Kepala Sekolah',
+                      bold: true,
+                      size: 20
+                    })
+                  ],
+                  spacing: { after: 600 }
+                }),
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: data.principalName || '................................',
+                      size: 20
+                    })
+                  ],
+                  spacing: { after: 50 }
+                }),
+                new Paragraph({
+                  children: [new TextRun('_'.repeat(30))],
+                  spacing: { after: 100 }
+                }),
+                ...(data.principalNip ? [
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: `NUPTK : ${data.principalNip}`,
+                        size: 16,
+                        color: '666666'
+                      })
+                    ],
+                    spacing: { after: 0 }
+                  })
+                ] : [])
+              ]
+            })
+          ]
         })
-      ],
-      spacing: { after: 300 }
+      ]
     })
   )
-
-  children.push(
-    new Paragraph({
-      children: [
-        new TextRun({
-          text: data.parentName || 'Nama Orang Tua',
-          size: 20
-        })
-      ],
-      spacing: { after: 400 }
-    })
-  )
-
-  // Tanda tangan di posisi kanan (Wali Kelas)
-  children.push(
-    new Paragraph({
-      children: [
-        new TextRun({
-          text: 'Wali Kelas',
-          bold: true,
-          size: 20
-        })
-      ],
-      spacing: { after: 300 },
-      alignment: AlignmentType.RIGHT
-    })
-  )
-
-  children.push(
-    new Paragraph({
-      children: [
-        new TextRun({
-          text: data.teacherName || 'Nama Wali Kelas',
-          size: 20
-        })
-      ],
-      spacing: { after: 100 },
-      alignment: AlignmentType.RIGHT
-    })
-  )
-
-  children.push(
-    new Paragraph({
-      children: [new TextRun('_'.repeat(30))],
-      spacing: { after: 200 },
-      alignment: AlignmentType.RIGHT
-    })
-  )
-
-  if (data.teacherNip) {
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: `NUPTK/NPK : ${data.teacherNip}`,
-            size: 16,
-            color: '666666'
-          })
-        ],
-        spacing: { after: 600 },
-        alignment: AlignmentType.RIGHT
-      })
-    )
-  } else {
-    children.push(new Paragraph({ text: '', spacing: { after: 600 } }))
-  }
-
-  // Kepala Sekolah (tengah)
-  children.push(
-    new Paragraph({
-      children: [
-        new TextRun({
-          text: 'Mengetahui,',
-          bold: true,
-          size: 20
-        })
-      ],
-      spacing: { after: 200 },
-      alignment: AlignmentType.CENTER
-    })
-  )
-
-  children.push(
-    new Paragraph({
-      children: [
-        new TextRun({
-          text: 'Kepala Sekolah',
-          bold: true,
-          size: 20
-        })
-      ],
-      spacing: { after: 300 },
-      alignment: AlignmentType.CENTER
-    })
-  )
-
-  children.push(
-    new Paragraph({
-      children: [
-        new TextRun({
-          text: data.principalName || 'Nama Kepala Sekolah',
-          size: 20
-        })
-      ],
-      spacing: { after: 100 },
-      alignment: AlignmentType.CENTER
-    })
-  )
-
-  children.push(
-    new Paragraph({
-      children: [new TextRun('_'.repeat(30))],
-      spacing: { after: 200 },
-      alignment: AlignmentType.CENTER
-    })
-  )
-
-  if (data.principalNip) {
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: `NUPTK/NPK : ${data.principalNip}`,
-            size: 16,
-            color: '666666'
-          })
-        ],
-        spacing: { after: 0 },
-        alignment: AlignmentType.CENTER
-      })
-    )
-  }
 
   // Create document
   const doc = new Document({
