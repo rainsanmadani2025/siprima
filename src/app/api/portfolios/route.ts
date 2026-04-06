@@ -34,11 +34,11 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ portfolios })
+    return NextResponse.json({ success: true, portfolios })
   } catch (error) {
     console.error('Error fetching portfolios:', error)
     return NextResponse.json(
-      { error: 'Gagal mengambil portfolio' },
+      { success: false, error: 'Gagal mengambil portfolio' },
       { status: 500 }
     )
   }
@@ -48,11 +48,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { studentId, title, type, description, fileUrl, date } = body
+    const { studentId, title, type, description, fileUrl, videoUrl, date } = body
 
     if (!studentId || !title || !type) {
       return NextResponse.json(
-        { error: 'Data tidak lengkap' },
+        { success: false, error: 'Data tidak lengkap' },
         { status: 400 }
       )
     }
@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
         type,
         description: description || null,
         fileUrl: fileUrl || null,
+        videoUrl: videoUrl || null,
         date: date || new Date().toISOString().split('T')[0]
       },
       include: {
@@ -77,11 +78,11 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ portfolio }, { status: 201 })
+    return NextResponse.json({ success: true, portfolio }, { status: 201 })
   } catch (error) {
     console.error('Error creating portfolio:', error)
     return NextResponse.json(
-      { error: 'Gagal membuat portfolio' },
+      { success: false, error: 'Gagal membuat portfolio' },
       { status: 500 }
     )
   }
