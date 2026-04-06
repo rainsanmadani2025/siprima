@@ -91,7 +91,14 @@ async function createWordDocument(data: any) {
                 width: { size: 1000, type: WidthType.DXA },
                 borders: noBorders,
                 verticalAlign: VerticalAlign.TOP,
+                margins: { top: 50, bottom: 0, left: 0, right: 0 },
                 children: kemenagLogo ? [
+                  new Paragraph({
+                    children: [
+                      new TextRun({ text: '', size: 14 })
+                    ],
+                    spacing: { before: 0, after: 0, line: 140 }
+                  }),
                   new Paragraph({
                     children: [
                       new ImageRun({
@@ -100,7 +107,7 @@ async function createWordDocument(data: any) {
                         type: kemenagLogo.type as any
                       })
                     ],
-                    spacing: { before: 140, after: 0 }
+                    spacing: { before: 0, after: 0 }
                   })
                 ] : []
               }),
@@ -109,6 +116,7 @@ async function createWordDocument(data: any) {
                 width: { size: 7500, type: WidthType.DXA },
                 borders: noBorders,
                 verticalAlign: VerticalAlign.CENTER,
+                margins: { top: 0, bottom: 0, left: 0, right: 0 },
                 children: [
                   new Paragraph({
                     children: [
@@ -129,7 +137,14 @@ async function createWordDocument(data: any) {
                 width: { size: 1000, type: WidthType.DXA },
                 borders: noBorders,
                 verticalAlign: VerticalAlign.TOP,
+                margins: { top: 80, bottom: 0, left: 0, right: 0 },
                 children: raLogo ? [
+                  new Paragraph({
+                    children: [
+                      new TextRun({ text: '', size: 18 })
+                    ],
+                    spacing: { before: 0, after: 0, line: 180 }
+                  }),
                   new Paragraph({
                     children: [
                       new ImageRun({
@@ -138,7 +153,7 @@ async function createWordDocument(data: any) {
                         type: raLogo.type as any
                       })
                     ],
-                    spacing: { before: 160, after: 0 }
+                    spacing: { before: 0, after: 0 }
                   })
                 ] : []
               })
