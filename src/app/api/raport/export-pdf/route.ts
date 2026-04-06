@@ -304,7 +304,7 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   drawLine(y)
   y -= 25
 
-  const address = truncateText(sanitizeText(data.schoolAddress || ''), 32)
+  const address = sanitizeText(data.schoolAddress || '')
   const studentName = sanitizeText(data.studentName || '')
   const studentNis = sanitizeText(data.studentNis || '')
   const studentNisn = sanitizeText(data.studentNisn || '')
@@ -315,7 +315,7 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
     { label: 'NAMA', value: `: ${studentName}`, x: leftMargin },
     { label: 'NIS/NISN', value: `: ${studentNis} / ${studentNisn}`, x: leftMargin },
     { label: 'Madrasah', value: `: ${schoolName}`, x: leftMargin },
-    { label: 'Alamat', value: `: ${address}`, x: leftMargin },
+    { label: 'Alamat', value: address, x: leftMargin, multiline: true },
     { label: 'Kelas', value: `: ${className}`, x: 330 },
     { label: 'Fase', value: `: Pondasi`, x: 330 },
     { label: 'Semester', value: `: ${data.semester || '-'}`, x: 330 },
@@ -323,9 +323,38 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   ]
 
   const startY = y
+
+  // Draw left column (including address with wrapping)
   infoData.slice(0, 4).forEach((item) => {
-    drawText(`${item.label} ${item.value}`, item.x, y, 9, font)
-    y -= 18
+    if (item.multiline && item.value) {
+      // Wrap address to multiple lines (max 45 chars per line)
+      const maxChars = 45
+      const words = item.value.split(' ')
+      let currentLine = ': '
+      let lineCount = 0
+
+      words.forEach((word, index) => {
+        if (currentLine.length + word.length + 1 > maxChars) {
+          drawText(`${item.label} ${currentLine}`, item.x, y, 9, font)
+          y -= 18
+          lineCount++
+          currentLine = '  ' + word
+          // Don't repeat label on wrapped lines
+        } else {
+          currentLine += (currentLine === ': ' ? '' : ' ') + word
+        }
+
+        // Draw remaining line
+        if (index === words.length - 1 && currentLine.trim()) {
+          const label = lineCount === 0 ? item.label : ''
+          drawText(`${label} ${currentLine}`, item.x, y, 9, font)
+          y -= 18
+        }
+      })
+    } else {
+      drawText(`${item.label} ${item.value}`, item.x, y, 9, font)
+      y -= 18
+    }
   })
 
   y = startY

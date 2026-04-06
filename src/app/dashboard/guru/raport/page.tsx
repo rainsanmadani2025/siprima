@@ -303,7 +303,7 @@ export default function GuruRaportPage() {
           attendance: docData.attendance || { sakit: 0, izin: 0, alpa: 0 },
           educatorNotes: docData.educatorNotes || '',
           photos: photos,
-          schoolInfo: schoolInfo || { name: 'RA INSAN MADANI', address: '', npsn: '' }
+          schoolInfo: schoolInfo || { name: 'RA INSAN MADANI', address: 'Jl. Pendidikan No. 123, Kota', npsn: '' }
         })
       } else {
         setReportData(null)
