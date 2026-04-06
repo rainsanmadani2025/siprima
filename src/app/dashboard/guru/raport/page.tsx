@@ -115,7 +115,8 @@ export default function GuruRaportPage() {
   const [reportData, setReportData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadingReport, setLoadingReport] = useState(false)
-  const [saving, setSaving] = useState(false)
+  const [savingAttendance, setSavingAttendance] = useState(false)
+  const [savingEducatorNotes, setSavingEducatorNotes] = useState(false)
   const [loadingPreviewPDF, setLoadingPreviewPDF] = useState(false)
   const [loadingExportPDF, setLoadingExportPDF] = useState(false)
   const [loadingPreviewWord, setLoadingPreviewWord] = useState(false)
@@ -325,18 +326,18 @@ export default function GuruRaportPage() {
     return semester === 'Ganjil' ? '2025-01-01' : '2025-07-01'
   }
 
-  const handleSaveReport = async () => {
+  const handleSaveAttendance = async () => {
     if (!selectedStudent) return
 
     try {
-      setSaving(true)
+      setSavingAttendance(true)
       const userId = localStorage.getItem('userId')
 
       // Generate date from selected semester
       const date = getDateFromSemester(selectedSemester)
       const dateQuery = selectedSemester === 'Ganjil' ? '2025-01' : '2025-07'
 
-      // Get existing assessment data to preserve photos
+      // Get existing assessment data to preserve photos and educatorNotes
       let existingDocData: any = {}
       try {
         const getAssessResponse = await fetch(`/api/guru/get-assessment?teacherId=${userId}&studentId=${selectedStudent.id}&date=${dateQuery}`)
@@ -353,10 +354,85 @@ export default function GuruRaportPage() {
         console.warn('Failed to fetch existing assessment data')
       }
 
-      // Merge existing documentation data with new data
+      // Merge existing documentation data with new attendance data
       const documentation = {
         ...existingDocData,
         attendance,
+        educatorNotes: existingDocData.educatorNotes || educatorNotes,
+        photos: existingDocData.photos || []
+      }
+
+      const response = await fetch('/api/guru/save-assessment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          teacherId: userId,
+          studentId: selectedStudent.id,
+          aspect: 'catatan_perkembangan',
+          score: 'BSH',
+          observation: reportData?.assessments.catatan_perkembangan?.observation || '',
+          notes: reportData?.assessments.catatan_perkembangan?.notes || '',
+          documentation: JSON.stringify(documentation),
+          semester: selectedSemester,
+          academicYear: '2025/2026',
+          date: date
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast({
+          title: "Berhasil",
+          description: "Ketidakhadiran berhasil disimpan"
+        })
+      } else {
+        throw new Error(data.error || 'Gagal menyimpan')
+      }
+    } catch (error: any) {
+      console.error('Error saving attendance:', error)
+      toast({
+        title: "Error",
+        description: error.message || "Gagal menyimpan",
+        variant: "destructive"
+      })
+    } finally {
+      setSavingAttendance(false)
+    }
+  }
+
+  const handleSaveEducatorNotes = async () => {
+    if (!selectedStudent) return
+
+    try {
+      setSavingEducatorNotes(true)
+      const userId = localStorage.getItem('userId')
+
+      // Generate date from selected semester
+      const date = getDateFromSemester(selectedSemester)
+      const dateQuery = selectedSemester === 'Ganjil' ? '2025-01' : '2025-07'
+
+      // Get existing assessment data to preserve photos and attendance
+      let existingDocData: any = {}
+      try {
+        const getAssessResponse = await fetch(`/api/guru/get-assessment?teacherId=${userId}&studentId=${selectedStudent.id}&date=${dateQuery}`)
+        if (getAssessResponse.ok) {
+          const getAssessData = await getAssessResponse.json()
+          if (getAssessData.success && getAssessData.assessments) {
+            const catatanAssessment = getAssessData.assessments.find((a: any) => a.aspect === 'catatan_perkembangan')
+            if (catatanAssessment?.documentation) {
+              existingDocData = JSON.parse(catatanAssessment.documentation)
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to fetch existing assessment data')
+      }
+
+      // Merge existing documentation data with new educatorNotes
+      const documentation = {
+        ...existingDocData,
+        attendance: existingDocData.attendance || attendance,
         educatorNotes,
         photos: existingDocData.photos || []
       }
@@ -370,7 +446,7 @@ export default function GuruRaportPage() {
           aspect: 'catatan_perkembangan',
           score: 'BSH',
           observation: reportData?.assessments.catatan_perkembangan?.observation || '',
-          notes: reportData?.assessments.catatan_perkembangan?.notes || '', // Keep existing anecdotal notes
+          notes: reportData?.assessments.catatan_perkembangan?.notes || '',
           documentation: JSON.stringify(documentation),
           semester: selectedSemester,
           academicYear: '2025/2026',
@@ -383,20 +459,20 @@ export default function GuruRaportPage() {
       if (data.success) {
         toast({
           title: "Berhasil",
-          description: "Catatan Pendidik dan Ketidakhadiran berhasil disimpan"
+          description: "Catatan Pendidik berhasil disimpan"
         })
       } else {
         throw new Error(data.error || 'Gagal menyimpan')
       }
     } catch (error: any) {
-      console.error('Error saving report:', error)
+      console.error('Error saving educator notes:', error)
       toast({
         title: "Error",
         description: error.message || "Gagal menyimpan",
         variant: "destructive"
       })
     } finally {
-      setSaving(false)
+      setSavingEducatorNotes(false)
     }
   }
 
@@ -720,11 +796,6 @@ export default function GuruRaportPage() {
                       <Download className="mr-2 h-4 w-4" />
                       Export Word
                     </Button>
-                    <Button onClick={handleSaveReport} disabled={saving} size="sm">
-                      {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      <PenTool className="mr-2 h-4 w-4" />
-                      Simpan Catatan
-                    </Button>
                   </>
                 )}
               </div>
@@ -986,6 +1057,12 @@ export default function GuruRaportPage() {
                     </div>
                   </div>
                 </div>
+                <div className="mt-6 flex justify-end">
+                  <Button onClick={handleSaveAttendance} disabled={savingAttendance}>
+                    {savingAttendance && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Simpan
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -1005,6 +1082,12 @@ export default function GuruRaportPage() {
                   onChange={(e) => setEducatorNotes(e.target.value)}
                   className="min-h-[100px] border-2"
                 />
+                <div className="mt-4 flex justify-end">
+                  <Button onClick={handleSaveEducatorNotes} disabled={savingEducatorNotes}>
+                    {savingEducatorNotes && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Simpan
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
