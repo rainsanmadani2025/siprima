@@ -1,4 +1,5 @@
 "use client"
+// Dashboard Guru - Main dashboard for teacher view
 
 import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
