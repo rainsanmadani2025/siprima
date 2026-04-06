@@ -777,8 +777,8 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   drawText('Orang Tua/Wali', leftSignatureX, y, 10, fontBold)
   drawText('Wali Kelas', rightSignatureX, y, 10, fontBold)
 
-  // Draw Kepala Sekolah label 1 paragraph (30px) below
-  drawText('Kepala Sekolah', centerSignatureX, y - 30, 10, fontBold)
+  // Draw Kepala Sekolah label 3 paragraphs (90px) below
+  drawText('Kepala Sekolah', centerSignatureX, y - 90, 10, fontBold)
 
   y -= 40
 
@@ -797,10 +797,10 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
     color: rgb(0, 0, 0)
   })
 
-  // Draw signature line for Kepala Sekolah 1 paragraph below
+  // Draw signature line for Kepala Sekolah 3 paragraphs below
   page.drawLine({
-    start: { x: centerSignatureX, y: y - 30 },
-    end: { x: centerSignatureX + signatureWidth, y: y - 30 },
+    start: { x: centerSignatureX, y: y - 90 },
+    end: { x: centerSignatureX + signatureWidth, y: y - 90 },
     thickness: 1,
     color: rgb(0, 0, 0)
   })
@@ -816,12 +816,12 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
     y += 12
   }
 
-  // Draw principal name and NUPTK (Kepala Sekolah - 1 paragraph below)
+  // Draw principal name and NUPTK (Kepala Sekolah - 3 paragraphs below)
   const principalName = sanitizeText(data.principalName || 'Kepala Sekolah')
-  drawText(principalName, centerSignatureX, y - 30, 10, fontBold)
+  drawText(principalName, centerSignatureX, y - 90, 10, fontBold)
   if (data.principalNip) {
     y -= 12
-    drawText(`NUPTK : ${data.principalNip}`, centerSignatureX, y - 30, 8, font)
+    drawText(`NUPTK : ${data.principalNip}`, centerSignatureX, y - 90, 8, font)
     y += 12
   }
 
