@@ -76,85 +76,50 @@ async function createWordDocument(data: any) {
   const kemenagLogo = await loadLogo('Logo Kemenag.png')
   const raLogo = await loadLogo('LOGO RA.png')
 
-  // Header Section with Logos - Using floating images for precise positioning
-  // Logo Kemenag (left, smaller), School Name (center), Logo RA (right, larger, lowered)
+  // Header Section with Logos - Using simple paragraph approach for better control
+  // All elements in centered paragraph with precise spacing
+  const headerElements: any[] = []
+
+  if (kemenagLogo) {
+    headerElements.push(
+      new ImageRun({
+        data: kemenagLogo.data,
+        transformation: { width: 60, height: 70 },
+        type: kemenagLogo.type as any
+      })
+    )
+    // Add spacing between logo and text
+    headerElements.push(new TextRun({ text: '\t', size: 28 }))
+  }
+
+  headerElements.push(
+    new TextRun({
+      text: data.schoolName || 'RA INSAN MADANI',
+      bold: true,
+      size: 32,
+      color: '000000'
+    })
+  )
+
+  if (raLogo) {
+    // Add spacing between text and logo
+    headerElements.push(new TextRun({ text: '\t', size: 28 }))
+    headerElements.push(
+      new ImageRun({
+        data: raLogo.data,
+        transformation: { width: 100, height: 120 },
+        type: raLogo.type as any
+      })
+    )
+  }
+
   children.push(
     new Paragraph({
-      children: [
-        new TextRun({
-          text: data.schoolName || 'RA INSAN MADANI',
-          bold: true,
-          size: 32,
-          color: '000000'
-        })
-      ],
+      children: headerElements,
       alignment: AlignmentType.CENTER,
       spacing: { after: 100 }
     })
   )
-
-  // Add floating logos if available
-  if (kemenagLogo) {
-    children.push(
-      new Paragraph({
-        children: [
-          new ImageRun({
-            data: kemenagLogo.data,
-            transformation: { width: 60, height: 70 },
-            type: kemenagLogo.type as any,
-            floating: {
-              horizontalPosition: {
-                relative: "page",
-                align: "left",
-                offset: 1000000 // Small offset from left edge
-              },
-              verticalPosition: {
-                relative: "page",
-                offset: 800000 // In EMU - approximately 40mm from top
-              },
-              lockAnchor: true,
-              behindDocument: false,
-              wrap: {
-                type: "square",
-                side: "both"
-              }
-            }
-          })
-        ]
-      })
-    )
-  }
-
-  if (raLogo) {
-    children.push(
-      new Paragraph({
-        children: [
-          new ImageRun({
-            data: raLogo.data,
-            transformation: { width: 100, height: 120 },
-            type: raLogo.type as any,
-            floating: {
-              horizontalPosition: {
-                relative: "page",
-                align: "right",
-                offset: 1000000 // Small offset from right edge
-              },
-              verticalPosition: {
-                relative: "page",
-                offset: 1200000 // In EMU - approximately 60mm from top (lowered)
-              },
-              lockAnchor: true,
-              behindDocument: false,
-              wrap: {
-                type: "square",
-                side: "both"
-              }
-            }
-          })
-        ]
-      })
-    )
-  }
 
   children.push(
     new Paragraph({
