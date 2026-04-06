@@ -61,6 +61,7 @@ interface ReportData {
     alpa: number
   }
   educatorNotes?: string
+  photos?: string[]
   schoolInfo?: {
     name: string
     address: string
@@ -291,12 +292,16 @@ export default function GuruRaportPage() {
           setAttendance(docData.attendance)
         }
 
+        // Extract photos from documentation.photos
+        const photos = docData.photos || []
+
         setReportData({
           student: selectedStudent,
           period: selectedSemester,
           assessments,
           attendance: docData.attendance || { sakit: 0, izin: 0, alpa: 0 },
           educatorNotes: docData.educatorNotes || '',
+          photos: photos,
           schoolInfo: schoolInfo || { name: 'RA INSAN MADANI', address: '', npsn: '' }
         })
       } else {
@@ -436,7 +441,8 @@ export default function GuruRaportPage() {
           principalNip: principalInfo?.nip || '',
           assessments: reportData.assessments,
           attendance: attendance,
-          educatorNotes: educatorNotes
+          educatorNotes: educatorNotes,
+          photos: reportData.photos || []
         }),
       })
 
@@ -498,6 +504,7 @@ export default function GuruRaportPage() {
           principalName: principalInfo?.name || 'Kepala Sekolah',
           principalNip: principalInfo?.nip || '',
           assessments: reportData.assessments,
+          photos: reportData.photos || []
           attendance: attendance,
           educatorNotes: educatorNotes
         }),

@@ -134,6 +134,29 @@ async function loadRALogo(pdfDoc: PDFDocument) {
   }
 }
 
+async function loadStudentPhoto(pdfDoc: PDFDocument, photoPath: string) {
+  try {
+    const fullPath = path.join(process.cwd(), 'upload', photoPath)
+    const photoBytes = await fs.readFile(fullPath)
+    // Try to embed as PNG or JPEG
+    if (photoPath.toLowerCase().endsWith('.png')) {
+      return await pdfDoc.embedPng(photoBytes)
+    } else if (photoPath.toLowerCase().match(/\.(jpg|jpeg)$/)) {
+      return await pdfDoc.embedJpg(photoBytes)
+    } else {
+      // Try PNG first, then JPEG
+      try {
+        return await pdfDoc.embedPng(photoBytes)
+      } catch {
+        return await pdfDoc.embedJpg(photoBytes)
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to load student photo:', error)
+    return null
+  }
+}
+
 // Calculate dimensions while maintaining aspect ratio
 function calculateDimensions(
   originalWidth: number,
@@ -576,10 +599,64 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   y -= 25
 
   checkNewPage(70)
-  drawText('Dokumentasi Foto : [Unggah Foto]', leftMargin, y, 9, fontBold)
+  drawText('Dokumentasi Foto :', leftMargin, y, 9, fontBold)
   y -= 20
 
-  drawText('Foto 1  Foto 2  Foto 3', leftMargin, y, 9, font)
+  // Display student photos if available
+  const photos = data.photos || []
+  if (photos.length > 0) {
+    const photoSize = 120
+    const photoGap = 15
+    let photoX = leftMargin
+
+    for (let i = 0; i < Math.min(photos.length, 3); i++) {
+      const photo = await loadStudentPhoto(pdfDoc, photos[i])
+      if (photo) {
+        const dims = calculateDimensions(photo.width, photo.height, photoSize)
+        page.drawImage(photo, {
+          x: photoX,
+          y: y - dims.height,
+          width: dims.width,
+          height: dims.height
+        })
+      } else {
+        // Draw placeholder if photo fails to load
+        page.drawRectangle({
+          x: photoX,
+          y: y - photoSize,
+          width: photoSize,
+          height: photoSize,
+          borderColor: rgb(0.5, 0.5, 0.5),
+          borderWidth: 1
+        })
+        const placeholderText = `Foto ${i + 1}`
+        const placeholderWidth = font.widthOfTextAtSize(placeholderText, 10)
+        drawText(placeholderText, photoX + (photoSize - placeholderWidth) / 2, y - photoSize / 2, 10, font, rgb(0.5, 0.5, 0.5))
+      }
+      photoX += photoSize + photoGap
+    }
+  } else {
+    // Draw placeholders if no photos
+    const photoSize = 120
+    const photoGap = 15
+    let photoX = leftMargin
+    for (let i = 0; i < 3; i++) {
+      page.drawRectangle({
+        x: photoX,
+        y: y - photoSize,
+        width: photoSize,
+        height: photoSize,
+        borderColor: rgb(0.5, 0.5, 0.5),
+        borderWidth: 1
+      })
+      const placeholderText = `Foto ${i + 1}`
+      const placeholderWidth = font.widthOfTextAtSize(placeholderText, 10)
+      drawText(placeholderText, photoX + (photoSize - placeholderWidth) / 2, y - photoSize / 2, 10, font, rgb(0.5, 0.5, 0.5))
+      photoX += photoSize + photoGap
+    }
+  }
+
+  y -= 140
   y -= 25
 
   drawLine(y, 1, rgb(0.3, 0.3, 0.3))
@@ -674,54 +751,61 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
 
   checkNewPage(120)
 
-  drawText('Orang tua', leftMargin, y, 10, fontBold)
-  drawText('Wali Kelas', rightMargin - 120, y, 10, fontBold)
+  // Calculate positions for three signatures
+  // Orang Tua (left), Kepala Sekolah (center), Wali Kelas (right)
+  const leftSignatureX = leftMargin
+  const centerSignatureX = (leftMargin + rightMargin) / 2 - 60
+  const rightSignatureX = rightMargin - 120
+  const signatureWidth = 120
+
+  // Draw labels
+  drawText('Orang Tua/Wali', leftSignatureX, y, 10, fontBold)
+  drawText('Kepala Sekolah', centerSignatureX, y, 10, fontBold)
+  drawText('Wali Kelas', rightSignatureX, y, 10, fontBold)
   y -= 40
 
+  // Draw signature lines
   page.drawLine({
-    start: { x: leftMargin, y },
-    end: { x: leftMargin + 120, y },
+    start: { x: leftSignatureX, y },
+    end: { x: leftSignatureX + signatureWidth, y },
     thickness: 1,
     color: rgb(0, 0, 0)
   })
 
   page.drawLine({
-    start: { x: rightMargin - 120, y },
-    end: { x: rightMargin, y },
+    start: { x: centerSignatureX, y },
+    end: { x: centerSignatureX + signatureWidth, y },
+    thickness: 1,
+    color: rgb(0, 0, 0)
+  })
+
+  page.drawLine({
+    start: { x: rightSignatureX, y },
+    end: { x: rightSignatureX + signatureWidth, y },
     thickness: 1,
     color: rgb(0, 0, 0)
   })
 
   y -= 10
+
   // Draw teacher name
   const teacherName = sanitizeText(data.teacherName || 'Guru')
-  drawText(teacherName, rightMargin - 120, y, 10, fontBold)
+  drawText(teacherName, rightSignatureX, y, 10, fontBold)
   if (data.teacherNip) {
     y -= 12
-    drawText(`NUPTK : ${data.teacherNip}`, rightMargin - 120, y, 8, font)
+    drawText(`NUPTK : ${data.teacherNip}`, rightSignatureX, y, 8, font)
   }
 
-  y -= 25
+  // Reset y for principal name
+  y += 12
 
-  drawText('Mengetahui,', rightMargin - 120, y, 10, fontBold)
-  y -= 15
-  drawText('Kepala Sekolah', rightMargin - 120, y, 10, fontBold)
-  y -= 40
-
-  page.drawLine({
-    start: { x: rightMargin - 120, y },
-    end: { x: rightMargin, y },
-    thickness: 1,
-    color: rgb(0, 0, 0)
-  })
-
-  y -= 10
   // Draw principal name
   const principalName = sanitizeText(data.principalName || 'Kepala Sekolah')
-  drawText(principalName, rightMargin - 120, y, 10, fontBold)
+  drawText(principalName, centerSignatureX, y, 10, fontBold)
   if (data.principalNip) {
     y -= 12
-    drawText(`NUPTK : ${data.principalNip}`, rightMargin - 120, y, 8, font)
+    drawText(`NUPTK : ${data.principalNip}`, centerSignatureX, y, 8, font)
+    y += 12
   }
 
   const pdfBytes = await pdfDoc.save()
