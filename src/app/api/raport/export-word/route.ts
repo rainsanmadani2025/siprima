@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType, VerticalAlign, ImageRun, convertInchesToTwip, JustificationType } from 'docx'
+import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType, VerticalAlign, ImageRun } from 'docx'
 
+// Score labels mapping
 const scoreLabels: Record<string, string> = {
   BB: 'Belum Berkembang',
   MB: 'Mulai Berkembang',
@@ -231,7 +232,7 @@ async function createWordDocument(data: any) {
           })
         ],
         spacing: { after: 400, line: 360 },
-        justification: JustificationType.BOTH
+        alignment: AlignmentType.JUSTIFIED
       })
     )
 
@@ -268,7 +269,7 @@ async function createWordDocument(data: any) {
         })
       ],
       spacing: { after: 400, line: 360 },
-      justification: JustificationType.BOTH
+      alignment: AlignmentType.JUSTIFIED
     }),
     new Paragraph({
       children: [new TextRun('')],
@@ -300,7 +301,7 @@ async function createWordDocument(data: any) {
         })
       ],
       spacing: { after: 400, line: 360 },
-      justification: JustificationType.BOTH
+      alignment: AlignmentType.JUSTIFIED
     }),
     new Paragraph({
       children: [new TextRun('')],
@@ -512,7 +513,7 @@ async function createWordDocument(data: any) {
         })
       ],
       spacing: { after: 400, line: 360 },
-      justification: JustificationType.BOTH
+      alignment: AlignmentType.JUSTIFIED
     }),
     new Paragraph({
       children: [new TextRun('')],
