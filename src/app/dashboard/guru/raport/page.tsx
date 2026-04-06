@@ -21,7 +21,6 @@ import {
   Calendar,
   Download,
   Loader2,
-  Printer,
   PenTool,
   Home,
   Eye,
@@ -323,14 +322,6 @@ export default function GuruRaportPage() {
 
   const getDateFromSemester = (semester: string) => {
     return semester === 'Ganjil' ? '2025-01-01' : '2025-07-01'
-  }
-
-  const handlePrint = () => {
-    window.print()
-  }
-
-  const handleExport = () => {
-    alert('Fitur export akan diimplementasikan')
   }
 
   const handleSaveReport = async () => {
@@ -723,10 +714,6 @@ export default function GuruRaportPage() {
                       {loadingExportWord && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       <Download className="mr-2 h-4 w-4" />
                       Export Word
-                    </Button>
-                    <Button variant="outline" onClick={handlePrint} size="sm">
-                      <Printer className="mr-2 h-4 w-4" />
-                      Cetak
                     </Button>
                     <Button onClick={handleSaveReport} disabled={saving} size="sm">
                       {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
