@@ -798,14 +798,7 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   // Move down 5px (tight gap) for signature lines
   y -= 5
 
-  // Draw signature lines for Orang Tua and Wali Kelas
-  page.drawLine({
-    start: { x: leftSignatureX, y },
-    end: { x: leftSignatureX + signatureWidth, y },
-    thickness: 1,
-    color: rgb(0, 0, 0)
-  })
-
+  // Draw signature line for Wali Kelas
   page.drawLine({
     start: { x: rightSignatureX, y },
     end: { x: rightSignatureX + signatureWidth, y },

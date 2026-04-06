@@ -1099,8 +1099,6 @@ export default function GuruRaportPage() {
                     <p className="font-semibold text-sm">Orang Tua</p>
                     <div className="min-h-[80px]"></div>
                     <p className="font-semibold text-sm">{selectedStudent.parentName || '................................'}</p>
-                    <div className="border-b border-gray-400 min-h-[2px]"></div>
-                    <p className="text-xs text-muted-foreground mt-1">Parent/Guardian</p>
                   </div>
                   <div className="text-center space-y-2">
                     <p className="font-semibold text-sm">Wali Kelas</p>

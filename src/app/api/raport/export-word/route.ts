@@ -420,14 +420,7 @@ async function createWordDocument(data: any) {
           size: 20
         })
       ],
-      spacing: { after: 100 }
-    })
-  )
-
-  children.push(
-    new Paragraph({
-      children: [new TextRun('_'.repeat(30))],
-      spacing: { after: 300 }
+      spacing: { after: 400 }
     })
   )
 
