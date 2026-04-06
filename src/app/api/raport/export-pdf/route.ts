@@ -149,6 +149,23 @@ function calculateDimensions(
 }
 
 async function createPDFBuffer(data: any): Promise<Uint8Array> {
+  console.log('[createPDFBuffer] Starting PDF generation')
+  console.log('[createPDFBuffer] Student:', data.studentName)
+  console.log('[createPDFBuffer] Semester:', data.semester)
+
+  // Convert assessments array to object if needed
+  let assessments = data.assessments
+  if (Array.isArray(assessments)) {
+    console.log('[createPDFBuffer] Converting assessments array to object')
+    assessments = {}
+    data.assessments.forEach((a: any) => {
+      assessments[a.aspect] = a
+    })
+  }
+
+  // Update data with converted assessments
+  data.assessments = assessments
+
   const pdfDoc = await PDFDocument.create()
 
   let page = pdfDoc.addPage([595, 842])
@@ -388,10 +405,14 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   })
 
   checkNewPage(100)
-  drawText('Observasi Kegiatan : [Textarea - 3 baris]', leftMargin, y, 9, fontBold)
+  drawText('Observasi Kegiatan :', leftMargin, y, 9, fontBold)
   y -= 15
 
-  const obsKegiatan = data.assessments?.catatan_perkembangan?.observation || ''
+  const catatanData = data.assessments?.catatan_perkembangan
+  const obsKegiatan = catatanData?.observation || ''
+
+  console.log('[createPDFBuffer] catatan_perkembangan data:', catatanData ? 'exists' : 'not found')
+  console.log('[createPDFBuffer] obsKegiatan length:', obsKegiatan.length)
 
   if (obsKegiatan) {
     const lines = wrapTextForJustify(obsKegiatan, 75)
@@ -539,18 +560,20 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   drawText('Ketidakhadiran :', leftMargin, y, 11, fontBold)
   y -= 20
 
-  drawText(`Sakit   ${data.attendance.sakit}   Hari`, leftMargin, y, 10, font)
+  const attendance = data.attendance || { sakit: 0, izin: 0, alpa: 0 }
+
+  drawText(`Sakit   ${attendance.sakit}   Hari`, leftMargin, y, 10, font)
   y -= 18
-  drawText(`Izin    ${data.attendance.izin}    Hari`, leftMargin, y, 10, font)
+  drawText(`Izin    ${attendance.izin}    Hari`, leftMargin, y, 10, font)
   y -= 18
-  drawText(`Alpa    ${data.attendance.alpa}    Hari`, leftMargin, y, 10, font)
+  drawText(`Alpa    ${attendance.alpa}    Hari`, leftMargin, y, 10, font)
   y -= 25
 
   drawLine(y, 1, rgb(0.3, 0.3, 0.3))
   y -= 25
 
   checkNewPage(90)
-  drawText('Catatan Pendidik : [Textarea - 3 baris]', leftMargin, y, 9, fontBold)
+  drawText('Catatan Pendidik :', leftMargin, y, 9, fontBold)
   y -= 15
 
   const educatorNotes = data.educatorNotes || ''
@@ -660,6 +683,10 @@ export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
 
+    console.log('[export-pdf] Received data keys:', Object.keys(data))
+    console.log('[export-pdf] Assessments type:', typeof data.assessments)
+    console.log('[export-pdf] Assessments keys:', data.assessments ? Object.keys(data.assessments) : 'none')
+
     if (!data.studentName || !data.period) {
       return NextResponse.json(
         { success: false, error: 'Data siswa dan periode diperlukan' },
@@ -673,13 +700,14 @@ export async function POST(request: NextRequest) {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="Raport-${data.studentName}-${data.periodLabel}.pdf"`,
+        'Content-Disposition': `inline; filename="Raport-${data.studentName}-${data.periodLabel || data.period}.pdf"`,
       },
     })
   } catch (error) {
-    console.error('Error generating PDF:', error)
+    console.error('[export-pdf] Error generating PDF:', error)
+    console.error('[export-pdf] Error stack:', error instanceof Error ? error.stack : 'No stack')
     return NextResponse.json(
-      { success: false, error: 'Gagal membuat PDF' },
+      { success: false, error: error instanceof Error ? error.message : 'Gagal membuat PDF' },
       { status: 500 }
     )
   }

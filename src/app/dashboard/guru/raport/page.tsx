@@ -441,7 +441,8 @@ export default function GuruRaportPage() {
       })
 
       if (!response.ok) {
-        throw new Error('Gagal membuat preview PDF')
+        const errorData = await response.json()
+        throw new Error(errorData.error || `HTTP ${response.status}: Gagal membuat preview PDF`)
       }
 
       const blob = await response.blob()
