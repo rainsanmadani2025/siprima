@@ -617,7 +617,7 @@ export default function GuruRaportPage() {
     try {
       setLoadingPreviewWord(true)
 
-      const response = await fetch('/api/raport/export-word', {
+      const response = await fetch('/api/raport/export-html-preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -638,29 +638,27 @@ export default function GuruRaportPage() {
           principalNip: principalInfo?.nip || '',
           assessments: reportData.assessments,
           attendance: attendance,
-          educatorNotes: educatorNotes
+          educatorNotes: educatorNotes,
+          photos: reportData.photos || []
         }),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Gagal membuat preview Word')
+        throw new Error(errorData.error || 'Gagal membuat preview HTML')
       }
 
-      const blob = await response.blob()
+      const html = await response.text()
+      
+      // Create blob and open in new tab
+      const blob = new Blob([html], { type: 'text/html' })
       const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      // Download with PREVIEW- prefix to indicate this is for preview
-      a.download = `PREVIEW-Raport-${selectedStudent.name}-${getSemesterLabel(selectedSemester)}.docx`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
+      window.open(url, '_blank')
       window.URL.revokeObjectURL(url)
       
       toast({
         title: "Berhasil",
-        description: "Preview Word didownload. Silakan buka file dengan aplikasi Word untuk melihat layout.",
+        description: "Preview Word dibuka di tab baru",
       })
     } catch (error: any) {
       console.error('Error previewing Word:', error)
@@ -791,7 +789,7 @@ export default function GuruRaportPage() {
                       <FileDown className="mr-2 h-4 w-4" />
                       Export PDF
                     </Button>
-                    <Button onClick={handlePreviewWord} disabled={loadingPreviewWord} variant="outline" size="sm" title="Download untuk melihat layout di Word">
+                    <Button onClick={handlePreviewWord} disabled={loadingPreviewWord} variant="outline" size="sm" title="Buka preview di tab baru">
                       {loadingPreviewWord && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       <Eye className="mr-2 h-4 w-4" />
                       Preview Word
