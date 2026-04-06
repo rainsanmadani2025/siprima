@@ -311,56 +311,74 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   const schoolName = sanitizeText(data.schoolName || '')
   const className = sanitizeText(data.className || '')
 
-  const infoData = [
-    { label: 'NAMA', value: `: ${studentName}`, x: leftMargin },
-    { label: 'NIS/NISN', value: `: ${studentNis} / ${studentNisn}`, x: leftMargin },
-    { label: 'Madrasah', value: `: ${schoolName}`, x: leftMargin },
-    { label: 'Alamat', value: address, x: leftMargin, multiline: true },
-    { label: 'Kelas', value: `: ${className}`, x: 380 },
-    { label: 'Fase', value: `: Pondasi`, x: 380 },
-    { label: 'Semester', value: `: ${data.semester || '-'}`, x: 380 },
-    { label: 'Tahun Ajaran', value: `: ${data.academicYear || '-'}`, x: 380 },
+  // Define profile info data for two columns
+  const profileRows = [
+    {
+      left: { label: 'NAMA', value: studentName },
+      right: { label: 'Kelas', value: className }
+    },
+    {
+      left: { label: 'NIS/NISN', value: `${studentNis} / ${studentNisn}` },
+      right: { label: 'Fase', value: 'Pondasi' }
+    },
+    {
+      left: { label: 'Madrasah', value: schoolName },
+      right: { label: 'Semester', value: data.semester || '-' }
+    },
+    {
+      left: { label: 'Alamat', value: address, multiline: true },
+      right: { label: 'Tahun Ajaran', value: data.academicYear || '-' }
+    }
   ]
 
-  const startY = y
+  const leftColX = leftMargin
+  const rightColX = 380
+  const labelWidth = 65
 
-  // Draw left column (including address with wrapping)
-  infoData.slice(0, 4).forEach((item) => {
-    if (item.multiline && item.value) {
-      // Wrap address to multiple lines (max 45 chars per line)
-      const maxChars = 45
-      const words = item.value.split(' ')
-      let currentLine = ': '
+  // Draw each profile row
+  profileRows.forEach((row, rowIndex) => {
+    const rowY = y - (rowIndex * 18)
+
+    // Draw left column
+    drawText(row.left.label, leftColX, rowY, 9, font)
+    drawText(':', leftColX + labelWidth, rowY, 9, font)
+
+    if (row.left.multiline && row.left.value) {
+      // Handle address with wrapping
+      const maxChars = 50
+      const words = row.left.value.split(' ')
+      let currentLine = ''
       let lineCount = 0
 
-      words.forEach((word, index) => {
+      words.forEach((word: string, index: number) => {
         if (currentLine.length + word.length + 1 > maxChars) {
-          drawText(`${item.label} ${currentLine}`, item.x, y, 9, font)
-          y -= 18
+          drawText(currentLine, leftColX + labelWidth + 8, rowY - (lineCount * 16), 9, font)
           lineCount++
-          currentLine = '  ' + word
-          // Don't repeat label on wrapped lines
+          currentLine = word
         } else {
-          currentLine += (currentLine === ': ' ? '' : ' ') + word
+          currentLine += (currentLine ? ' ' : '') + word
         }
 
-        // Draw remaining line
+        // Draw last line
         if (index === words.length - 1 && currentLine.trim()) {
-          const label = lineCount === 0 ? item.label : ''
-          drawText(`${label} ${currentLine}`, item.x, y, 9, font)
-          y -= 18
+          drawText(currentLine, leftColX + labelWidth + 8, rowY - (lineCount * 16), 9, font)
+          lineCount++
         }
       })
-    } else {
-      drawText(`${item.label} ${item.value}`, item.x, y, 9, font)
-      y -= 18
-    }
-  })
 
-  y = startY
-  infoData.slice(4, 8).forEach((item) => {
-    drawText(`${item.label} ${item.value}`, item.x, y, 9, font)
-    y -= 18
+      // Adjust y for next section based on address lines
+      if (rowIndex === profileRows.length - 1) {
+        y = rowY - (lineCount * 16) - 10
+      }
+    } else {
+      // Draw normal left value
+      drawText(row.left.value, leftColX + labelWidth + 8, rowY, 9, font)
+    }
+
+    // Draw right column (aligned with row)
+    drawText(row.right.label, rightColX, rowY, 9, font)
+    drawText(':', rightColX + labelWidth, rowY, 9, font)
+    drawText(row.right.value, rightColX + labelWidth + 8, rowY, 9, font)
   })
   y -= 25
 
