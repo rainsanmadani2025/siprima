@@ -248,8 +248,11 @@ export default function GuruRaportPage() {
       setLoadingReport(true)
       const userId = localStorage.getItem('userId')
 
-      // Fetch all assessments for the selected student and period
-      const response = await fetch(`/api/guru/get-assessment?teacherId=${userId}&studentId=${selectedStudent.id}&date=${selectedPeriod}`)
+      // Generate date from selected semester
+      const date = selectedSemester === 'Ganjil' ? '2025-01' : '2025-07'
+
+      // Fetch all assessments for the selected student and semester
+      const response = await fetch(`/api/guru/get-assessment?teacherId=${userId}&studentId=${selectedStudent.id}&date=${date}`)
 
       if (!response.ok) {
         console.warn('[Report] Response not OK:', response.status)
@@ -290,7 +293,7 @@ export default function GuruRaportPage() {
 
         setReportData({
           student: selectedStudent,
-          period: selectedPeriod,
+          period: selectedSemester,
           assessments,
           attendance: docData.attendance || { sakit: 0, izin: 0, alpa: 0 },
           educatorNotes: docData.educatorNotes || '',
@@ -309,15 +312,12 @@ export default function GuruRaportPage() {
     }
   }
 
-  const getMonthLabel = (month: string) => {
-    const [year, monthNum] = month.split('-')
-    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
-    return `${months[parseInt(monthNum) - 1]} ${year}`
+  const getSemesterLabel = (semester: string) => {
+    return semester === 'Ganjil' ? 'Semester 1 (Ganjil)' : 'Semester 2 (Genap)'
   }
 
-  const getSemester = (month: string) => {
-    const monthNum = parseInt(month.split('-')[1])
-    return monthNum <= 6 ? 'Ganjil' : 'Genap'
+  const getDateFromSemester = (semester: string) => {
+    return semester === 'Ganjil' ? '2025-01-01' : '2025-07-01'
   }
 
   const handlePrint = () => {
@@ -335,13 +335,14 @@ export default function GuruRaportPage() {
       setSaving(true)
       const userId = localStorage.getItem('userId')
 
-      // Generate date from selected period (first day of the month)
-      const date = `${selectedPeriod}-01`
+      // Generate date from selected semester
+      const date = getDateFromSemester(selectedSemester)
+      const dateQuery = selectedSemester === 'Ganjil' ? '2025-01' : '2025-07'
 
       // Get existing assessment data to preserve photos
       let existingDocData: any = {}
       try {
-        const getAssessResponse = await fetch(`/api/guru/get-assessment?teacherId=${userId}&studentId=${selectedStudent.id}&date=${selectedPeriod}`)
+        const getAssessResponse = await fetch(`/api/guru/get-assessment?teacherId=${userId}&studentId=${selectedStudent.id}&date=${dateQuery}`)
         if (getAssessResponse.ok) {
           const getAssessData = await getAssessResponse.json()
           if (getAssessData.success && getAssessData.assessments) {
@@ -374,8 +375,8 @@ export default function GuruRaportPage() {
           observation: reportData?.assessments.catatan_perkembangan?.observation || '',
           notes: reportData?.assessments.catatan_perkembangan?.notes || '', // Keep existing anecdotal notes
           documentation: JSON.stringify(documentation),
-          semester: getSemester(selectedPeriod),
-          academicYear: `${parseInt(selectedPeriod.split('-')[0]) - 1}/${selectedPeriod.split('-')[0]}`,
+          semester: selectedSemester,
+          academicYear: '2025/2026',
           date: date
         })
       })
@@ -423,10 +424,10 @@ export default function GuruRaportPage() {
           studentNis: selectedStudent.nis,
           studentNisn: selectedStudent.nisn || '',
           className: selectedStudent.className,
-          period: selectedPeriod,
-          periodLabel: getMonthLabel(selectedPeriod),
-          semester: getSemester(selectedPeriod),
-          academicYear: `${parseInt(selectedPeriod.split('-')[0]) - 1}/${selectedPeriod.split('-')[0]}`,
+          period: selectedSemester,
+          periodLabel: getSemesterLabel(selectedSemester),
+          semester: selectedSemester,
+          academicYear: '2025/2026',
           schoolName: schoolInfo?.name || 'RA INSAN MADANI',
           schoolAddress: schoolInfo?.address || '',
           teacherName: teacherInfo?.name || 'Guru',
@@ -485,10 +486,10 @@ export default function GuruRaportPage() {
           studentNis: selectedStudent.nis,
           studentNisn: selectedStudent.nisn || '',
           className: selectedStudent.className,
-          period: selectedPeriod,
-          periodLabel: getMonthLabel(selectedPeriod),
-          semester: getSemester(selectedPeriod),
-          academicYear: `${parseInt(selectedPeriod.split('-')[0]) - 1}/${selectedPeriod.split('-')[0]}`,
+          period: selectedSemester,
+          periodLabel: getSemesterLabel(selectedSemester),
+          semester: selectedSemester,
+          academicYear: '2025/2026',
           schoolName: schoolInfo?.name || 'RA INSAN MADANI',
           schoolAddress: schoolInfo?.address || '',
           teacherName: teacherInfo?.name || 'Guru',
@@ -504,7 +505,7 @@ export default function GuruRaportPage() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `Raport-${selectedStudent.name}-${getMonthLabel(selectedPeriod)}.pdf`
+      a.download = `Raport-${selectedStudent.name}-${getSemesterLabel(selectedSemester)}.pdf`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -546,10 +547,10 @@ export default function GuruRaportPage() {
           studentNis: selectedStudent.nis,
           studentNisn: selectedStudent.nisn || '',
           className: selectedStudent.className,
-          period: selectedPeriod,
-          periodLabel: getMonthLabel(selectedPeriod),
-          semester: getSemester(selectedPeriod),
-          academicYear: `${parseInt(selectedPeriod.split('-')[0]) - 1}/${selectedPeriod.split('-')[0]}`,
+          period: selectedSemester,
+          periodLabel: getSemesterLabel(selectedSemester),
+          semester: selectedSemester,
+          academicYear: '2025/2026',
           schoolName: schoolInfo?.name || 'RA INSAN MADANI',
           schoolAddress: schoolInfo?.address || '',
           teacherName: teacherInfo?.name || 'Guru',
@@ -609,10 +610,10 @@ export default function GuruRaportPage() {
           studentNis: selectedStudent.nis,
           studentNisn: selectedStudent.nisn || '',
           className: selectedStudent.className,
-          period: selectedPeriod,
-          periodLabel: getMonthLabel(selectedPeriod),
-          semester: getSemester(selectedPeriod),
-          academicYear: `${parseInt(selectedPeriod.split('-')[0]) - 1}/${selectedPeriod.split('-')[0]}`,
+          period: selectedSemester,
+          periodLabel: getSemesterLabel(selectedSemester),
+          semester: selectedSemester,
+          academicYear: '2025/2026',
           schoolName: schoolInfo?.name || 'RA INSAN MADANI',
           schoolAddress: schoolInfo?.address || '',
           teacherName: teacherInfo?.name || 'Guru',
@@ -634,7 +635,7 @@ export default function GuruRaportPage() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `Raport-${selectedStudent.name}-${getMonthLabel(selectedPeriod)}.docx`
+      a.download = `Raport-${selectedStudent.name}-${getSemesterLabel(selectedSemester)}.docx`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -684,21 +685,13 @@ export default function GuruRaportPage() {
                 Pilih Siswa
               </CardTitle>
               <div className="flex gap-2 flex-wrap items-center">
-                <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                <Select value={selectedSemester} onValueChange={setSelectedSemester}>
                   <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Pilih Periode" />
+                    <SelectValue placeholder="Pilih Semester" />
                   </SelectTrigger>
                   <SelectContent>
-                    {[
-                      new Date().toISOString().slice(0, 7),
-                      '2025-01', '2025-02', '2025-03', '2025-04', '2025-05',
-                      '2025-06', '2025-07', '2025-08', '2025-09', '2025-10',
-                      '2025-11', '2025-12'
-                    ].map(month => (
-                      <SelectItem key={month} value={month}>
-                        {getMonthLabel(month)}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="Ganjil">Semester 1 (Ganjil)</SelectItem>
+                    <SelectItem value="Genap">Semester 2 (Genap)</SelectItem>
                   </SelectContent>
                 </Select>
                 {reportData && (
@@ -812,11 +805,11 @@ export default function GuruRaportPage() {
                     </div>
                     <div className="flex">
                       <span className="font-medium w-32">Semester</span>
-                      <span>: {getSemester(selectedPeriod)}</span>
+                      <span>: {getSemesterLabel(selectedSemester)}</span>
                     </div>
                     <div className="flex">
                       <span className="font-medium w-32">Tahun Ajaran</span>
-                      <span>: {parseInt(selectedPeriod.split('-')[0]) - 1}/{selectedPeriod.split('-')[0]}</span>
+                      <span>: 2025/2026</span>
                     </div>
                   </div>
                 </div>
@@ -1052,7 +1045,7 @@ export default function GuruRaportPage() {
               <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-2">Belum Ada Data Raport</h3>
               <p className="text-muted-foreground">
-                Data penilaian untuk {selectedStudent.name} pada periode {getMonthLabel(selectedPeriod)} belum tersedia.
+                Data penilaian untuk {selectedStudent.name} pada {getSemesterLabel(selectedSemester)} belum tersedia.
                 Silakan lakukan penilaian terlebih dahulu di halaman Penilaian.
               </p>
             </CardContent>
