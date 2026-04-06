@@ -416,7 +416,7 @@ async function createWordDocument(data: any) {
     new Paragraph({
       children: [
         new TextRun({
-          text: 'Nama Orang Tua',
+          text: data.parentName || 'Nama Orang Tua',
           size: 20
         })
       ],

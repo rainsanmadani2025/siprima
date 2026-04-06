@@ -33,7 +33,8 @@ export async function GET(request: NextRequest) {
         }
       },
       include: {
-        class: true
+        class: true,
+        parent: true
       },
       orderBy: {
         name: 'asc'
@@ -44,8 +45,10 @@ export async function GET(request: NextRequest) {
       id: student.id,
       name: student.name,
       nis: student.nis,
+      nisn: student.nisn,
       className: student.class.name,
-      classId: student.class.id
+      classId: student.class.id,
+      parentName: student.parent?.fatherName || student.parent?.motherName || ''
     }))
 
     return NextResponse.json({

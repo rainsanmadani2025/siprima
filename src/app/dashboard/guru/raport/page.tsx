@@ -35,6 +35,7 @@ interface Student {
   nisn?: string
   className: string
   classId?: string
+  parentName?: string
 }
 
 interface AssessmentData {
@@ -419,6 +420,7 @@ export default function GuruRaportPage() {
           studentName: selectedStudent.name,
           studentNis: selectedStudent.nis,
           studentNisn: selectedStudent.nisn || '',
+          parentName: selectedStudent.parentName || '',
           className: selectedStudent.className,
           period: selectedSemester,
           periodLabel: getSemesterLabel(selectedSemester),
@@ -483,6 +485,7 @@ export default function GuruRaportPage() {
           studentName: selectedStudent.name,
           studentNis: selectedStudent.nis,
           studentNisn: selectedStudent.nisn || '',
+          parentName: selectedStudent.parentName || '',
           className: selectedStudent.className,
           period: selectedSemester,
           periodLabel: getSemesterLabel(selectedSemester),
@@ -545,6 +548,7 @@ export default function GuruRaportPage() {
           studentName: selectedStudent.name,
           studentNis: selectedStudent.nis,
           studentNisn: selectedStudent.nisn || '',
+          parentName: selectedStudent.parentName || '',
           className: selectedStudent.className,
           period: selectedSemester,
           periodLabel: getSemesterLabel(selectedSemester),
@@ -608,6 +612,7 @@ export default function GuruRaportPage() {
           studentName: selectedStudent.name,
           studentNis: selectedStudent.nis,
           studentNisn: selectedStudent.nisn || '',
+          parentName: selectedStudent.parentName || '',
           className: selectedStudent.className,
           period: selectedSemester,
           periodLabel: getSemesterLabel(selectedSemester),
@@ -1010,6 +1015,7 @@ export default function GuruRaportPage() {
                   <div className="text-center space-y-2">
                     <p className="font-semibold text-sm">Orang Tua</p>
                     <div className="min-h-[80px]"></div>
+                    <p className="font-semibold text-sm">{selectedStudent.parentName || '................................'}</p>
                     <div className="border-b border-gray-400 min-h-[2px]"></div>
                     <p className="text-xs text-muted-foreground mt-1">Parent/Guardian</p>
                   </div>

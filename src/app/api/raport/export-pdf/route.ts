@@ -783,6 +783,10 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
   // Move down 65px for names (larger gap between label and name)
   y -= 65
 
+  // Draw parent name (Orang Tua) above signature line
+  const parentName = sanitizeText(data.parentName || '')
+  drawText(parentName || '................................', leftSignatureX, y, 10, fontBold)
+
   // Draw teacher name (Wali Kelas) above signature line
   const teacherName = sanitizeText(data.teacherName || 'Guru')
   drawText(teacherName, rightSignatureX, y, 10, fontBold)
