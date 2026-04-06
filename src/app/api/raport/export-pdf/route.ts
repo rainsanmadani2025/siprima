@@ -316,10 +316,10 @@ async function createPDFBuffer(data: any): Promise<Uint8Array> {
     { label: 'NIS/NISN', value: `: ${studentNis} / ${studentNisn}`, x: leftMargin },
     { label: 'Madrasah', value: `: ${schoolName}`, x: leftMargin },
     { label: 'Alamat', value: address, x: leftMargin, multiline: true },
-    { label: 'Kelas', value: `: ${className}`, x: 330 },
-    { label: 'Fase', value: `: Pondasi`, x: 330 },
-    { label: 'Semester', value: `: ${data.semester || '-'}`, x: 330 },
-    { label: 'Tahun Ajaran', value: `: ${data.academicYear || '-'}`, x: 330 },
+    { label: 'Kelas', value: `: ${className}`, x: 380 },
+    { label: 'Fase', value: `: Pondasi`, x: 380 },
+    { label: 'Semester', value: `: ${data.semester || '-'}`, x: 380 },
+    { label: 'Tahun Ajaran', value: `: ${data.academicYear || '-'}`, x: 380 },
   ]
 
   const startY = y
