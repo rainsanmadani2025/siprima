@@ -110,7 +110,7 @@ export default function GuruRaportPage() {
   const { toast } = useToast()
   const [students, setStudents] = useState<Student[]>([])
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
-  const [selectedPeriod, setSelectedPeriod] = useState(new Date().toISOString().slice(0, 7))
+  const [selectedSemester, setSelectedSemester] = useState('Ganjil')
   const [reportData, setReportData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadingReport, setLoadingReport] = useState(false)
@@ -138,7 +138,7 @@ export default function GuruRaportPage() {
     if (selectedStudent) {
       fetchReportData()
     }
-  }, [selectedStudent, selectedPeriod])
+  }, [selectedStudent, selectedSemester])
 
   const fetchSchoolInfo = async () => {
     try {
