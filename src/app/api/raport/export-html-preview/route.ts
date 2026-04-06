@@ -149,6 +149,7 @@ async function createHTMLPreview(data: any): Promise<string> {
       border-radius: 4px;
       min-height: 60px;
       font-size: 12px;
+      text-align: justify;
     }
     
     .section {

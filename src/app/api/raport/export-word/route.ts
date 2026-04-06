@@ -1,11 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType, VerticalAlign } from 'docx'
+import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType, VerticalAlign, ImageRun, convertInchesToTwip, JustificationType } from 'docx'
 
 const scoreLabels: Record<string, string> = {
   BB: 'Belum Berkembang',
   MB: 'Mulai Berkembang',
   BSH: 'Berkembang Sesuai Harapan',
   BSB: 'Berkembang Sangat Baik'
+}
+
+function getBase64Image(base64: string): Buffer | null {
+  if (!base64) return null
+
+  try {
+    // Handle data URL format: data:image/jpeg;base64,/9j/4AAQ...
+    if (base64.includes(',')) {
+      const base64Data = base64.split(',')[1]
+      return Buffer.from(base64Data, 'base64')
+    }
+    // Handle pure base64 string
+    return Buffer.from(base64, 'base64')
+  } catch (error) {
+    console.error('Error parsing base64 image:', error)
+    return null
+  }
+}
+
+function getImageType(base64: string): { extension: string; mimeType: string } {
+  const lower = base64.toLowerCase()
+
+  if (lower.includes('data:image/jpeg') || lower.includes('jpg')) {
+    return { extension: 'jpg', mimeType: 'image/jpeg' }
+  } else if (lower.includes('data:image/png') || lower.includes('png')) {
+    return { extension: 'png', mimeType: 'image/png' }
+  } else if (lower.includes('data:image/gif') || lower.includes('gif')) {
+    return { extension: 'gif', mimeType: 'image/gif' }
+  } else if (lower.includes('data:image/webp') || lower.includes('webp')) {
+    return { extension: 'webp', mimeType: 'image/webp' }
+  }
+
+  return { extension: 'jpg', mimeType: 'image/jpeg' }
 }
 
 async function createWordDocument(data: any) {
@@ -50,66 +83,64 @@ async function createWordDocument(data: any) {
     })
   )
 
-  // Student Information - Using paragraphs with tabs (NO TABLE)
-  const infoData = [
-    { label: 'NAMA', value: data.studentName },
-    { label: 'NIS/NISN', value: `${data.studentNis} / ${data.studentNisn || '-'}` },
-    { label: 'Madrasah', value: data.schoolName },
-    { label: 'Alamat', value: data.schoolAddress || '-' },
-  ]
-
-  const infoDataRight = [
-    { label: 'Kelas', value: data.className },
-    { label: 'Fase', value: 'Pondasi' },
-    { label: 'Semester', value: data.semester },
-    { label: 'Tahun Ajaran', value: data.academicYear }
-  ]
-
-  // Left column info
-  for (const info of infoData) {
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: `${info.label} : ${info.value}`,
-            size: 20
-          })
-        ],
-        spacing: { after: 100 },
-        tabStops: [
-          {
-            type: 'left',
-            position: 2500
-          }
-        ]
-      })
-    )
-  }
-
-  // Right column info (aligned to the right side)
-  for (const info of infoDataRight) {
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: `\t\t${info.label} : ${info.value}`,
-            size: 20
-          })
-        ],
-        spacing: { after: 100 },
-        tabStops: [
-          {
-            type: 'left',
-            position: 5000
-          },
-          {
-            type: 'left',
-            position: 6000
-          }
-        ]
-      })
-    )
-  }
+  // Student Information - Using 2-column table to match HTML preview
+  children.push(
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          children: [
+            // Left column
+            new TableCell({
+              width: { size: 50, type: WidthType.PERCENTAGE },
+              verticalAlign: VerticalAlign.TOP,
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: `Nama : ${data.studentName}`, size: 20 })],
+                  spacing: { after: 80 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: `NIS/NISN : ${data.studentNis} / ${data.studentNisn || '-'}`, size: 20 })],
+                  spacing: { after: 80 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: `Madrasah : ${data.schoolName}`, size: 20 })],
+                  spacing: { after: 80 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: `Alamat : ${data.schoolAddress || '-'}`, size: 20 })],
+                  spacing: { after: 0 }
+                })
+              ]
+            }),
+            // Right column
+            new TableCell({
+              width: { size: 50, type: WidthType.PERCENTAGE },
+              verticalAlign: VerticalAlign.TOP,
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: `Kelas : ${data.className}`, size: 20 })],
+                  spacing: { after: 80 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: `Fase : Pondasi`, size: 20 })],
+                  spacing: { after: 80 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: `Semester : ${data.semester}`, size: 20 })],
+                  spacing: { after: 80 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: `Tahun Ajaran : ${data.academicYear}`, size: 20 })],
+                  spacing: { after: 0 }
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+  )
 
   children.push(new Paragraph({ text: '', spacing: { after: 300 } }))
 
@@ -137,12 +168,30 @@ async function createWordDocument(data: any) {
       })
     )
 
-    // Scores
+    // Scores - Individual checkboxes like HTML: [ ] BB  [X] MB  [ ] BSH  [ ] BSB
     const scores = ['BB', 'MB', 'BSH', 'BSB']
-    const scoresText = scores.map(s => {
+    const scoreRuns: TextRun[] = []
+
+    scores.forEach((s, index) => {
       const isSelected = s === score
-      return `[${isSelected ? 'X' : ' '}] ${s}`
-    }).join('  ')
+      scoreRuns.push(
+        new TextRun({
+          text: `[${isSelected ? 'X' : ' '}] ${s}`,
+          bold: isSelected,
+          size: 20
+        })
+      )
+
+      // Add spacing between scores (not after the last one)
+      if (index < scores.length - 1) {
+        scoreRuns.push(
+          new TextRun({
+            text: '    ',
+            size: 20
+          })
+        )
+      }
+    })
 
     children.push(
       new Paragraph({
@@ -156,17 +205,12 @@ async function createWordDocument(data: any) {
         spacing: { after: 100 }
       }),
       new Paragraph({
-        children: [
-          new TextRun({
-            text: scoresText,
-            size: 20
-          })
-        ],
+        children: scoreRuns,
         spacing: { after: 300 }
       })
     )
 
-    // Notes
+    // Notes - with justification
     const observation = assessment?.observation || ''
     children.push(
       new Paragraph({
@@ -186,7 +230,8 @@ async function createWordDocument(data: any) {
             size: 20
           })
         ],
-        spacing: { after: 400, line: 360 }
+        spacing: { after: 400, line: 360 },
+        justification: JustificationType.BOTH
       })
     )
 
@@ -202,7 +247,7 @@ async function createWordDocument(data: any) {
     )
   }
 
-  // Observasi Kegiatan
+  // Observasi Kegiatan - with justification
   const obsKegiatan = data.assessments?.catatan_perkembangan?.observation || ''
   children.push(
     new Paragraph({
@@ -222,7 +267,8 @@ async function createWordDocument(data: any) {
           size: 20
         })
       ],
-      spacing: { after: 400, line: 360 }
+      spacing: { after: 400, line: 360 },
+      justification: JustificationType.BOTH
     }),
     new Paragraph({
       children: [new TextRun('')],
@@ -233,7 +279,7 @@ async function createWordDocument(data: any) {
     })
   )
 
-  // Catatan Anekdot
+  // Catatan Anekdot - with justification
   const notes = data.assessments?.catatan_perkembangan?.notes || ''
   children.push(
     new Paragraph({
@@ -253,7 +299,8 @@ async function createWordDocument(data: any) {
           size: 20
         })
       ],
-      spacing: { after: 400, line: 360 }
+      spacing: { after: 400, line: 360 },
+      justification: JustificationType.BOTH
     }),
     new Paragraph({
       children: [new TextRun('')],
@@ -280,19 +327,97 @@ async function createWordDocument(data: any) {
 
   const photos = data.photos || []
   if (photos.length > 0) {
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: `(${photos.length} foto dokumentasi)`,
-            size: 18,
-            italics: true,
-            color: '666666'
-          })
-        ],
-        spacing: { after: 200 }
-      })
-    )
+    // Create a 3-column table for photos
+    const photoRows: TableRow[] = []
+    const photosPerRow = 3
+
+    for (let i = 0; i < photos.length; i += photosPerRow) {
+      const rowCells: TableCell[] = []
+
+      for (let j = 0; j < photosPerRow; j++) {
+        const photoIndex = i + j
+        const photo = photos[photoIndex]
+
+        if (photo) {
+          const imageBuffer = getBase64Image(photo)
+          const imageType = getImageType(photo)
+
+          if (imageBuffer) {
+            rowCells.push(
+              new TableCell({
+                width: { size: 33.33, type: WidthType.PERCENTAGE },
+                verticalAlign: VerticalAlign.CENTER,
+                children: [
+                  new Paragraph({
+                    children: [
+                      new ImageRun({
+                        data: imageBuffer,
+                        transformation: {
+                          width: 150,
+                          height: 150
+                        },
+                        type: imageType.mimeType as any
+                      })
+                    ],
+                    alignment: AlignmentType.CENTER
+                  })
+                ]
+              })
+            )
+          } else {
+            // If image parsing fails, show placeholder
+            rowCells.push(
+              new TableCell({
+                width: { size: 33.33, type: WidthType.PERCENTAGE },
+                verticalAlign: VerticalAlign.CENTER,
+                children: [
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: `Foto ${photoIndex + 1}\n(Error loading)`,
+                        size: 18,
+                        color: '666666'
+                      })
+                    ],
+                    alignment: AlignmentType.CENTER
+                  })
+                ]
+              })
+            )
+          }
+        } else {
+          // Empty cell for grid alignment
+          rowCells.push(
+            new TableCell({
+              width: { size: 33.33, type: WidthType.PERCENTAGE },
+              children: []
+            })
+          )
+        }
+      }
+
+      photoRows.push(new TableRow({ children: rowCells }))
+    }
+
+    if (photoRows.length > 0) {
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `(${photos.length} foto dokumentasi)`,
+              size: 18,
+              italics: true,
+              color: '666666'
+            })
+          ],
+          spacing: { after: 200 }
+        }),
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: photoRows
+        })
+      )
+    }
   } else {
     children.push(
       new Paragraph({
@@ -367,7 +492,7 @@ async function createWordDocument(data: any) {
     })
   )
 
-  // Catatan Pendidik
+  // Catatan Pendidik - with justification
   children.push(
     new Paragraph({
       children: [
@@ -386,7 +511,8 @@ async function createWordDocument(data: any) {
           size: 20
         })
       ],
-      spacing: { after: 400, line: 360 }
+      spacing: { after: 400, line: 360 },
+      justification: JustificationType.BOTH
     }),
     new Paragraph({
       children: [new TextRun('')],
