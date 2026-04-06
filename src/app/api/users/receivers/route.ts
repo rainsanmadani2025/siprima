@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     if (role === 'GURU') {
       // Untuk GURU: dapatkan ORTU, KEPSEK, ADMIN, dan GURU lain (kecuali diri sendiri)
-      
+
       // 1. Get Teacher ID from User ID
       const teacher = userId ? await db.teacher.findUnique({
         where: { userId }
@@ -48,11 +48,14 @@ export async function GET(request: NextRequest) {
         })
       })
 
-      // 3. Get all kepsek (users with role KEPSEK)
+      // 3. Get all kepsek (users with role KEPSEK) - hanya yang belum ada di receivers
       const kepsekUsers = await db.user.findMany({
         where: {
           role: 'KEPSEK',
-          isActive: true
+          isActive: true,
+          id: {
+            notIn: receivers.map(r => r.id)
+          }
         },
         select: {
           id: true,
@@ -69,11 +72,14 @@ export async function GET(request: NextRequest) {
         })
       })
 
-      // 4. Get all admins
+      // 4. Get all admins - hanya yang belum ada di receivers
       const admins = await db.user.findMany({
         where: {
           role: 'ADMIN',
-          isActive: true
+          isActive: true,
+          id: {
+            notIn: receivers.map(r => r.id)
+          }
         },
         select: {
           id: true,
@@ -90,11 +96,22 @@ export async function GET(request: NextRequest) {
         })
       })
 
-      // 5. Get other teachers (kecuali diri sendiri)
+      // 5. Get other teachers (kecuali diri sendiri) - hanya yang belum ada di receivers
       const teachers = await db.teacher.findMany({
         where: teacherId ? {
-          id: { not: teacherId }
-        } : undefined,
+          id: { not: teacherId },
+          user: {
+            id: {
+              notIn: receivers.map(r => r.id)
+            }
+          }
+        } : {
+          user: {
+            id: {
+              notIn: receivers.map(r => r.id)
+            }
+          }
+        },
         select: {
           id: true,
           user: {
@@ -117,7 +134,7 @@ export async function GET(request: NextRequest) {
 
     } else if (role === 'ORTU') {
       // Untuk ORTU: dapatkan GURU, KEPSEK, ADMIN, dan ORTU lain (kecuali diri sendiri)
-      
+
       // 1. Get Parent ID from User ID
       const parent = userId ? await db.parent.findUnique({
         where: { userId }
@@ -147,11 +164,14 @@ export async function GET(request: NextRequest) {
         })
       })
 
-      // 3. Get all kepsek (users with role KEPSEK)
+      // 3. Get all kepsek (users with role KEPSEK) - hanya yang belum ada di receivers
       const kepsekUsers = await db.user.findMany({
         where: {
           role: 'KEPSEK',
-          isActive: true
+          isActive: true,
+          id: {
+            notIn: receivers.map(r => r.id)
+          }
         },
         select: {
           id: true,
@@ -168,11 +188,14 @@ export async function GET(request: NextRequest) {
         })
       })
 
-      // 4. Get all admins
+      // 4. Get all admins - hanya yang belum ada di receivers
       const admins = await db.user.findMany({
         where: {
           role: 'ADMIN',
-          isActive: true
+          isActive: true,
+          id: {
+            notIn: receivers.map(r => r.id)
+          }
         },
         select: {
           id: true,
@@ -189,11 +212,22 @@ export async function GET(request: NextRequest) {
         })
       })
 
-      // 5. Get other parents (kecuali diri sendiri)
+      // 5. Get other parents (kecuali diri sendiri) - hanya yang belum ada di receivers
       const parents = await db.parent.findMany({
         where: parentId ? {
-          id: { not: parentId }
-        } : undefined,
+          id: { not: parentId },
+          user: {
+            id: {
+              notIn: receivers.map(r => r.id)
+            }
+          }
+        } : {
+          user: {
+            id: {
+              notIn: receivers.map(r => r.id)
+            }
+          }
+        },
         select: {
           id: true,
           user: {
@@ -216,7 +250,7 @@ export async function GET(request: NextRequest) {
 
     } else if (role === 'KEPSEK') {
       // Untuk KEPSEK: dapatkan GURU, ORTU, ADMIN
-      
+
       // 1. Get all teachers
       const teachers = await db.teacher.findMany({
         select: {
@@ -239,8 +273,15 @@ export async function GET(request: NextRequest) {
         })
       })
 
-      // 2. Get all parents
+      // 2. Get all parents - hanya yang belum ada di receivers
       const parents = await db.parent.findMany({
+        where: {
+          user: {
+            id: {
+              notIn: receivers.map(r => r.id)
+            }
+          }
+        },
         select: {
           id: true,
           user: {
@@ -261,11 +302,14 @@ export async function GET(request: NextRequest) {
         })
       })
 
-      // 3. Get all admins
+      // 3. Get all admins - hanya yang belum ada di receivers
       const admins = await db.user.findMany({
         where: {
           role: 'ADMIN',
-          isActive: true
+          isActive: true,
+          id: {
+            notIn: receivers.map(r => r.id)
+          }
         },
         select: {
           id: true,
