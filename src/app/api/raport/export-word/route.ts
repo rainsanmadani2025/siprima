@@ -68,44 +68,96 @@ async function createWordDocument(data: any) {
   const kemenagLogo = await loadLogo('Logo Kemenag.png')
   const raLogo = await loadLogo('LOGO RA.png')
 
-  // Header Section with Logos
-  const headerChildren: any[] = []
-  
-  if (kemenagLogo) {
-    headerChildren.push(
-      new ImageRun({
-        data: kemenagLogo.data,
-        transformation: { width: 80, height: 100 },
-        type: kemenagLogo.type as any
+  // Header Section with Logos - Using table layout to match PDF positioning
+  // Logo Kemenag (left, smaller), School Name (center), Logo RA (right, larger, lowered)
+  if (kemenagLogo || raLogo) {
+    children.push(
+      new Table({
+        columnWidths: [1000, 7500, 1000],
+        margins: { top: 0, bottom: 0, left: 0, right: 0 },
+        rows: [
+          new TableRow({
+            children: [
+              // Logo Kemenag (left, smaller - ~65px in PDF)
+              new TableCell({
+                width: { size: 1000, type: WidthType.DXA },
+                borders: noBorders,
+                verticalAlign: VerticalAlign.TOP,
+                children: kemenagLogo ? [
+                  new Paragraph({
+                    children: [
+                      new ImageRun({
+                        data: kemenagLogo.data,
+                        transformation: { width: 60, height: 70 },
+                        type: kemenagLogo.type as any
+                      })
+                    ],
+                    spacing: { before: 100, after: 0 }
+                  })
+                ] : []
+              }),
+              // School Name (center, vertically aligned)
+              new TableCell({
+                width: { size: 7500, type: WidthType.DXA },
+                borders: noBorders,
+                verticalAlign: VerticalAlign.CENTER,
+                children: [
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: data.schoolName || 'RA INSAN MADANI',
+                        bold: true,
+                        size: 32,
+                        color: '000000'
+                      })
+                    ],
+                    alignment: AlignmentType.CENTER,
+                    spacing: { after: 80 }
+                  })
+                ]
+              }),
+              // Logo RA (right, larger - ~110px in PDF, lowered position)
+              new TableCell({
+                width: { size: 1000, type: WidthType.DXA },
+                borders: noBorders,
+                verticalAlign: VerticalAlign.TOP,
+                children: raLogo ? [
+                  new Paragraph({
+                    children: [
+                      new ImageRun({
+                        data: raLogo.data,
+                        transformation: { width: 100, height: 120 },
+                        type: raLogo.type as any
+                      })
+                    ],
+                    spacing: { before: 180, after: 0 }
+                  })
+                ] : []
+              })
+            ]
+          })
+        ]
       })
     )
-  }
-  
-  headerChildren.push(
-    new TextRun({
-      text: '    ' + (data.schoolName || 'RA INSAN MADANI') + '    ',
-      bold: true,
-      size: 32,
-      color: '000000'
-    })
-  )
-  
-  if (raLogo) {
-    headerChildren.push(
-      new ImageRun({
-        data: raLogo.data,
-        transformation: { width: 80, height: 100 },
-        type: raLogo.type as any
+  } else {
+    // Fallback: Just text without logos
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: data.schoolName || 'RA INSAN MADANI',
+            bold: true,
+            size: 32,
+            color: '000000'
+          })
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 100 }
       })
     )
   }
 
   children.push(
-    new Paragraph({
-      children: headerChildren,
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 100 }
-    }),
     new Paragraph({
       children: [
         new TextRun({
