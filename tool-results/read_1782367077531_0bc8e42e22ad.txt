@@ -1,0 +1,1020 @@
+     1→import { NextRequest, NextResponse } from 'next/server'
+     2→import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType, VerticalAlign, ImageRun, ShadingType } from 'docx'
+     3→import fs from 'fs'
+     4→import path from 'path'
+     5→
+     6→// Score labels mapping
+     7→const scoreLabels: Record<string, string> = {
+     8→  BB: 'Belum Berkembang',
+     9→  MB: 'Mulai Berkembang',
+    10→  BSH: 'Berkembang Sesuai Harapan',
+    11→  BSB: 'Berkembang Sangat Baik'
+    12→}
+    13→
+    14→function getBase64Image(base64: string): Buffer | null {
+    15→  if (!base64) return null
+    16→
+    17→  try {
+    18→    // Handle data URL format: data:image/jpeg;base64,/9j/4AAQ...
+    19→    if (base64.includes(',')) {
+    20→      const base64Data = base64.split(',')[1]
+    21→      return Buffer.from(base64Data, 'base64')
+    22→    }
+    23→    // Handle pure base64 string
+    24→    return Buffer.from(base64, 'base64')
+    25→  } catch (error) {
+    26→    console.error('Error parsing base64 image:', error)
+    27→    return null
+    28→  }
+    29→}
+    30→
+    31→function getImageType(base64: string): { extension: string; mimeType: string } {
+    32→  const lower = base64.toLowerCase()
+    33→
+    34→  if (lower.includes('data:image/jpeg') || lower.includes('jpg')) {
+    35→    return { extension: 'jpg', mimeType: 'image/jpeg' }
+    36→  } else if (lower.includes('data:image/png') || lower.includes('png')) {
+    37→    return { extension: 'png', mimeType: 'image/png' }
+    38→  } else if (lower.includes('data:image/gif') || lower.includes('gif')) {
+    39→    return { extension: 'gif', mimeType: 'image/gif' }
+    40→  } else if (lower.includes('data:image/webp') || lower.includes('webp')) {
+    41→    return { extension: 'webp', mimeType: 'image/webp' }
+    42→  }
+    43→
+    44→  return { extension: 'jpg', mimeType: 'image/jpeg' }
+    45→}
+    46→
+    47→async function loadLogo(filename: string): Promise<{ data: Buffer; type: string } | null> {
+    48→  try {
+    49→    const logoPath = path.join(process.cwd(), 'upload', filename)
+    50→    const logoData = fs.readFileSync(logoPath)
+    51→    
+    52→    if (filename.toLowerCase().includes('.png')) {
+    53→      return { data: logoData, type: 'image/png' }
+    54→    } else if (filename.toLowerCase().includes('.jpg') || filename.toLowerCase().includes('.jpeg')) {
+    55→      return { data: logoData, type: 'image/jpeg' }
+    56→    }
+    57→    return null
+    58→  } catch (error) {
+    59→    console.error(`Error loading logo ${filename}:`, error)
+    60→    return null
+    61→  }
+    62→}
+    63→
+    64→async function createWordDocument(data: any) {
+    65→  const children: any[] = []
+    66→
+    67→  // Define no borders for tables
+    68→  const noBorders = {
+    69→    top: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+    70→    bottom: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+    71→    left: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+    72→    right: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }
+    73→  }
+    74→
+    75→  // Load logos
+    76→  const kemenagLogo = await loadLogo('Logo Kemenag.png')
+    77→  const raLogo = await loadLogo('LOGO RA.png')
+    78→
+    79→  // Header Section with Logos - Using simple paragraph approach for better control
+    80→  // All elements in centered paragraph with precise spacing
+    81→  const headerElements: any[] = []
+    82→
+    83→  if (kemenagLogo) {
+    84→    headerElements.push(
+    85→      new ImageRun({
+    86→        data: kemenagLogo.data,
+    87→        transformation: { width: 60, height: 70 },
+    88→        type: kemenagLogo.type as any
+    89→      })
+    90→    )
+    91→    // Add spacing between logo and text
+    92→    headerElements.push(new TextRun({ text: '\t', size: 28 }))
+    93→  }
+    94→
+    95→  headerElements.push(
+    96→    new TextRun({
+    97→      text: data.schoolName || 'RA INSAN MADANI',
+    98→      bold: true,
+    99→      size: 32,
+   100→      color: '000000'
+   101→    })
+   102→  )
+   103→
+   104→  if (raLogo) {
+   105→    // Add spacing between text and logo
+   106→    headerElements.push(new TextRun({ text: '\t', size: 28 }))
+   107→    headerElements.push(
+   108→      new ImageRun({
+   109→        data: raLogo.data,
+   110→        transformation: { width: 100, height: 120 },
+   111→        type: raLogo.type as any
+   112→      })
+   113→    )
+   114→  }
+   115→
+   116→  children.push(
+   117→    new Paragraph({
+   118→      children: headerElements,
+   119→      alignment: AlignmentType.CENTER,
+   120→      spacing: { after: 100 }
+   121→    })
+   122→  )
+   123→
+   124→  children.push(
+   125→    new Paragraph({
+   126→      children: [
+   127→        new TextRun({
+   128→          text: 'Laporan Perkembangan Anak',
+   129→          bold: false,
+   130→          size: 24,
+   131→          color: '666666'
+   132→        })
+   133→      ],
+   134→      alignment: AlignmentType.CENTER,
+   135→      spacing: { after: 200 }
+   136→    })
+   137→  )
+   138→
+   139→  // Double horizontal line
+   140→  children.push(
+   141→    new Paragraph({
+   142→      children: [new TextRun('')],
+   143→      border: {
+   144→        bottom: { color: '000000', space: 1, style: BorderStyle.DOUBLE, size: 12 }
+   145→      },
+   146→      spacing: { after: 300 }
+   147→    })
+   148→  )
+   149→
+   150→  // Student Information - Using 6-column table to match sample
+   151→  // Column layout: Label | : | Value | Label | : | Value
+   152→  children.push(
+   153→    new Table({
+   154→      columnWidths: [1557, 76, 4604, 1558, 123, 1391], // DXA values from sample
+   155→      margins: { top: 100, bottom: 100, left: 100, right: 100 },
+   156→      rows: [
+   157→        new TableRow({
+   158→          children: [
+   159→            // NAMA
+   160→            new TableCell({
+   161→              width: { size: 1557, type: WidthType.DXA },
+   162→              borders: noBorders,
+   163→              verticalAlign: VerticalAlign.CENTER,
+   164→              children: [
+   165→                new Paragraph({
+   166→                  children: [new TextRun({ text: 'Nama  ', size: 20 })],
+   167→                  spacing: { line: 280 }
+   168→                }),
+   169→                new Paragraph({
+   170→                  children: [new TextRun({ text: 'NIS/NISN  ', size: 20 })],
+   171→                  spacing: { line: 280 }
+   172→                }),
+   173→                new Paragraph({
+   174→                  children: [new TextRun({ text: 'Madrasah  ', size: 20 })],
+   175→                  spacing: { line: 280 }
+   176→                }),
+   177→                new Paragraph({
+   178→                  children: [new TextRun({ text: 'Alamat ', size: 20 })],
+   179→                  spacing: { line: 280 }
+   180→                })
+   181→              ]
+   182→            }),
+   183→            // : column (left)
+   184→            new TableCell({
+   185→              width: { size: 76, type: WidthType.DXA },
+   186→              borders: noBorders,
+   187→              verticalAlign: VerticalAlign.CENTER,
+   188→              children: [
+   189→                new Paragraph({
+   190→                  children: [new TextRun({ text: ':', size: 20 })],
+   191→                  alignment: AlignmentType.CENTER,
+   192→                  spacing: { line: 280 }
+   193→                }),
+   194→                new Paragraph({
+   195→                  children: [new TextRun({ text: ':', size: 20 })],
+   196→                  alignment: AlignmentType.CENTER,
+   197→                  spacing: { line: 280 }
+   198→                }),
+   199→                new Paragraph({
+   200→                  children: [new TextRun({ text: ':', size: 20 })],
+   201→                  alignment: AlignmentType.CENTER,
+   202→                  spacing: { line: 280 }
+   203→                }),
+   204→                new Paragraph({
+   205→                  children: [new TextRun({ text: ':', size: 20 })],
+   206→                  alignment: AlignmentType.CENTER,
+   207→                  spacing: { line: 280 }
+   208→                })
+   209→              ]
+   210→            }),
+   211→            // Values column (left)
+   212→            new TableCell({
+   213→              width: { size: 4604, type: WidthType.DXA },
+   214→              borders: noBorders,
+   215→              verticalAlign: VerticalAlign.CENTER,
+   216→              children: [
+   217→                new Paragraph({
+   218→                  children: [new TextRun({ text: ` ${data.studentName}`, size: 20 })],
+   219→                  spacing: { line: 280 }
+   220→                }),
+   221→                new Paragraph({
+   222→                  children: [new TextRun({ text: ` ${data.studentNis} / ${data.studentNisn || '-'}`, size: 20 })],
+   223→                  spacing: { line: 280 }
+   224→                }),
+   225→                new Paragraph({
+   226→                  children: [new TextRun({ text: ` ${data.schoolName}`, size: 20 })],
+   227→                  spacing: { line: 280 }
+   228→                }),
+   229→                new Paragraph({
+   230→                  children: [new TextRun({ text: ` ${data.schoolAddress || '-'}`, size: 20 })],
+   231→                  spacing: { line: 280 }
+   232→                })
+   233→              ]
+   234→            }),
+   235→            // Kelas
+   236→            new TableCell({
+   237→              width: { size: 1558, type: WidthType.DXA },
+   238→              borders: noBorders,
+   239→              verticalAlign: VerticalAlign.CENTER,
+   240→              children: [
+   241→                new Paragraph({
+   242→                  children: [new TextRun({ text: 'Kelas', size: 20 })],
+   243→                  spacing: { line: 280 }
+   244→                }),
+   245→                new Paragraph({
+   246→                  children: [new TextRun({ text: 'Fase ', size: 20 })],
+   247→                  spacing: { line: 280 }
+   248→                }),
+   249→                new Paragraph({
+   250→                  children: [new TextRun({ text: 'Semester ', size: 20 })],
+   251→                  spacing: { line: 280 }
+   252→                }),
+   253→                new Paragraph({
+   254→                  children: [new TextRun({ text: 'Tahun ', size: 20 })],
+   255→                  tabStops: [{ type: 'right', position: 1929 }],
+   256→                  spacing: { line: 280 }
+   257→                }),
+   258→                new Paragraph({
+   259→                  children: [new TextRun({ text: 'Ajaran ', size: 20 })],
+   260→                  spacing: { line: 280 }
+   261→                })
+   262→              ]
+   263→            }),
+   264→            // : column (right)
+   265→            new TableCell({
+   266→              width: { size: 123, type: WidthType.DXA },
+   267→              borders: noBorders,
+   268→              verticalAlign: VerticalAlign.CENTER,
+   269→              children: [
+   270→                new Paragraph({
+   271→                  children: [new TextRun({ text: ':', size: 20 })],
+   272→                  alignment: AlignmentType.CENTER,
+   273→                  spacing: { line: 280 }
+   274→                }),
+   275→                new Paragraph({
+   276→                  children: [new TextRun({ text: ':', size: 20 })],
+   277→                  alignment: AlignmentType.CENTER,
+   278→                  spacing: { line: 280 }
+   279→                }),
+   280→                new Paragraph({
+   281→                  children: [new TextRun({ text: ':', size: 20 })],
+   282→                  alignment: AlignmentType.CENTER,
+   283→                  spacing: { line: 280 }
+   284→                }),
+   285→                new Paragraph({
+   286→                  children: [new TextRun({ text: ':', size: 20 })],
+   287→                  alignment: AlignmentType.CENTER,
+   288→                  spacing: { line: 280 }
+   289→                }),
+   290→                new Paragraph({
+   291→                  children: [new TextRun({ text: '', size: 20 })],
+   292→                  alignment: AlignmentType.CENTER,
+   293→                  spacing: { line: 280 }
+   294→                })
+   295→              ]
+   296→            }),
+   297→            // Values column (right)
+   298→            new TableCell({
+   299→              width: { size: 1391, type: WidthType.DXA },
+   300→              borders: noBorders,
+   301→              verticalAlign: VerticalAlign.CENTER,
+   302→              children: [
+   303→                new Paragraph({
+   304→                  children: [new TextRun({ text: ` ${data.className}`, size: 20 })],
+   305→                  spacing: { line: 280 }
+   306→                }),
+   307→                new Paragraph({
+   308→                  children: [new TextRun({ text: ` Pondasi`, size: 20 })],
+   309→                  spacing: { line: 280 }
+   310→                }),
+   311→                new Paragraph({
+   312→                  children: [new TextRun({ text: ` ${data.semester}`, size: 20 })],
+   313→                  spacing: { line: 280 }
+   314→                }),
+   315→                new Paragraph({
+   316→                  children: [new TextRun({ text: ` ${data.academicYear}`, size: 20 })],
+   317→                  spacing: { line: 280 }
+   318→                }),
+   319→                new Paragraph({
+   320→                  children: [new TextRun({ text: '', size: 20 })],
+   321→                  spacing: { line: 280 }
+   322→                })
+   323→              ]
+   324→            })
+   325→          ]
+   326→        })
+   327→      ]
+   328→    })
+   329→  )
+   330→
+   331→  children.push(new Paragraph({ text: '', spacing: { after: 300 } }))
+   332→
+   333→  // Aspects Section
+   334→  const aspects = [
+   335→    { key: 'agama_budi_pekerti', label: 'A. Nilai Agama dan Budi Pekerti' },
+   336→    { key: 'jati_diri', label: 'B. Jati Diri' },
+   337→    { key: 'literasi_sains', label: 'C. Dasar-dasar Literasi, Matematika, Sains, Teknologi, Rekayasa dan Seni' }
+   338→  ]
+   339→
+   340→  for (const aspect of aspects) {
+   341→    const assessment = data.assessments[aspect.key]
+   342→    const score = assessment?.score || ''
+   343→
+   344→    children.push(
+   345→      new Paragraph({
+   346→        children: [
+   347→          new TextRun({
+   348→            text: aspect.label,
+   349→            bold: true,
+   350→            size: 22
+   351→          })
+   352→        ],
+   353→        spacing: { before: 300, after: 200 }
+   354→      })
+   355→    )
+   356→
+   357→    // Scores - Using circles like sample: ○ BB ● MB ○ BSH ○ BSB
+   358→    const scores = ['BB', 'MB', 'BSH', 'BSB']
+   359→    const scoreRuns: TextRun[] = []
+   360→
+   361→    scores.forEach((s, index) => {
+   362→      const isSelected = s === score
+   363→      // Use Unicode circles: ○ (white) and ● (black)
+   364→      scoreRuns.push(
+   365→        new TextRun({
+   366→          text: `${isSelected ? '\u25CF' : '\u25CB'} ${isSelected ? s : s}`,
+   367→          bold: isSelected,
+   368→          size: 24
+   369→        })
+   370→      )
+   371→
+   372→      // Add spacing between scores (not after the last one)
+   373→      if (index < scores.length - 1) {
+   374→        scoreRuns.push(
+   375→          new TextRun({
+   376→            text: '    ',
+   377→            size: 24
+   378→          })
+   379→        )
+   380→      }
+   381→    })
+   382→
+   383→    children.push(
+   384→      new Paragraph({
+   385→        children: [
+   386→          new TextRun({
+   387→            text: 'Penilaian:',
+   388→            bold: true,
+   389→            size: 20
+   390→          })
+   391→        ],
+   392→        spacing: { after: 100 }
+   393→      }),
+   394→      new Paragraph({
+   395→        children: scoreRuns,
+   396→        spacing: { after: 300 }
+   397→      })
+   398→    )
+   399→
+   400→    // Notes - with justification
+   401→    const observation = assessment?.observation || ''
+   402→    children.push(
+   403→      new Paragraph({
+   404→        children: [
+   405→          new TextRun({
+   406→            text: 'Catatan Perkembangan:',
+   407→            bold: true,
+   408→            size: 20
+   409→          })
+   410→        ],
+   411→        spacing: { before: 200, after: 100 }
+   412→      }),
+   413→      new Paragraph({
+   414→        children: [
+   415→          new TextRun({
+   416→            text: observation || '.....................................................................................................................................................................................................................................',
+   417→            size: 20
+   418→          })
+   419→        ],
+   420→        spacing: { after: 400, line: 360 },
+   421→        alignment: AlignmentType.JUSTIFIED
+   422→      })
+   423→    )
+   424→
+   425→    // Separator
+   426→    children.push(
+   427→      new Paragraph({
+   428→        children: [new TextRun('')],
+   429→        border: {
+   430→          bottom: { color: '808080', space: 1, style: BorderStyle.SINGLE, size: 3 }
+   431→        },
+   432→        spacing: { after: 300 }
+   433→      })
+   434→    )
+   435→  }
+   436→
+   437→  // Observasi Kegiatan - with justification
+   438→  const obsKegiatan = data.assessments?.catatan_perkembangan?.observation || ''
+   439→  children.push(
+   440→    new Paragraph({
+   441→      children: [
+   442→        new TextRun({
+   443→          text: 'Observasi Kegiatan:',
+   444→          bold: true,
+   445→          size: 22
+   446→        })
+   447→      ],
+   448→      spacing: { before: 300, after: 200 }
+   449→    }),
+   450→    new Paragraph({
+   451→      children: [
+   452→        new TextRun({
+   453→          text: obsKegiatan || '.....................................................................................................................................................................................................................................',
+   454→          size: 20
+   455→        })
+   456→      ],
+   457→      spacing: { after: 400, line: 360 },
+   458→      alignment: AlignmentType.JUSTIFIED
+   459→    }),
+   460→    new Paragraph({
+   461→      children: [new TextRun('')],
+   462→      border: {
+   463→        bottom: { color: '808080', space: 1, style: BorderStyle.SINGLE, size: 3 }
+   464→      },
+   465→      spacing: { after: 300 }
+   466→    })
+   467→  )
+   468→
+   469→  // Catatan Anekdot - with justification
+   470→  const notes = data.assessments?.catatan_perkembangan?.notes || ''
+   471→  children.push(
+   472→    new Paragraph({
+   473→      children: [
+   474→        new TextRun({
+   475→          text: 'Catatan Anekdot:',
+   476→          bold: true,
+   477→          size: 22
+   478→        })
+   479→      ],
+   480→      spacing: { before: 300, after: 200 }
+   481→    }),
+   482→    new Paragraph({
+   483→      children: [
+   484→        new TextRun({
+   485→          text: notes || '.....................................................................................................................................................................................................................................',
+   486→          size: 20
+   487→        })
+   488→      ],
+   489→      spacing: { after: 400, line: 360 },
+   490→      alignment: AlignmentType.JUSTIFIED
+   491→    }),
+   492→    new Paragraph({
+   493→      children: [new TextRun('')],
+   494→      border: {
+   495→        bottom: { color: '808080', space: 1, style: BorderStyle.SINGLE, size: 3 }
+   496→      },
+   497→      spacing: { after: 300 }
+   498→    })
+   499→  )
+   500→
+   501→  // Dokumentasi Foto
+   502→  children.push(
+   503→    new Paragraph({
+   504→      children: [
+   505→        new TextRun({
+   506→          text: 'Dokumentasi Foto:',
+   507→          bold: true,
+   508→          size: 22
+   509→        })
+   510→      ],
+   511→      spacing: { before: 300, after: 200 }
+   512→    })
+   513→  )
+   514→
+   515→  const photos = data.photos || []
+   516→  if (photos.length > 0) {
+   517→    // Create a 3-column table for photos
+   518→    const photoRows: TableRow[] = []
+   519→    const photosPerRow = 3
+   520→
+   521→    for (let i = 0; i < photos.length; i += photosPerRow) {
+   522→      const rowCells: TableCell[] = []
+   523→
+   524→      for (let j = 0; j < photosPerRow; j++) {
+   525→        const photoIndex = i + j
+   526→        const photo = photos[photoIndex]
+   527→
+   528→        if (photo) {
+   529→          const imageBuffer = getBase64Image(photo)
+   530→          const imageType = getImageType(photo)
+   531→
+   532→          if (imageBuffer) {
+   533→            rowCells.push(
+   534→              new TableCell({
+   535→                width: { size: 3120, type: WidthType.DXA },
+   536→                verticalAlign: VerticalAlign.CENTER,
+   537→                borders: cellBorders,
+   538→                children: [
+   539→                  new Paragraph({
+   540→                    children: [
+   541→                      new ImageRun({
+   542→                        data: imageBuffer,
+   543→                        transformation: {
+   544→                          width: 150,
+   545→                          height: 150
+   546→                        },
+   547→                        type: imageType.mimeType as any
+   548→                      })
+   549→                    ],
+   550→                    alignment: AlignmentType.CENTER
+   551→                  })
+   552→                ]
+   553→              })
+   554→            )
+   555→          } else {
+   556→            // If image parsing fails, show placeholder
+   557→            rowCells.push(
+   558→              new TableCell({
+   559→                width: { size: 3120, type: WidthType.DXA },
+   560→                verticalAlign: VerticalAlign.CENTER,
+   561→                borders: cellBorders,
+   562→                children: [
+   563→                  new Paragraph({
+   564→                    children: [
+   565→                      new TextRun({
+   566→                        text: `Foto ${photoIndex + 1}\n(Error loading)`,
+   567→                        size: 18,
+   568→                        color: '666666'
+   569→                      })
+   570→                    ],
+   571→                    alignment: AlignmentType.CENTER
+   572→                  })
+   573→                ]
+   574→              })
+   575→            )
+   576→          }
+   577→        } else {
+   578→          // Empty cell for grid alignment
+   579→          rowCells.push(
+   580→            new TableCell({
+   581→              width: { size: 3120, type: WidthType.DXA },
+   582→              borders: cellBorders,
+   583→              children: []
+   584→            })
+   585→          )
+   586→        }
+   587→      }
+   588→
+   589→      photoRows.push(new TableRow({ children: rowCells }))
+   590→    }
+   591→
+   592→    if (photoRows.length > 0) {
+   593→      children.push(
+   594→        new Paragraph({
+   595→          children: [
+   596→            new TextRun({
+   597→              text: `(${photos.length} foto dokumentasi)`,
+   598→              size: 18,
+   599→              italics: true,
+   600→              color: '666666'
+   601→            })
+   602→          ],
+   603→          spacing: { after: 200 }
+   604→        }),
+   605→        new Table({
+   606→          columnWidths: [3120, 3120, 3120],
+   607→          margins: { top: 100, bottom: 100, left: 100, right: 100 },
+   608→          rows: photoRows
+   609→        })
+   610→      )
+   611→    }
+   612→  } else {
+   613→    children.push(
+   614→      new Paragraph({
+   615→        children: [
+   616→          new TextRun({
+   617→            text: '(Tidak ada foto yang diunggah)',
+   618→            size: 18,
+   619→            italics: true,
+   620→            color: '666666'
+   621→          })
+   622→        ],
+   623→        spacing: { after: 200 }
+   624→      })
+   625→    )
+   626→  }
+   627→
+   628→  children.push(
+   629→    new Paragraph({
+   630→      children: [new TextRun('')],
+   631→      border: {
+   632→        bottom: { color: '808080', space: 1, style: BorderStyle.SINGLE, size: 3 }
+   633→      },
+   634→      spacing: { after: 300 }
+   635→    })
+   636→  )
+   637→
+   638→  // Ketidakhadiran
+   639→  children.push(
+   640→    new Paragraph({
+   641→      children: [
+   642→        new TextRun({
+   643→          text: 'Ketidakhadiran:',
+   644→          bold: true,
+   645→          size: 22
+   646→        })
+   647→      ],
+   648→      spacing: { before: 300, after: 200 }
+   649→    }),
+   650→    new Paragraph({
+   651→      children: [
+   652→        new TextRun({
+   653→          text: `Sakit   ${data.attendance.sakit}   Hari`,
+   654→          size: 20
+   655→        })
+   656→      ],
+   657→      spacing: { after: 200 }
+   658→    }),
+   659→    new Paragraph({
+   660→      children: [
+   661→        new TextRun({
+   662→          text: `Izin    ${data.attendance.izin}    Hari`,
+   663→          size: 20
+   664→        })
+   665→      ],
+   666→      spacing: { after: 200 }
+   667→    }),
+   668→    new Paragraph({
+   669→      children: [
+   670→        new TextRun({
+   671→          text: `Alpa    ${data.attendance.alpa}    Hari`,
+   672→          size: 20
+   673→        })
+   674→      ],
+   675→      spacing: { after: 400 }
+   676→    }),
+   677→    new Paragraph({
+   678→      children: [new TextRun('')],
+   679→      border: {
+   680→        bottom: { color: '808080', space: 1, style: BorderStyle.SINGLE, size: 3 }
+   681→      },
+   682→      spacing: { after: 300 }
+   683→    })
+   684→  )
+   685→
+   686→  // Catatan Pendidik - with justification
+   687→  children.push(
+   688→    new Paragraph({
+   689→      children: [
+   690→        new TextRun({
+   691→          text: 'Catatan Pendidik:',
+   692→          bold: true,
+   693→          size: 22
+   694→        })
+   695→      ],
+   696→      spacing: { before: 300, after: 200 }
+   697→    }),
+   698→    new Paragraph({
+   699→      children: [
+   700→        new TextRun({
+   701→          text: data.educatorNotes || '.....................................................................................................................................................................................................................................',
+   702→          size: 20
+   703→        })
+   704→      ],
+   705→      spacing: { after: 400, line: 360 },
+   706→      alignment: AlignmentType.JUSTIFIED
+   707→    }),
+   708→    new Paragraph({
+   709→      children: [new TextRun('')],
+   710→      border: {
+   711→        bottom: { color: '808080', space: 1, style: BorderStyle.SINGLE, size: 3 }
+   712→      },
+   713→      spacing: { after: 800 }
+   714→    })
+   715→  )
+   716→
+   717→  // Tanda Tangan Section - 2 rows with 3 columns to match sample
+   718→  // Row 1: Orang Tua (left), Empty (center), Wali Kelas (right)
+   719→  // Row 2: Empty, Kepala Sekolah (center), Empty
+   720→  // No borders for signature table
+   721→  children.push(
+   722→    new Table({
+   723→      columnWidths: [2300, 4000, 3066], // Approximate widths to match sample
+   724→      margins: { top: 100, bottom: 100, left: 100, right: 100 },
+   725→      rows: [
+   726→        // Row 1: Orang Tua, Empty, Wali Kelas
+   727→        new TableRow({
+   728→          children: [
+   729→            // Orang Tua
+   730→            new TableCell({
+   731→              width: { size: 2300, type: WidthType.DXA },
+   732→              borders: noBorders,
+   733→              verticalAlign: VerticalAlign.TOP,
+   734→              children: [
+   735→                new Paragraph({
+   736→                  children: [
+   737→                    new TextRun({
+   738→                      text: 'Orang Tua',
+   739→                      bold: true,
+   740→                      size: 20
+   741→                    })
+   742→                  ],
+   743→                  alignment: AlignmentType.CENTER,
+   744→                  spacing: { after: 600 }
+   745→                }),
+   746→                new Paragraph({
+   747→                  children: [
+   748→                    new TextRun({
+   749→                      text: '',
+   750→                      size: 20
+   751→                    })
+   752→                  ],
+   753→                  spacing: { after: 600 }
+   754→                }),
+   755→                new Paragraph({
+   756→                  children: [
+   757→                    new TextRun({
+   758→                      text: '',
+   759→                      size: 20
+   760→                    })
+   761→                  ],
+   762→                  spacing: { after: 600 }
+   763→                }),
+   764→                new Paragraph({
+   765→                  children: [
+   766→                    new TextRun({
+   767→                      text: '',
+   768→                      size: 20
+   769→                    })
+   770→                  ],
+   771→                  alignment: AlignmentType.CENTER,
+   772→                  spacing: { after: 0 }
+   773→                }),
+   774→                new Paragraph({
+   775→                  children: [
+   776→                    new TextRun({
+   777→                      text: data.parentName || 'Bapak',
+   778→                      size: 20
+   779→                    })
+   780→                  ],
+   781→                  alignment: AlignmentType.CENTER,
+   782→                  spacing: { after: 0 }
+   783→                })
+   784→              ]
+   785→            }),
+   786→            // Empty center column
+   787→            new TableCell({
+   788→              width: { size: 4000, type: WidthType.DXA },
+   789→              borders: noBorders,
+   790→              verticalAlign: VerticalAlign.TOP,
+   791→              children: [
+   792→                new Paragraph({
+   793→                  children: [new TextRun('')]
+   794→                })
+   795→              ]
+   796→            }),
+   797→            // Wali Kelas
+   798→            new TableCell({
+   799→              width: { size: 3066, type: WidthType.DXA },
+   800→              borders: noBorders,
+   801→              verticalAlign: VerticalAlign.TOP,
+   802→              children: [
+   803→                new Paragraph({
+   804→                  children: [
+   805→                    new TextRun({
+   806→                      text: 'Wali Kelas',
+   807→                      bold: true,
+   808→                      size: 20
+   809→                    })
+   810→                  ],
+   811→                  alignment: AlignmentType.CENTER,
+   812→                  spacing: { after: 600 }
+   813→                }),
+   814→                new Paragraph({
+   815→                  children: [
+   816→                    new TextRun({
+   817→                      text: '',
+   818→                      size: 20
+   819→                    })
+   820→                  ],
+   821→                  spacing: { after: 600 }
+   822→                }),
+   823→                new Paragraph({
+   824→                  children: [
+   825→                    new TextRun({
+   826→                      text: '',
+   827→                      size: 20
+   828→                    })
+   829→                  ],
+   830→                  spacing: { after: 600 }
+   831→                }),
+   832→                new Paragraph({
+   833→                  children: [
+   834→                    new TextRun({
+   835→                      text: '',
+   836→                      size: 20
+   837→                    })
+   838→                  ],
+   839→                  alignment: AlignmentType.CENTER,
+   840→                  spacing: { after: 50 }
+   841→                }),
+   842→                new Paragraph({
+   843→                  children: [
+   844→                    new TextRun({
+   845→                      text: `${data.teacherName || 'Siti Fatimah'}, S.Pd`,
+   846→                      size: 20,
+   847→                      underline: {}
+   848→                    })
+   849→                  ],
+   850→                  alignment: AlignmentType.CENTER,
+   851→                  spacing: { after: 100 }
+   852→                }),
+   853→                ...(data.teacherNip ? [
+   854→                  new Paragraph({
+   855→                    children: [
+   856→                      new TextRun({
+   857→                        text: `NUPTK : ${data.teacherNip}`,
+   858→                        size: 16,
+   859→                        color: '666666'
+   860→                      })
+   861→                    ],
+   862→                    alignment: AlignmentType.CENTER,
+   863→                    spacing: { after: 0 }
+   864→                  })
+   865→                ] : [])
+   866→              ]
+   867→            })
+   868→          ]
+   869→        }),
+   870→        // Row 2: Empty, Kepala Sekolah, Empty
+   871→        new TableRow({
+   872→          children: [
+   873→            // Empty left column
+   874→            new TableCell({
+   875→              width: { size: 2300, type: WidthType.DXA },
+   876→              borders: noBorders,
+   877→              verticalAlign: VerticalAlign.TOP,
+   878→              children: [
+   879→                new Paragraph({
+   880→                  children: [
+   881→                    new TextRun({
+   882→                      text: '',
+   883→                      size: 20
+   884→                    })
+   885→                  ],
+   886→                  spacing: { after: 600 }
+   887→                })
+   888→              ]
+   889→            }),
+   890→            // Kepala Sekolah (center)
+   891→            new TableCell({
+   892→              width: { size: 4000, type: WidthType.DXA },
+   893→              borders: noBorders,
+   894→              verticalAlign: VerticalAlign.TOP,
+   895→              children: [
+   896→                new Paragraph({
+   897→                  children: [
+   898→                    new TextRun({
+   899→                      text: 'Mengetahui,',
+   900→                      bold: true,
+   901→                      size: 20
+   902→                    })
+   903→                  ],
+   904→                  alignment: AlignmentType.CENTER,
+   905→                  spacing: { after: 0 }
+   906→                }),
+   907→                new Paragraph({
+   908→                  children: [
+   909→                    new TextRun({
+   910→                      text: 'Kepala Sekolah',
+   911→                      bold: true,
+   912→                      size: 20
+   913→                    })
+   914→                  ],
+   915→                  alignment: AlignmentType.CENTER,
+   916→                  spacing: { after: 600 }
+   917→                }),
+   918→                new Paragraph({
+   919→                  children: [
+   920→                    new TextRun({
+   921→                      text: '',
+   922→                      size: 20
+   923→                    })
+   924→                  ],
+   925→                  spacing: { after: 600 }
+   926→                }),
+   927→                new Paragraph({
+   928→                  children: [
+   929→                    new TextRun({
+   930→                      text: '',
+   931→                      size: 20
+   932→                    })
+   933→                  ],
+   934→                  alignment: AlignmentType.CENTER,
+   935→                  spacing: { after: 50 }
+   936→                }),
+   937→                new Paragraph({
+   938→                  children: [
+   939→                    new TextRun({
+   940→                      text: `${data.principalName || 'Neneng Mulyawati'}, S.Pd`,
+   941→                      size: 20,
+   942→                      underline: {}
+   943→                    })
+   944→                  ],
+   945→                  alignment: AlignmentType.CENTER,
+   946→                  spacing: { after: 100 }
+   947→                }),
+   948→                ...(data.principalNip ? [
+   949→                  new Paragraph({
+   950→                    children: [
+   951→                      new TextRun({
+   952→                        text: `NUPTK : ${data.principalNip}`,
+   953→                        size: 16,
+   954→                        color: '666666'
+   955→                      })
+   956→                    ],
+   957→                    alignment: AlignmentType.CENTER,
+   958→                    spacing: { after: 0 }
+   959→                  })
+   960→                ] : [])
+   961→              ]
+   962→            }),
+   963→            // Empty right column
+   964→            new TableCell({
+   965→              width: { size: 3066, type: WidthType.DXA },
+   966→              borders: noBorders,
+   967→              verticalAlign: VerticalAlign.TOP,
+   968→              children: [
+   969→                new Paragraph({
+   970→                  children: [new TextRun('')]
+   971→                })
+   972→              ]
+   973→            })
+   974→          ]
+   975→        })
+   976→      ]
+   977→    })
+   978→  )
+   979→
+   980→  // Create document
+   981→  const doc = new Document({
+   982→    sections: [{
+   983→      properties: {},
+   984→      children: children
+   985→    }]
+   986→  })
+   987→
+   988→  return doc
+   989→}
+   990→
+   991→export async function POST(request: NextRequest) {
+   992→  try {
+   993→    const data = await request.json()
+   994→
+   995→    if (!data.studentName || !data.period) {
+   996→      return NextResponse.json(
+   997→        { success: false, error: 'Data siswa dan periode diperlukan' },
+   998→        { status: 400 }
+   999→      )
+  1000→    }
+  1001→
+  1002→    const doc = await createWordDocument(data)
+  1003→    const buffer = await Packer.toBuffer(doc)
+  1004→
+  1005→    return new NextResponse(buffer, {
+  1006→      status: 200,
+  1007→      headers: {
+  1008→        'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  1009→        'Content-Disposition': `attachment; filename="Raport-${data.studentName}-${data.periodLabel}.docx"`,
+  1010→      },
+  1011→    })
+  1012→  } catch (error: any) {
+  1013→    console.error('Error generating Word document:', error)
+  1014→    return NextResponse.json(
+  1015→      { success: false, error: error.message || 'Gagal membuat dokumen Word' },
+  1016→      { status: 500 }
+  1017→    )
+  1018→  }
+  1019→}
+  1020→

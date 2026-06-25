@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType, VerticalAlign, ImageRun, ShadingType } from 'docx'
+import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType, VerticalAlign, HeightRule, ImageRun, ShadingType } from 'docx'
 import fs from 'fs'
 import path from 'path'
 
@@ -76,48 +76,112 @@ async function createWordDocument(data: any) {
   const kemenagLogo = await loadLogo('Logo Kemenag.png')
   const raLogo = await loadLogo('LOGO RA.png')
 
-  // Header Section with Logos - Using simple paragraph approach for better control
-  // All elements in centered paragraph with precise spacing
-  const headerElements: any[] = []
-
-  if (kemenagLogo) {
-    headerElements.push(
-      new ImageRun({
-        data: kemenagLogo.data,
-        transformation: { width: 60, height: 70 },
-        type: kemenagLogo.type as any
-      })
-    )
-    // Add spacing between logo and text
-    headerElements.push(new TextRun({ text: '\t', size: 28 }))
+  // Header Section with Logos - Using 3-column table for proper vertical alignment
+  const noBorder = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }
+  const noBorders = {
+    top: noBorder,
+    bottom: noBorder,
+    left: noBorder,
+    right: noBorder
   }
 
-  headerElements.push(
-    new TextRun({
-      text: data.schoolName || 'RA INSAN MADANI',
-      bold: true,
-      size: 32,
-      color: '000000'
+  const headerCells: TableCell[] = []
+
+  // Left column: Kemenag logo
+  if (kemenagLogo) {
+    headerCells.push(
+      new TableCell({
+        children: [
+          new Paragraph({
+            children: [
+              new ImageRun({
+                data: kemenagLogo.data,
+                transformation: { width: 60, height: 70 },
+                type: kemenagLogo.type as any
+              })
+            ],
+            alignment: AlignmentType.CENTER
+          })
+        ],
+        width: { size: 1500, type: WidthType.DXA },
+        verticalAlign: VerticalAlign.CENTER,
+        borders: noBorders
+      })
+    )
+  } else {
+    headerCells.push(
+      new TableCell({
+        children: [new Paragraph({ children: [] })],
+        width: { size: 1500, type: WidthType.DXA },
+        verticalAlign: VerticalAlign.CENTER,
+        borders: noBorders
+      })
+    )
+  }
+
+  // Center column: School name
+  headerCells.push(
+    new TableCell({
+      children: [
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: data.schoolName || 'RA INSAN MADANI',
+              bold: true,
+              size: 32,
+              color: '000000'
+            })
+          ],
+          alignment: AlignmentType.CENTER
+        })
+      ],
+      width: { size: 5200, type: WidthType.DXA },
+      verticalAlign: VerticalAlign.CENTER,
+      borders: noBorders
     })
   )
 
+  // Right column: RA logo
   if (raLogo) {
-    // Add spacing between text and logo
-    headerElements.push(new TextRun({ text: '\t', size: 28 }))
-    headerElements.push(
-      new ImageRun({
-        data: raLogo.data,
-        transformation: { width: 100, height: 120 },
-        type: raLogo.type as any
+    headerCells.push(
+      new TableCell({
+        children: [
+          new Paragraph({
+            children: [
+              new ImageRun({
+                data: raLogo.data,
+                transformation: { width: 100, height: 120 },
+                type: raLogo.type as any
+              })
+            ],
+            alignment: AlignmentType.CENTER
+          })
+        ],
+        width: { size: 1500, type: WidthType.DXA },
+        verticalAlign: VerticalAlign.CENTER,
+        borders: noBorders
+      })
+    )
+  } else {
+    headerCells.push(
+      new TableCell({
+        children: [new Paragraph({ children: [] })],
+        width: { size: 1500, type: WidthType.DXA },
+        verticalAlign: VerticalAlign.CENTER,
+        borders: noBorders
       })
     )
   }
 
   children.push(
-    new Paragraph({
-      children: headerElements,
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 100 }
+    new Table({
+      rows: [
+        new TableRow({
+          children: headerCells,
+          height: { value: 1400, rule: HeightRule.AT_LEAST }
+        })
+      ],
+      width: { size: 8200, type: WidthType.DXA }
     })
   )
 
