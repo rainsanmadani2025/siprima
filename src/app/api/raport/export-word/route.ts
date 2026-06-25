@@ -77,14 +77,6 @@ async function createWordDocument(data: any) {
   const raLogo = await loadLogo('LOGO RA.png')
 
   // Header Section with Logos - Using 3-column table for proper vertical alignment
-  const noBorder = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }
-  const noBorders = {
-    top: noBorder,
-    bottom: noBorder,
-    left: noBorder,
-    right: noBorder
-  }
-
   const headerCells: TableCell[] = []
 
   // Left column: Kemenag logo
