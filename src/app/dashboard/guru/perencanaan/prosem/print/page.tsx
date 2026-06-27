@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect, Suspense } from "react"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
@@ -8,35 +8,16 @@ import { ArrowLeft, Loader2, Printer, FileDown } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 
-interface Minggu {
-  minggu: number
-  tema: string
-  subTema: string
-  lingkupPerkembangan: string
-  kegiatanPembelajaran: string
-  indikator: string
+export default function PROSEMPrintPageWrapper() {
+  return (
+    <Suspense fallback={<DashboardLayout role="guru" userName="Ibu Guru"><div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin" /></div></DashboardLayout>}>
+      <PROSEMPrintPage />
+    </Suspense>
+  )
 }
 
-interface PROSEM {
-  id: string
-  tahunAjaran: string
-  semester: string
-  mingguan: Minggu[]
-  createdAt: string
-  updatedAt: string
-}
+function PROSEMPrintPage() {
 
-interface KepsekData {
-  name: string
-  nuptk: string | null
-}
-
-interface GuruData {
-  name: string
-  nuptk: string | null
-}
-
-export default function PROSEMPrintPageWrapper() {`n  return (`n    <Suspense fallback={<DashboardLayout role="guru" userName="Ibu Guru"><div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin" /></div></DashboardLayout>}>`n      <PROSEMPrintPage />`n    </Suspense>`n  )`n}`n`nfunction PROSEMPrintPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const prosemId = searchParams.get('id')

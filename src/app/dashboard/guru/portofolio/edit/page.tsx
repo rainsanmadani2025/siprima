@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect, Suspense } from 'react'
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout'
@@ -12,24 +12,16 @@ import { ArrowLeft, Upload, X, Loader2 } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
 
-interface Student {
-  id: string
-  name: string
-  nis: string
+export default function EditPortofolioPageWrapper() {
+  return (
+    <Suspense fallback={<DashboardLayout role="guru" userName="Ibu Guru"><div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin" /></div></DashboardLayout>}>
+      <EditPortofolioPage />
+    </Suspense>
+  )
 }
 
-interface Portfolio {
-  id: string
-  studentId: string
-  title: string
-  type: string
-  description?: string | null
-  fileUrl?: string | null
-  videoUrl?: string | null
-  date: string
-}
+function EditPortofolioPage() {
 
-export default function EditPortofolioPageWrapper() {`n  return (`n    <Suspense fallback={<DashboardLayout role="guru" userName="Ibu Guru"><div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin" /></div></DashboardLayout>}>`n      <EditPortofolioPage />`n    </Suspense>`n  )`n}`n`nfunction EditPortofolioPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const portfolioId = searchParams.get('id')

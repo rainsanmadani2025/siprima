@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect, Suspense } from "react"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
@@ -18,16 +18,16 @@ import { ArrowLeft, Save, Loader2, Sparkles, Eye, FileDown, Printer } from "luci
 import { useRouter, useSearchParams } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 
-interface Minggu {
-  minggu: number
-  tema: string
-  subTema: string
-  lingkupPerkembangan: string
-  kegiatanPembelajaran: string
-  indikator: string
+export default function PROSEMBuatPageWrapper() {
+  return (
+    <Suspense fallback={<DashboardLayout role="guru" userName="Ibu Guru"><div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin" /></div></DashboardLayout>}>
+      <PROSEMBuatPage />
+    </Suspense>
+  )
 }
 
-export default function PROSEMBuatPageWrapper() {`n  return (`n    <Suspense fallback={<DashboardLayout role="guru" userName="Ibu Guru"><div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin" /></div></DashboardLayout>}>`n      <PROSEMBuatPage />`n    </Suspense>`n  )`n}`n`nfunction PROSEMBuatPage() {
+function PROSEMBuatPage() {
+
   const router = useRouter()
   const searchParams = useSearchParams()
   const prosemId = searchParams.get('id')
