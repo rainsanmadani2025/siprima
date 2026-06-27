@@ -5,15 +5,16 @@ import bcrypt from 'bcryptjs'
 // PATCH - Update user
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await request.json()
+    const { id } = await params
     const { username, password, name, email, phone, role, isActive } = body
 
     // Check if user exists
     const existingUser = await db.user.findUnique({
-      where: { id: params.id }
+      where: { id: id }
     })
 
     if (!existingUser) {
@@ -64,7 +65,7 @@ export async function PATCH(
 
     // Update user
     const user = await db.user.update({
-      where: { id: params.id },
+      where: { id: id },
       data: updateData,
       select: {
         id: true,
@@ -94,12 +95,12 @@ export async function PATCH(
 // DELETE - Delete user
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check if user exists
     const existingUser = await db.user.findUnique({
-      where: { id: params.id }
+      where: { id: id }
     })
 
     if (!existingUser) {
@@ -111,7 +112,7 @@ export async function DELETE(
 
     // Delete user (this will cascade to related profiles)
     await db.user.delete({
-      where: { id: params.id }
+      where: { id: id }
     })
 
     return NextResponse.json({
