@@ -1,6 +1,6 @@
-"use client"
+﻿"use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -36,7 +36,7 @@ interface GuruData {
   nuptk: string | null
 }
 
-export default function PROSEMPrintPage() {
+export default function PROSEMPrintPageWrapper() {`n  return (`n    <Suspense fallback={<DashboardLayout role="guru" userName="Ibu Guru"><div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin" /></div></DashboardLayout>}>`n      <PROSEMPrintPage />`n    </Suspense>`n  )`n}`n`nfunction PROSEMPrintPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const prosemId = searchParams.get('id')
@@ -288,3 +288,4 @@ export default function PROSEMPrintPage() {
     </DashboardLayout>
   )
 }
+

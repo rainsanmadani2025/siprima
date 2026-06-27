@@ -1,6 +1,6 @@
-'use client'
+﻿'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -29,7 +29,7 @@ interface Portfolio {
   date: string
 }
 
-export default function EditPortofolioPage() {
+export default function EditPortofolioPageWrapper() {`n  return (`n    <Suspense fallback={<DashboardLayout role="guru" userName="Ibu Guru"><div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin" /></div></DashboardLayout>}>`n      <EditPortofolioPage />`n    </Suspense>`n  )`n}`n`nfunction EditPortofolioPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const portfolioId = searchParams.get('id')
@@ -443,7 +443,7 @@ export default function EditPortofolioPage() {
                 ) : (
                   <div className="space-y-3 p-4 border rounded-md bg-green-50 dark:bg-green-950/20">
                     <div className="p-2 bg-white dark:bg-gray-800 rounded text-xs text-green-700 dark:text-green-300 mb-2">
-                      <strong>✓ File berhasil diupload!</strong>
+                      <strong>âœ“ File berhasil diupload!</strong>
                     </div>
                     <div className="p-3 border rounded-md bg-white dark:bg-gray-800">
                       <img
@@ -509,3 +509,4 @@ export default function EditPortofolioPage() {
     </DashboardLayout>
   )
 }
+
