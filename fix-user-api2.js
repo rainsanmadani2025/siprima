@@ -1,4 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿const fs = require("fs");
+
+// Perbaiki PATCH route
+const patchFile = "src/app/api/admin/users/[id]/route.ts";
+let patchContent = fs.readFileSync(patchFile, "utf-8");
+
+patchContent = `import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 
@@ -126,3 +132,42 @@ export async function DELETE(
     }, { status: 500 })
   }
 }
+`;
+
+fs.writeFileSync(patchFile, patchContent, "utf-8");
+console.log("PATCH route diperbaiki");
+
+// Perbaiki POST route
+const postFile = "src/app/api/admin/users/route.ts";
+if (fs.existsSync(postFile)) {
+  let postContent = fs.readFileSync(postFile, "utf-8");
+  
+  // Ganti password plain text jadi hash
+  if (postContent.includes("password: body.password") && !postContent.includes("bcrypt.hash")) {
+    // Tambah import bcrypt
+    if (!postContent.includes("import bcrypt")) {
+      postContent = postContent.replace(
+        "import { db } from '@/lib/db'",
+        "import { db } from '@/lib/db'\nimport bcrypt from 'bcryptjs'"
+      );
+    }
+    // Ganti password plain text
+    postContent = postContent.replace(
+      /password: body\.password/g,
+      "password: await bcrypt.hash(body.password, 10)"
+    );
+    // Tambah async kalau belum
+    if (!postContent.includes("async function POST")) {
+      postContent = postContent.replace(
+        "export function POST",
+        "export async function POST"
+      );
+    }
+    fs.writeFileSync(postFile, postContent, "utf-8");
+    console.log("POST route diperbaiki");
+  } else {
+    console.log("POST route sudah OK atau tidak ditemukan masalah");
+  }
+}
+
+console.log("Semua selesai!");
