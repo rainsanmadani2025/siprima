@@ -65,6 +65,14 @@ export async function PATCH(request: NextRequest) {
     if (address !== undefined) updateData.address = address || null
     if (classId !== undefined) updateData.classId = classId || null
     if (status) updateData.status = status
+    if (body.parentName) {
+      var parentRecord = await db.parent.findFirst({ where: { OR: [{ fatherName: body.parentName }, { motherName: body.parentName }] }, include: { user: true } })
+      if (!parentRecord) {
+        var userMatch = await db.user.findFirst({ where: { name: { contains: body.parentName } } })
+        if (userMatch) { parentRecord = await db.parent.findFirst({ where: { userId: userMatch.id } }, { include: { user: true } }) }
+      }
+      if (parentRecord) updateData.parentId = parentRecord.id
+    }
     var student = await db.student.update({ where: { id }, data: updateData, include: { parent: { include: { user: true } }, class: true } })
     return NextResponse.json({ success: true, student: { id: student.id, name: student.name, nis: student.nis, birthDate: student.birthDate, gender: student.gender, address: student.address, parentId: student.parentId, parent: student.parent ? { id: student.parent.id, name: student.parent.user.name, fatherName: student.parent.fatherName, motherName: student.parent.motherName, fatherPhone: student.parent.fatherPhone, motherPhone: student.parent.motherPhone } : null, classId: student.classId, class: student.class ? { id: student.class.id, name: student.class.name, ageGroup: student.class.ageGroup } : null, status: student.status, createdAt: student.createdAt } })
   } catch (error) {
