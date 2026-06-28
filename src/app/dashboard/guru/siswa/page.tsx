@@ -367,15 +367,66 @@ export default function GuruSiswaPage() {
             </DialogHeader>
             <form onSubmit={handleSubmitSiswa}>
               <div className="grid gap-4 py-4">
-                <div className="grid gap-2"><Label htmlFor="name">Nama Lengkap *</Label><div className="flex"><Baby className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" /><Input id="name" value={formData.name} onChange={function(e){setFormData({...formData, name: e.target.value})}} className="rounded-l-none" required /></div></div>
-                <div className="grid gap-4 md:grid-cols-2"><div className="space-y-2"><Label htmlFor="nis">NIS *</Label><Input id="nis" value={formData.nis} onChange={function(e){setFormData({...formData, nis: e.target.value})}} required disabled={!!editingStudent} /></div><div className="space-y-2"><Label htmlFor="gender">Jenis Kelamin *</Label><Select value={formData.gender} onValueChange={function(v){setFormData({...formData, gender: v})}}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Laki-laki">Laki-laki</SelectItem><SelectItem value="Perempuan">Perempuan</SelectItem></SelectContent></Select></div></div>
-                <div className="space-y-2"><Label htmlFor="birthDate">Tanggal Lahir *</Label><div className="flex"><Calendar className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" /><Input id="birthDate" type="date" value={formData.birthDate} onChange={function(e){setFormData({...formData, birthDate: e.target.value})}} className="rounded-l-none" required /></div></div>
-                <div className="grid gap-4 md:grid-cols-2"><div className="space-y-2"><Label htmlFor="parentName">Nama Orang Tua *</Label><Input id="parentName" placeholder="Ketik nama ayah/ibu" value={formData.parentId} onChange={function(e){setFormData({...formData, parentId: e.target.value})}} required disabled={!!editingStudent} /></div><div className="space-y-2"><Label htmlFor="classId">Kelas</Label><Select value={formData.classId || "none"} onValueChange={function(v){setFormData({...formData, classId: v === "none" ? "" : v})}}><SelectTrigger><SelectValue placeholder="Pilih kelas" /></SelectTrigger><SelectContent><SelectItem value="none">Belum ada kelas</SelectItem>{classList.map(function(c){return <SelectItem key={c.id} value={c.id}>{c.name} ({c.ageGroup})</SelectItem>})}</SelectContent></Select></div></div>
-                <div className="space-y-2"><div className="space-y-2"><Label htmlFor="address">Alamat</Label><div className="flex"><MapPin className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" /><Input id="address" value={formData.address} onChange={function(e){setFormData({...formData, address: e.target.value})}} className="rounded-l-none" /></div></div>
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Nama Lengkap *</Label>
+                  <div className="flex">
+                    <Baby className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
+                    <Input id="name" value={formData.name} onChange={function(e){setFormData({...formData, name: e.target.value})}} className="rounded-l-none" required />
+                  </div>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="nis">NIS *</Label>
+                    <Input id="nis" value={formData.nis} onChange={function(e){setFormData({...formData, nis: e.target.value})}} required disabled={!!editingStudent} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="gender">Jenis Kelamin *</Label>
+                    <Select value={formData.gender} onValueChange={function(v){setFormData({...formData, gender: v})}}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Laki-laki">Laki-laki</SelectItem>
+                        <SelectItem value="Perempuan">Perempuan</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="birthDate">Tanggal Lahir *</Label>
+                  <div className="flex">
+                    <Calendar className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
+                    <Input id="birthDate" type="date" value={formData.birthDate} onChange={function(e){setFormData({...formData, birthDate: e.target.value})}} className="rounded-l-none" required />
+                  </div>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="parentName">Nama Orang Tua *</Label>
+                    <Input id="parentName" placeholder="Ketik nama ayah/ibu" value={formData.parentId} onChange={function(e){setFormData({...formData, parentId: e.target.value})}} required disabled={!!editingStudent} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="classId">Kelas</Label>
+                    <Select value={formData.classId || "none"} onValueChange={function(v){setFormData({...formData, classId: v === "none" ? "" : v})}}>
+                      <SelectTrigger><SelectValue placeholder="Pilih kelas" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Belum ada kelas</SelectItem>
+                        {classList.map(function(cls){return <SelectItem key={cls.id} value={cls.id}>{cls.name} ({cls.ageGroup})</SelectItem>})}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address">Alamat</Label>
+                  <div className="flex">
+                    <MapPin className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
+                    <Input id="address" value={formData.address} onChange={function(e){setFormData({...formData, address: e.target.value})}} className="rounded-l-none" />
+                  </div>
+                </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={function(){setDialogOpen(false)}}>Batal</Button>
-                <Button type="submit" disabled={submitting}>{submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{editingStudent ? "Simpan" : "Tambah"}</Button>
+                <Button type="submit" disabled={submitting}>
+                  {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {editingStudent ? "Simpan" : "Tambah"}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
