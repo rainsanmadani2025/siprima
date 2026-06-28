@@ -47,6 +47,7 @@ export default function GuruSiswaPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [teacherClasses, setTeacherClasses] = useState<string[]>([])
+  const [editingStudent, setEditingStudent] = useState(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [parentList, setParentList] = useState<Parent[]>([])
@@ -125,8 +126,9 @@ export default function GuruSiswaPage() {
   }
 
   // Handler untuk membuka modal data imunisasi
-  var handleAddSiswa = function() { setFormData({ nis: "", name: "", birthDate: "", gender: "Laki-laki", address: "", parentId: "", classId: "" }); setDialogOpen(true) };
-  var handleSubmitSiswa = async function(e) { e.preventDefault(); setSubmitting(true); try { var r = await fetch("/api/guru/students", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) }); var d = await r.json(); if (d.success) { toast({ title: "Berhasil", description: "Siswa baru berhasil ditambahkan" }); setDialogOpen(false); fetchStudents() } else { throw new Error(d.error || "Gagal") } } catch(err) { toast({ variant: "destructive", title: "Error", description: err.message || "Gagal menambah siswa" }) } finally { setSubmitting(false) } };
+  var handleAddSiswa = function() { setEditingStudent(null); setFormData({ nis: "", name: "", birthDate: "", gender: "Laki-laki", address: "", parentId: "", classId: "" }); setDialogOpen(true) };
+  var handleEditSiswa = function(student) { setEditingStudent(student); setFormData({ nis: student.nis, name: student.name, birthDate: student.birthDate, gender: student.gender, address: student.address || "", parentId: student.parent && (student.parent.fatherName || student.parent.motherName) || "", classId: student.class ? student.class.id : "" }); setDialogOpen(true) };
+  var handleSubmitSiswa = async function(e) { e.preventDefault(); setSubmitting(true); try { var url = editingStudent ? "/api/guru/students" : "/api/guru/students"; var method = editingStudent ? "PATCH" : "POST"; var bodyData = editingStudent ? Object.assign({}, formData, { id: editingStudent.id, parentId: undefined }) : formData; var r = await fetch(url, { method: method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(bodyData) }); var d = await r.json(); if (d.success) { toast({ title: "Berhasil", description: editingStudent ? "Data siswa diperbarui" : "Siswa baru berhasil ditambahkan" }); setDialogOpen(false); fetchStudents() } else { throw new Error(d.error || "Gagal") } } catch(err) { toast({ variant: "destructive", title: "Error", description: err.message || "Gagal menyimpan data" }) } finally { setSubmitting(false) } };
   const handleShowImmunization = () => {
     setShowImmunizationModal(true)
   }
@@ -290,7 +292,7 @@ export default function GuruSiswaPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="sm">Detail</Button>
+                            <Button variant="ghost" size="sm" onClick={function(){handleEditSiswa(student)}}>Edit</Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -360,20 +362,21 @@ export default function GuruSiswaPage() {
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
-              <DialogTitle>Tambah Siswa Baru</DialogTitle>
-              <DialogDescription>Isi form di bawah untuk menambah siswa baru</DialogDescription>
+              <DialogTitle>{editingStudent ? "Edit Data Siswa" : "Tambah Siswa Baru"}</DialogTitle>
+              <DialogDescription>{editingStudent ? "Perbarui data siswa" : "Isi form di bawah untuk menambah siswa baru"}</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmitSiswa}>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2"><Label htmlFor="name">Nama Lengkap *</Label><div className="flex"><Baby className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" /><Input id="name" value={formData.name} onChange={function(e){setFormData({...formData, name: e.target.value})}} className="rounded-l-none" required /></div></div>
-                <div className="grid gap-4 md:grid-cols-2"><div className="space-y-2"><Label htmlFor="nis">NIS *</Label><Input id="nis" value={formData.nis} onChange={function(e){setFormData({...formData, nis: e.target.value})}} required /></div><div className="space-y-2"><Label htmlFor="gender">Jenis Kelamin *</Label><Select value={formData.gender} onValueChange={function(v){setFormData({...formData, gender: v})}}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Laki-laki">Laki-laki</SelectItem><SelectItem value="Perempuan">Perempuan</SelectItem></SelectContent></Select></div></div>
+                <div className="grid gap-4 md:grid-cols-2"><div className="space-y-2"><Label htmlFor="nis">NIS *</Label><Input id="nis" value={formData.nis} onChange={function(e){setFormData({...formData, nis: e.target.value})}} required disabled={!!editingStudent} /></div><div className="space-y-2"><Label htmlFor="gender">Jenis Kelamin *</Label><Select value={formData.gender} onValueChange={function(v){setFormData({...formData, gender: v})}}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Laki-laki">Laki-laki</SelectItem><SelectItem value="Perempuan">Perempuan</SelectItem></SelectContent></Select></div></div>
                 <div className="space-y-2"><Label htmlFor="birthDate">Tanggal Lahir *</Label><div className="flex"><Calendar className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" /><Input id="birthDate" type="date" value={formData.birthDate} onChange={function(e){setFormData({...formData, birthDate: e.target.value})}} className="rounded-l-none" required /></div></div>
-                <div className="grid gap-4 md:grid-cols-2"><div className="space-y-2"><Label htmlFor="parentName">Nama Orang Tua *</Label><Input id="parentName" placeholder="Ketik nama ayah/ibu" value={formData.parentId} onChange={function(e){setFormData({...formData, parentId: e.target.value})}} required /></div><div className="space-y-2"><Label htmlFor="classId">Kelas</Label><Select value={formData.classId || "none"} onValueChange={function(v){setFormData({...formData, classId: v === "none" ? "" : v})}}><SelectTrigger><SelectValue placeholder="Pilih kelas" /></SelectTrigger><SelectContent><SelectItem value="none">Belum ada kelas</SelectItem>{classList.map(function(c){return <SelectItem key={c.id} value={c.id}>{c.name} ({c.ageGroup})</SelectItem>})}</SelectContent></Select></div></div>
+                <div className="grid gap-4 md:grid-cols-2"><div className="space-y-2"><Label htmlFor="parentName">Nama Orang Tua *</Label><Input id="parentName" placeholder="Ketik nama ayah/ibu" value={formData.parentId} onChange={function(e){setFormData({...formData, parentId: e.target.value})}} required disabled={!!editingStudent} /></div><div className="space-y-2"><Label htmlFor="classId">Kelas</Label><Select value={formData.classId || "none"} onValueChange={function(v){setFormData({...formData, classId: v === "none" ? "" : v})}}><SelectTrigger><SelectValue placeholder="Pilih kelas" /></SelectTrigger><SelectContent><SelectItem value="none">Belum ada kelas</SelectItem>{classList.map(function(c){return <SelectItem key={c.id} value={c.id}>{c.name} ({c.ageGroup})</SelectItem>})}</SelectContent></Select></div></div>
+                <div className="space-y-2">{editingStudent && <div className="space-y-2"><Label htmlFor="status">Status</Label><Select value={formData.classId ? "aktif" : "aktif"} onValueChange={function(v){}} disabled><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="aktif">Aktif</SelectItem><SelectItem value="keluar">Keluar</SelectItem><SelectItem value="lulus">Lulus</SelectItem></SelectContent></Select></div>}
                 <div className="space-y-2"><Label htmlFor="address">Alamat</Label><div className="flex"><MapPin className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" /><Input id="address" value={formData.address} onChange={function(e){setFormData({...formData, address: e.target.value})}} className="rounded-l-none" /></div></div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={function(){setDialogOpen(false)}}>Batal</Button>
-                <Button type="submit" disabled={submitting}>{submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Tambah</Button>
+                <Button type="submit" disabled={submitting}>{submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{editingStudent ? "Simpan" : "Tambah"}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
