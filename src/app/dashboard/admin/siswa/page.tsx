@@ -61,11 +61,6 @@ import {
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
-interface Parent {
-  id: string
-  name: string
-}
-
 interface Class {
   id: string
   name: string
@@ -89,8 +84,7 @@ interface Siswa {
 
 export default function AdminSiswaPage() {
   const [siswaList, setSiswaList] = useState<Siswa[]>([])
-  const [parentList, setParentList] = useState<Parent[]>([])
-  const [classList, setClassList] = useState<Class[]>([])
+    const [classList, setClassList] = useState<Class[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
@@ -110,7 +104,7 @@ export default function AdminSiswaPage() {
     birthDate: "",
     gender: "Laki-laki",
     address: "",
-    parentId: "",
+    parentName: "",
     classId: "",
     status: "aktif"
   })
@@ -147,7 +141,6 @@ export default function AdminSiswaPage() {
 
   useEffect(() => {
     fetchSiswaList()
-    fetchParentList()
     fetchClassList()
   }, [statusFilter])
 
@@ -175,18 +168,6 @@ export default function AdminSiswaPage() {
     }
   }
 
-  const fetchParentList = async () => {
-    try {
-      const response = await fetch('/api/admin/parents')
-      const data = await response.json()
-      if (data.success) {
-        setParentList(data.parents)
-      }
-    } catch (error) {
-      console.error('Error fetching parent list:', error)
-    }
-  }
-
   const fetchClassList = async () => {
     try {
       const response = await fetch('/api/classes')
@@ -207,7 +188,7 @@ export default function AdminSiswaPage() {
       birthDate: "",
       gender: "Laki-laki",
       address: "",
-      parentId: "",
+      parentName: "",
       classId: "",
       status: "aktif"
     })
@@ -222,7 +203,7 @@ export default function AdminSiswaPage() {
       birthDate: siswa.birthDate,
       gender: siswa.gender,
       address: siswa.address || "",
-      parentId: siswa.parentId,
+      parentName: siswa.parent?.name || "",
       classId: siswa.classId || "",
       status: siswa.status
     })
@@ -677,22 +658,18 @@ export default function AdminSiswaPage() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="parentId">Orang Tua *</Label>
-                  <Select
-                    value={formData.parentId}
-                    onValueChange={(value) => setFormData({ ...formData, parentId: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih orang tua" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {parentList.map(parent => (
-                        <SelectItem key={parent.id} value={parent.id}>
-                          {parent.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="parentName">Nama Orang Tua *</Label>
+                  <div className="flex">
+                    <Baby className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
+                    <Input
+                      id="parentName"
+                      placeholder="Ketik nama orang tua..."
+                      value={formData.parentName}
+                      onChange={(e) => setFormData({ ...formData, parentName: e.target.value })}
+                      className="rounded-l-none"
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">

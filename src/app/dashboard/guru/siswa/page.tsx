@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, User, Phone, Mail, MapPin, Calendar, Heart, Syringe, History, Loader2, X, ArrowRight, CheckCircle, AlertCircle, Eye, Ear, Baby } from "lucide-react"
+import { Plus, Edit, Baby, Search, User, Phone, Mail, MapPin, Calendar, Heart, Syringe, History, Loader2, X, ArrowRight, CheckCircle, AlertCircle, Eye, Ear, } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -97,6 +97,21 @@ export default function GuruSiswaPage() {
     } catch (error) {
       console.error('Error fetching teacher classes:', error)
     }
+  }
+
+
+  // Fetch class list for the form dropdown
+  const fetchClassList = async () => {
+    try {
+      const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null
+      if (userId) {
+        const response = await fetch(`/api/classes/teacher?userId=${userId}`)
+        const data = await response.json()
+        if (data.success && data.teacherClasses) {
+          setClassList(data.teacherClasses.map((c: any) => ({ id: c.id, name: c.name, ageGroup: c.ageGroup })))
+        }
+      }
+    } catch (error) { console.error('Error fetching classes:', error) }
   }
 
   useEffect(() => {
@@ -303,6 +318,94 @@ export default function GuruSiswaPage() {
             )}
           </CardContent>
         </Card>
+
+
+        {/* Dialog Tambah/Edit Siswa */}
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>{editingStudent ? "Edit Data Siswa" : "Tambah Siswa Baru"}</DialogTitle>
+              <DialogDescription>{editingStudent ? "Perbarui informasi siswa" : "Isi form di bawah untuk menambah siswa baru"}</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmitSiswa}>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Nama Lengkap *</Label>
+                  <div className="flex">
+                    <Baby className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
+                    <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="rounded-l-none" required />
+                  </div>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="nis">NIS *</Label>
+                    <Input id="nis" value={formData.nis} onChange={(e) => setFormData({ ...formData, nis: e.target.value })} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="gender">Jenis Kelamin *</Label>
+                    <Select value={formData.gender} onValueChange={(value) => setFormData({ ...formData, gender: value })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Laki-laki">Laki-laki</SelectItem>
+                        <SelectItem value="Perempuan">Perempuan</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="birthDate">Tanggal Lahir *</Label>
+                  <div className="flex">
+                    <Calendar className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
+                    <Input id="birthDate" type="date" value={formData.birthDate} onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })} className="rounded-l-none" required />
+                  </div>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="parentName">Nama Orang Tua *</Label>
+                    <div className="flex">
+                      <Baby className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
+                      <Input id="parentName" placeholder="Ketik nama orang tua..." value={formData.parentName} onChange={(e) => setFormData({ ...formData, parentName: e.target.value })} className="rounded-l-none" required />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="classId">Kelas</Label>
+                    <Select value={formData.classId || "none"} onValueChange={(value) => setFormData({ ...formData, classId: value === "none" ? "" : value })}>
+                      <SelectTrigger><SelectValue placeholder="Pilih kelas" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Belum ada kelas</SelectItem>
+                        {classList.map(cls => (<SelectItem key={cls.id} value={cls.id}>{cls.name} ({cls.ageGroup})</SelectItem>))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Status *</Label>
+                    <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="aktif">Aktif</SelectItem>
+                        <SelectItem value="keluar">Keluar</SelectItem>
+                        <SelectItem value="lulus">Lulus</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address">Alamat</Label>
+                  <div className="flex">
+                    <MapPin className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
+                    <Input id="address" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="rounded-l-none" />
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button>
+                <Button type="submit" disabled={submitting}>{submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{editingStudent ? "Simpan Perubahan" : "Tambah"}</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         {/* Fitur Tambahan */}
         <div className="grid gap-6 md:grid-cols-3">
