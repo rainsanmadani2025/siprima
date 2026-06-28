@@ -377,7 +377,7 @@ export default function GuruSiswaPage() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="nis">NIS *</Label>
-                    <Input id="nis" value={formData.nis} onChange={function(e){setFormData({...formData, nis: e.target.value})}} required disabled={!!editingStudent} />
+                    <Input id="nis" value={formData.nis} onChange={function(e){setFormData({...formData, nis: e.target.value})}} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="gender">Jenis Kelamin *</Label>
