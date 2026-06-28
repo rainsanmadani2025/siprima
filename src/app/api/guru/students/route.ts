@@ -59,6 +59,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'ID siswa diperlukan' }, { status: 400 })
     }
     var updateData: any = {}
+    if (nis) { var cekNis = await db.student.findFirst({ where: { nis: nis, id: { not: id } } }); if (cekNis) { return NextResponse.json({ success: false, error: "NIS sudah dipakai siswa lain" }, { status: 400 }) } updateData.nis = nis }
     if (name) updateData.name = name
     if (birthDate) updateData.birthDate = birthDate
     if (gender) updateData.gender = gender
