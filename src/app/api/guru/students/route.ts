@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     }
     var parentRecord = await db.parent.findFirst({ where: { OR: [{ fatherName: parentId }, { motherName: parentId }] } })
     if (!parentRecord) {
-      var userMatch = await db.user.findFirst({ where: { name: { contains: parentId } } })
+      var userMatch = await db.user.findFirst({ where: { name: parentId } })
       if (userMatch) { parentRecord = await db.parent.findFirst({ where: { userId: userMatch.id } }) }
     }
     if (!parentRecord) {
@@ -53,7 +53,7 @@ export async function PATCH(request: NextRequest) {
     if (parentName) {
       var parentRecord = await db.parent.findFirst({ where: { OR: [{ fatherName: parentName }, { motherName: parentName }] } })
       if (!parentRecord) {
-        var userMatch = await db.user.findFirst({ where: { name: { contains: parentName } } })
+        var userMatch = await db.user.findFirst({ where: { name: parentName } })
         if (userMatch) { parentRecord = await db.parent.findFirst({ where: { userId: userMatch.id } }) }
       }
       if (parentRecord) {
