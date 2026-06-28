@@ -400,7 +400,7 @@ export default function GuruSiswaPage() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="parentName">Nama Orang Tua *</Label>
-                    <Input id="parentName" placeholder="Ketik nama ayah/ibu" value={formData.parentId} onChange={function(e){setFormData({...formData, parentId: e.target.value})}} required disabled={!!editingStudent} />
+                    <Input id="parentName" placeholder="Ketik nama ayah/ibu" value={formData.parentId} onChange={function(e){setFormData({...formData, parentId: e.target.value})}} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="classId">Kelas</Label>
