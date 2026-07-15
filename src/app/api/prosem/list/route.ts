@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { Prisma } from '@prisma/client'
 
 export async function GET(request: Request) {
   try {
@@ -7,7 +8,6 @@ export async function GET(request: Request) {
     const semester = searchParams.get('semester')
     const tahunAjaran = searchParams.get('tahunAjaran')
 
-    // Get teacher (first one for now)
     const teacher = await db.teacher.findFirst()
 
     if (!teacher) {
@@ -17,39 +17,31 @@ export async function GET(request: Request) {
       )
     }
 
-    // Build SQL query
-    let query = `
-      SELECT id, teacherId, tahunAjaran, semester, mingguan, createdAt, updatedAt
-      FROM Prosem
-      WHERE teacherId = ?
-    `
-    const params: any[] = [teacher.id]
+    const where: Prisma.ProsemWhereInput = {
+      teacherId: teacher.id
+    }
 
     if (semester) {
-      query += ' AND semester = ?'
-      params.push(semester)
+      where.semester = semester
     }
     if (tahunAjaran) {
-      query += ' AND tahunAjaran = ?'
-      params.push(tahunAjaran)
+      where.tahunAjaran = tahunAjaran
     }
 
-    query += ' ORDER BY createdAt DESC'
-
-    // Execute raw query
-    const results = await (db as any).$queryRawUnsafe(query, ...params)
-
-    // Convert BigInt to string if needed
-    const prosems = results.map((r: any) => ({
-      ...r,
-      id: String(r.id),
-      teacherId: String(r.teacherId)
-    }))
-
-    return NextResponse.json({
-      success: true,
-      prosems
+    const prosems = await db.prosem.findMany({
+      where,
+      select: {
+        id: true,
+        teacherId: true,
+        tahunAjaran: true,
+        semester: true,
+        createdAt: true,
+        updatedAt: true
+      },
+      orderBy: { createdAt: 'desc' }
     })
+
+    return NextResponse.json({ success: true, prosems })
   } catch (error: any) {
     console.error('Error fetching PROSEM list:', error)
     return NextResponse.json(

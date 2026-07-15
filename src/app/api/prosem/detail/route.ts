@@ -13,29 +13,27 @@ export async function GET(request: Request) {
       )
     }
 
-    // Execute raw query
-    const results = await (db as any).$queryRawUnsafe(
-      'SELECT id, teacherId, tahunAjaran, semester, mingguan, createdAt, updatedAt FROM Prosem WHERE id = ?',
-      id
-    )
+    const prosem = await db.prosem.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        teacherId: true,
+        tahunAjaran: true,
+        semester: true,
+        mingguan: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    })
 
-    if (!results || results.length === 0) {
+    if (!prosem) {
       return NextResponse.json(
         { success: false, error: 'PROSEM tidak ditemukan' },
         { status: 404 }
       )
     }
 
-    const prosem = {
-      ...results[0],
-      id: String(results[0].id),
-      teacherId: String(results[0].teacherId)
-    }
-
-    return NextResponse.json({
-      success: true,
-      prosem
-    })
+    return NextResponse.json({ success: true, prosem })
   } catch (error: any) {
     console.error('Error fetching PROSEM detail:', error)
     return NextResponse.json(

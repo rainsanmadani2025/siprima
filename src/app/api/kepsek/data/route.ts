@@ -3,29 +3,27 @@ import { db } from '@/lib/db'
 
 export async function GET() {
   try {
-    // Get Kepala Sekolah from User table with role KEPSEK
-    const kepsekUser = await (db as any).$queryRawUnsafe(
-      `SELECT u.id, u.name, t.nuptk
-       FROM User u
-       LEFT JOIN Teacher t ON u.id = t.userId
-       WHERE u.role = 'KEPSEK'
-       LIMIT 1`
-    )
+    const kepsekUser = await db.user.findFirst({
+      where: { role: 'KEPSEK' },
+      include: {
+        teacher: {
+          select: { nuptk: true }
+        }
+      }
+    })
 
-    if (!kepsekUser || kepsekUser.length === 0) {
+    if (!kepsekUser) {
       return NextResponse.json({
         success: false,
         error: 'Kepala Sekolah tidak ditemukan'
       })
     }
 
-    const kepsek = kepsekUser[0]
-
     return NextResponse.json({
       success: true,
       kepsek: {
-        name: kepsek.name,
-        nuptk: kepsek.nuptk || null
+        name: kepsekUser.name,
+        nuptk: kepsekUser.teacher?.nuptk || null
       }
     })
   } catch (error: any) {

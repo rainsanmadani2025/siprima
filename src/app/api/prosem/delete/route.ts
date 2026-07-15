@@ -13,10 +13,9 @@ export async function POST(request: Request) {
       )
     }
 
-    await (db as any).$queryRawUnsafe(
-      'DELETE FROM Prosem WHERE id = ?',
-      id
-    )
+    await db.prosem.delete({
+      where: { id }
+    })
 
     return NextResponse.json({
       success: true,

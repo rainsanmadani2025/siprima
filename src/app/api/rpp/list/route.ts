@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { Prisma } from '@prisma/client'
 
 export async function GET(request: Request) {
   try {
@@ -8,44 +9,35 @@ export async function GET(request: Request) {
     const tahunAjaran = searchParams.get('tahunAjaran')
     const search = searchParams.get('search')
 
-    // Build SQL query
-    let query = `
-      SELECT id, tema, subtema, temaProjek, judulKegiatan, pokokBahasan,
-             fase, kelompokUsia, semester, tahunAjaran, hari, jumlahPertemuan,
-             kelas, guru, namaSekolah, alamatSekolah, createdAt, updatedAt
-      FROM RPP
-      WHERE 1=1
-    `
-    const params: any[] = []
+    const where: Prisma.RPPWhereInput = {}
 
     if (semester) {
-      query += ' AND semester = ?'
-      params.push(semester)
+      where.semester = semester
     }
     if (tahunAjaran) {
-      query += ' AND tahunAjaran = ?'
-      params.push(tahunAjaran)
+      where.tahunAjaran = tahunAjaran
     }
     if (search) {
-      query += ' AND (tema LIKE ? OR subtema LIKE ? OR judulKegiatan LIKE ?)'
-      params.push(`%${search}%`, `%${search}%`, `%${search}%`)
+      where.OR = [
+        { tema: { contains: search, mode: 'insensitive' } },
+        { subtema: { contains: search, mode: 'insensitive' } },
+        { judulKegiatan: { contains: search, mode: 'insensitive' } }
+      ]
     }
 
-    query += ' ORDER BY createdAt DESC'
-
-    // Execute raw query
-    const results = await (db as any).$queryRawUnsafe(query, ...params)
-
-    // Convert BigInt to string if needed
-    const rpps = results.map((r: any) => ({
-      ...r,
-      id: String(r.id)
-    }))
-
-    return NextResponse.json({
-      success: true,
-      rpps
+    const rpps = await db.rPP.findMany({
+      where,
+      select: {
+        id: true, tema: true, subtema: true, temaProjek: true,
+        judulKegiatan: true, pokokBahasan: true, fase: true,
+        kelompokUsia: true, semester: true, tahunAjaran: true,
+        hari: true, jumlahPertemuan: true, kelas: true, guru: true,
+        namaSekolah: true, alamatSekolah: true, createdAt: true, updatedAt: true
+      },
+      orderBy: { createdAt: 'desc' }
     })
+
+    return NextResponse.json({ success: true, rpps })
   } catch (error: any) {
     console.error('Error fetching RPP list:', error)
     return NextResponse.json(
