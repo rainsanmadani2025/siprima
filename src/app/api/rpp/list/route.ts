@@ -8,9 +8,13 @@ export async function GET(request: Request) {
     const semester = searchParams.get('semester')
     const tahunAjaran = searchParams.get('tahunAjaran')
     const search = searchParams.get('search')
+    const teacherId = searchParams.get('teacherId')
 
     const where: Prisma.RPPWhereInput = {}
 
+    if (teacherId) {
+      where.teacherId = teacherId
+    }
     if (semester) {
       where.semester = semester
     }
@@ -28,16 +32,28 @@ export async function GET(request: Request) {
     const rpps = await db.rPP.findMany({
       where,
       select: {
-        id: true, tema: true, subtema: true, temaProjek: true,
-        judulKegiatan: true, pokokBahasan: true, fase: true,
-        kelompokUsia: true, semester: true, tahunAjaran: true,
+        id: true, teacherId: true, tema: true, subtema: true,
+        temaProjek: true, judulKegiatan: true, pokokBahasan: true,
+        fase: true, kelompokUsia: true, semester: true, tahunAjaran: true,
         hari: true, jumlahPertemuan: true, kelas: true, guru: true,
-        namaSekolah: true, alamatSekolah: true, createdAt: true, updatedAt: true
+        namaSekolah: true, alamatSekolah: true, createdAt: true, updatedAt: true,
+        teacher: {
+          select: {
+            user: {
+              select: { name: true }
+            }
+          }
+        }
       },
       orderBy: { createdAt: 'desc' }
     })
 
-    return NextResponse.json({ success: true, rpps })
+    const rppsWithTeacher = rpps.map((r: any) => ({
+      ...r,
+      teacherName: r.teacher?.user?.name || r.guru || '-'
+    }))
+
+    return NextResponse.json({ success: true, rpps: rppsWithTeacher })
   } catch (error: any) {
     console.error('Error fetching RPP list:', error)
     return NextResponse.json(

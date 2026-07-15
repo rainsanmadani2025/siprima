@@ -23,6 +23,7 @@ interface RPPItem {
   jumlahPertemuan: string
   kelas?: string
   guru?: string
+  teacherName?: string
   namaSekolah: string
   createdAt: string
   updatedAt: string
@@ -44,16 +45,41 @@ export default function GuruPerencanaanPage() {
   const [loadingRpp, setLoadingRpp] = useState(true)
   const [loadingProsem, setLoadingProsem] = useState(true)
   const [rppSearch, setRppSearch] = useState("")
+  const [teacherId, setTeacherId] = useState<string>("")
 
   useEffect(() => {
-    fetchRPPs()
+    fetchTeacherId()
     fetchProsems()
   }, [])
+
+  useEffect(() => {
+    if (teacherId) {
+      fetchRPPs()
+    }
+  }, [teacherId])
+
+  const fetchTeacherId = async () => {
+    try {
+      const userId = localStorage.getItem('userId')
+      if (!userId) return
+      const res = await fetch(`/api/guru/profile?userId=${userId}`)
+      const data = await res.json()
+      if (data.success && data.teacher?.id) {
+        setTeacherId(data.teacher.id)
+      }
+    } catch (e) {
+      console.error('Error fetching teacher ID:', e)
+    }
+  }
 
   const fetchRPPs = async () => {
     try {
       setLoadingRpp(true)
-      const response = await fetch('/api/rpp/list')
+      let url = '/api/rpp/list'
+      if (teacherId) {
+        url += `?teacherId=${teacherId}`
+      }
+      const response = await fetch(url)
       const data = await response.json()
       if (data.success) {
         setRpps(data.rpps)
