@@ -14,15 +14,11 @@ import {
   Send,
   Phone,
   Mail,
-  Calendar,
   Clock,
   User,
   AlertCircle,
   CheckCircle2,
   Inbox,
-  Paperclip,
-  Search,
-  Filter,
   ArrowLeft,
   Users
 } from 'lucide-react'
@@ -73,10 +69,25 @@ export default function KomunikasiPage() {
 
   // State
   const [currentUser, setCurrentUser] = useState<User>({
-    id: 'user-parent-1',
-    name: 'Bapak Ahmad Fauzi',
-    role: 'ORTU'
+    id: '',
+    name: '',
+    role: ''
   })
+
+  // Load user from localStorage
+  useEffect(() => {
+    const userId = localStorage.getItem('userId') || ''
+    const userName = localStorage.getItem('userName') || ''
+    const userRole = localStorage.getItem('userRole') || ''
+    if (userId) {
+      setCurrentUser({
+        id: userId,
+        name: userName,
+        role: userRole.toUpperCase()
+      })
+    }
+  }, [])
+
   const [messages, setMessages] = useState<Message[]>([])
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null)
@@ -124,19 +135,20 @@ export default function KomunikasiPage() {
     })
 
     socketInstance.on('connect', () => {
+      const userId = localStorage.getItem('userId') || ''
+      const userName = localStorage.getItem('userName') || ''
+      const userRole = localStorage.getItem('userRole') || ''
       console.log('Connected to chat service')
-      // Register user
       socketInstance.emit('user:join', {
-        userId: currentUser.id,
-        role: currentUser.role,
-        name: currentUser.name
+        userId,
+        role: userRole.toUpperCase(),
+        name: userName
       })
     })
 
     // Receive new message
     socketInstance.on('message:receive', (data) => {
       setMessages(prev => [data, ...prev])
-      // Refresh conversations
       fetchConversations()
     })
 
@@ -159,7 +171,7 @@ export default function KomunikasiPage() {
     })
 
     // New message notification (for unread count)
-    socketInstance.on('message:new', (data) => {
+    socketInstance.on('message:new', () => {
       fetchConversations()
     })
 
@@ -168,13 +180,15 @@ export default function KomunikasiPage() {
     return () => {
       socketInstance.disconnect()
     }
-  }, [currentUser])
+  }, [])
 
   // Initial data fetch
   useEffect(() => {
-    fetchMessages()
-    fetchConversations()
-  }, [fetchMessages, fetchConversations])
+    if (currentUser.id) {
+      fetchMessages()
+      fetchConversations()
+    }
+  }, [fetchMessages, fetchConversations, currentUser.id])
 
   // Send message
   const sendMessage = async () => {
@@ -274,114 +288,105 @@ export default function KomunikasiPage() {
   return (
     <DashboardLayout role="ortu" userName="Bapak/Ibu Orang Tua">
       <div className="space-y-6">
-      <div className="pb-4">
-        <h1 className="text-3xl font-bold text-gray-900">Komunikasi dengan Sekolah</h1>
-        <p className="text-gray-600 mt-1">Kirim pesan dan lapor ketidakhadiran anak</p>
-        <Button
-          variant="outline"
-          onClick={() => router.push('/dashboard/ortu')}
-          className="mt-4 gap-2 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 active:scale-95 transition-all cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Kembali ke Beranda
-        </Button>
-      </div>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Komunikasi dengan Sekolah</h1>
+            <p className="text-muted-foreground mt-2">Kirim pesan dan lapor ketidakhadiran anak</p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => router.push('/dashboard/ortu')}
+            className="gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Kembali
+          </Button>
+        </div>
 
-      {/* Statistik */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <Inbox className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {messages.filter(m => m.receiverId === currentUser.id).length}
-                </p>
-                <p className="text-sm text-gray-600">Pesan Masuk</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
-                <Send className="w-5 h-5 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {messages.filter(m => m.senderId === currentUser.id).length}
-                </p>
-                <p className="text-sm text-gray-600">Pesan Terkirim</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                <Users className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{conversations.length}</p>
-                <p className="text-sm text-gray-600">Percakapan</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
-                <AlertCircle className="w-5 h-5 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {messages.filter(m => m.receiverId === currentUser.id && !m.isRead).length}
-                </p>
-                <p className="text-sm text-gray-600">Belum Dibaca</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Tabs defaultValue="kirim-pesan" className="space-y-4">
-        <TabsList className="grid grid-cols-3 w-full bg-white border">
-          <TabsTrigger value="kirim-pesan">
-            <Send className="w-4 h-4 mr-2" />
-            Kirim Pesan
-          </TabsTrigger>
-          <TabsTrigger value="riwayat-pesan">
-            <MessageSquare className="w-4 h-4 mr-2" />
-            Riwayat Pesan
-          </TabsTrigger>
-          <TabsTrigger value="kontak-sekolah">
-            <Phone className="w-4 h-4 mr-2" />
-            Kontak Sekolah
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Tab Kirim Pesan */}
-        <TabsContent value="kirim-pesan">
+        {/* Statistik */}
+        <div className="grid gap-4 md:grid-cols-4">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Send className="w-6 h-6 text-emerald-600" />
-                Kirim Pesan Baru
-              </CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pesan Masuk</CardTitle>
+              <Inbox className="h-4 w-4 text-blue-600" />
             </CardHeader>
-            <CardContent className="p-8">
-              <div className="space-y-4">
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">
+                {messages.filter(m => m.receiverId === currentUser.id).length}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Belum dibaca: {messages.filter(m => m.receiverId === currentUser.id && !m.isRead).length}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pesan Terkirim</CardTitle>
+              <Send className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">
+                {messages.filter(m => m.senderId === currentUser.id).length}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Laporan & info</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Percakapan</CardTitle>
+              <Users className="h-4 w-4 text-purple-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-600">{conversations.length}</div>
+              <p className="text-xs text-muted-foreground mt-1">Komunikasi aktif</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Belum Dibaca</CardTitle>
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-amber-600">
+                {messages.filter(m => m.receiverId === currentUser.id && !m.isRead).length}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Perlu ditindak</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Tabs defaultValue="kirim-pesan" className="space-y-4">
+          <TabsList className="grid grid-cols-3 w-full bg-white border">
+            <TabsTrigger value="kirim-pesan">
+              <Send className="w-4 h-4 mr-2" />
+              Kirim Pesan
+            </TabsTrigger>
+            <TabsTrigger value="riwayat-pesan">
+              <MessageSquare className="w-4 h-4 mr-2" />
+              Riwayat Pesan
+            </TabsTrigger>
+            <TabsTrigger value="kontak-sekolah">
+              <Phone className="w-4 h-4 mr-2" />
+              Kontak Sekolah
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Tab Kirim Pesan */}
+          <TabsContent value="kirim-pesan">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Send className="w-5 h-5" />
+                  Kirim Pesan Baru
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Pilih Penerima</label>
+                    <label className="text-sm font-medium">Pilih Penerima</label>
                     <Select value={selectedReceiver} onValueChange={setSelectedReceiver}>
                       <SelectTrigger>
                         <SelectValue placeholder="Pilih penerima pesan" />
@@ -396,7 +401,7 @@ export default function KomunikasiPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Subjek (Opsional)</label>
+                    <label className="text-sm font-medium">Subjek (Opsional)</label>
                     <Input
                       placeholder="Masukkan subjek pesan"
                       value={subject}
@@ -405,7 +410,7 @@ export default function KomunikasiPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Pesan</label>
+                  <label className="text-sm font-medium">Pesan</label>
                   <Textarea
                     placeholder="Tulis pesan Anda di sini..."
                     className="min-h-[150px]"
@@ -415,198 +420,177 @@ export default function KomunikasiPage() {
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button
-                    type="button"
                     onClick={sendMessage}
                     disabled={!newMessage.trim() || !selectedReceiver}
-                    className="bg-gradient-to-r from-emerald-500 to-teal-500"
                   >
                     <Send className="w-4 h-4 mr-2" />
                     Kirim Pesan
                   </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        {/* Tab Riwayat Pesan */}
-        <TabsContent value="riwayat-pesan">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
+          {/* Tab Riwayat Pesan */}
+          <TabsContent value="riwayat-pesan">
+            <Card>
+              <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="w-6 h-6 text-blue-600" />
+                  <MessageSquare className="w-5 w-5" />
                   Riwayat Pesan
                 </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="p-8">
-              <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                {filteredMessages.length === 0 ? (
-                  <div className="text-center text-gray-500 py-8">
-                    <MessageSquare className="w-12 h-12 mx-auto mb-2 text-gray-400" />
-                    <p>Belum ada pesan</p>
-                  </div>
-                ) : (
-                  filteredMessages.map((pesan) => (
-                    <Card
-                      key={pesan.id}
-                      className={`${
-                        pesan.senderId === currentUser.id
-                          ? 'border-l-4 border-l-emerald-500'
-                          : 'border-l-4 border-l-blue-500 bg-blue-50/50'
-                      }`}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between gap-4 mb-2">
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                pesan.senderId === currentUser.id ? 'bg-emerald-100' : 'bg-blue-100'
-                              }`}
-                            >
-                              {pesan.senderId === currentUser.id ? (
-                                <Send className="w-4 h-4 text-emerald-600" />
-                              ) : (
-                                <Inbox className="w-4 h-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                  {filteredMessages.length === 0 ? (
+                    <div className="text-center text-gray-500 py-8">
+                      <MessageSquare className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+                      <p>Belum ada pesan</p>
+                    </div>
+                  ) : (
+                    filteredMessages.map((pesan) => (
+                      <Card
+                        key={pesan.id}
+                        className={`${
+                          pesan.senderId === currentUser.id
+                            ? 'border-l-4 border-l-green-500'
+                            : 'border-l-4 border-l-blue-500 bg-blue-50/50'
+                        }`}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-4 mb-2">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                  pesan.senderId === currentUser.id ? 'bg-green-100' : 'bg-blue-100'
+                                }`}
+                              >
+                                {pesan.senderId === currentUser.id ? (
+                                  <Send className="w-4 h-4 text-green-600" />
+                                ) : (
+                                  <Inbox className="w-4 h-4 text-blue-600" />
+                                )}
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm">{pesan.sender.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  ke: {pesan.receiver.name} • {formatDate(pesan.createdAt)} {formatTime(pesan.createdAt)}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              {pesan.senderId !== currentUser.id && !pesan.isRead && (
+                                <Badge
+                                  className="bg-amber-100 text-amber-800 hover:bg-amber-200 cursor-pointer"
+                                  onClick={() => markAsRead(pesan.id, pesan.senderId)}
+                                >
+                                  <AlertCircle className="w-3 h-3 mr-1" />
+                                  Tandai Dibaca
+                                </Badge>
+                              )}
+                              {pesan.isRead && (
+                                <Badge className="bg-emerald-100 text-emerald-800">
+                                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                                  Dibaca
+                                </Badge>
                               )}
                             </div>
-                            <div>
-                              <p className="font-medium text-gray-900 text-sm">{pesan.sender.name}</p>
-                              <p className="text-xs text-gray-500">
-                                ke: {pesan.receiver.name} • {formatDate(pesan.createdAt)} {formatTime(pesan.createdAt)}
-                              </p>
-                            </div>
                           </div>
-                          <div className="text-right">
-                            {pesan.senderId !== currentUser.id && !pesan.isRead && (
-                              <Badge
-                                className="bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer"
-                                onClick={() => markAsRead(pesan.id, pesan.senderId)}
-                              >
-                                Tandai Dibaca
-                              </Badge>
-                            )}
-                            {pesan.isRead && (
-                              <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200">
-                                Dibaca
-                              </Badge>
-                            )}
-                          </div>
+                          {pesan.subject && (
+                            <p className="text-sm font-semibold mb-2">{pesan.subject}</p>
+                          )}
+                          <p className="text-sm text-gray-700 leading-relaxed">{pesan.content}</p>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Tab Kontak Sekolah */}
+          <TabsContent value="kontak-sekolah">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Phone className="w-5 h-5" />
+                  Kontak Sekolah
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    {receivers.map((receiver) => (
+                      <div key={receiver.id} className="flex items-start gap-3 p-4 bg-muted rounded-lg">
+                        <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <User className="w-5 h-5 text-purple-600" />
                         </div>
-                        {pesan.subject && (
-                          <p className="text-sm font-semibold text-gray-900 mb-2">{pesan.subject}</p>
-                        )}
-                        <p className="text-gray-700 text-sm leading-relaxed">{pesan.content}</p>
+                        <div>
+                          <p className="font-semibold">{receiver.name}</p>
+                          <p className="text-sm text-muted-foreground">{receiver.role}</p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-2"
+                            onClick={() => {
+                              setSelectedReceiver(receiver.id)
+                            }}
+                          >
+                            <MessageSquare className="w-3 h-3 mr-1" />
+                            Kirim Pesan
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-4">
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-purple-600" />
+                          Kontak Telepon
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm">Kantor: (021) 8775-xxxx</p>
+                        <p className="text-sm">WhatsApp: 0812-3456-xxxx</p>
                       </CardContent>
                     </Card>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        {/* Tab Kontak Sekolah */}
-        <TabsContent value="kontak-sekolah">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Phone className="w-6 h-6 text-purple-600" />
-                Kontak Sekolah
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-8">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  {receivers.map((receiver) => (
-                    <div key={receiver.id} className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
-                      <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <User className="w-5 h-5 text-purple-600" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">{receiver.name}</p>
-                        <p className="text-gray-700">{receiver.role}</p>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="mt-2"
-                          onClick={() => {
-                            setSelectedReceiver(receiver.id)
-                            router.push('/dashboard/ortu/komunikasi')
-                          }}
-                        >
-                          <MessageSquare className="w-3 h-3 mr-1" />
-                          Kirim Pesan
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-green-600" />
+                          Email
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm">info@ra-insanmadani.sch.id</p>
+                        <p className="text-sm">admin@ra-insanmadani.sch.id</p>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-amber-600" />
+                          Jam Operasional
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm">Senin - Jumat: 07:00 - 14:00</p>
+                        <p className="text-sm">Sabtu: 08:00 - 12:00</p>
+                        <p className="text-sm">Minggu: Libur</p>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
-
-                <div className="space-y-4">
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-purple-600" />
-                        Kontak Telepon
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-700">Kantor: (021) 8775-xxxx</p>
-                      <p className="text-gray-700">WhatsApp: 0812-3456-xxxx</p>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-emerald-600" />
-                        Email
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-700">info@ra-insanmadani.sch.id</p>
-                      <p className="text-gray-700">admin@ra-insanmadani.sch.id</p>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-amber-600" />
-                        Jam Operasional
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-700">Senin - Jumat: 07:00 - 14:00</p>
-                      <p className="text-gray-700">Sabtu: 08:00 - 12:00</p>
-                      <p className="text-gray-700">Minggu: Libur</p>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Catatan */}
-      <Card className="bg-emerald-50 border-emerald-200">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <MessageSquare className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm">
-              <p className="font-semibold text-emerald-900">Catatan</p>
-              <p className="text-emerald-800">
-                Pesan yang Anda kirim akan langsung diterima oleh guru atau admin jika mereka sedang online.
-                Respon biasanya diberikan dalam 1x24 jam pada hari kerja. Untuk keadaan darurat, silakan hubungi
-                nomor telepon sekolah langsung.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   )
