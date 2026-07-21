@@ -110,28 +110,37 @@ function justifyText(text: string, maxChars: number): string[] {
   return lines
 }
 
-async function loadKemenagLogo(pdfDoc: PDFDocument) {
-  try {
-    const logoPath = path.join(process.cwd(), 'upload', 'Logo Kemenag.png')
-    const logoImageBytes = await fs.readFile(logoPath)
-    const logoImage = await pdfDoc.embedPng(logoImageBytes)
-    return logoImage
-  } catch (error) {
-    console.warn('Failed to load Kemenag logo:', error)
-    return null
+async function loadLogoImage(pdfDoc: PDFDocument, filename: string) {
+  const logoDir = path.join(process.cwd(), 'public', 'logo')
+  const baseName = filename.replace(/\.[^.]+$/, '')
+  const pathsToTry = [
+    path.join(logoDir, filename),
+    path.join(logoDir, baseName + '.png'),
+    path.join(logoDir, baseName + '.jpg'),
+    path.join(logoDir, baseName + '.jpeg'),
+  ]
+  for (const filePath of pathsToTry) {
+    try {
+      const bytes = await fs.readFile(filePath)
+      if (bytes[0] === 0x89 && bytes[1] === 0x50) {
+        return await pdfDoc.embedPng(bytes)
+      } else if (bytes[0] === 0xFF && bytes[1] === 0xD8) {
+        return await pdfDoc.embedJpg(bytes)
+      }
+    } catch {
+      // Try next path
+    }
   }
+  console.warn('Failed to load logo:', filename)
+  return null
+}
+
+async function loadKemenagLogo(pdfDoc: PDFDocument) {
+  return loadLogoImage(pdfDoc, 'Logo Kemenag.png')
 }
 
 async function loadRALogo(pdfDoc: PDFDocument) {
-  try {
-    const logoPath = path.join(process.cwd(), 'upload', 'LOGO RA.png')
-    const logoImageBytes = await fs.readFile(logoPath)
-    const logoImage = await pdfDoc.embedPng(logoImageBytes)
-    return logoImage
-  } catch (error) {
-    console.warn('Failed to load RA logo:', error)
-    return null
-  }
+  return loadLogoImage(pdfDoc, 'LOGO RA.png')
 }
 
 async function loadStudentPhoto(pdfDoc: PDFDocument, photoData: string) {
