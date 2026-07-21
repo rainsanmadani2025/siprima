@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, User, Moon, Sun, Clock, Calendar as CalendarIcon } from "lucide-react"
+import { Bell, User, Moon, Sun, Clock, AlertTriangle, Info, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/popover"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 
 interface DashboardHeaderProps {
   userName?: string
@@ -27,14 +27,12 @@ interface DashboardHeaderProps {
   title?: string
 }
 
-interface Announcement {
+interface NotificationItem {
   id: string
   title: string
-  content: string
-  category: string
-  eventDate: string | null
-  priority: string
-  targetAudience: string
+  message: string
+  type: string
+  isRead: boolean
   createdAt: string
 }
 
@@ -42,7 +40,8 @@ export function DashboardHeader({ userName = "User", userRole = "User", role = "
   const router = useRouter()
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
-  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [notifications, setNotifications] = useState<NotificationItem[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
   const [notificationOpen, setNotificationOpen] = useState(false)
   const [avatar, setAvatar] = useState<string | null>(null)
 
@@ -61,36 +60,38 @@ export function DashboardHeader({ userName = "User", userRole = "User", role = "
     router.push(profilePage)
   }
 
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      setMounted(true)
-    })
-    fetchAnnouncements()
-    fetchAvatar()
+  const fetchNotifications = useCallback(async () => {
+    const userId = localStorage.getItem('userId')
+    if (!userId) return
 
-    // Listen for avatar update event
-    const handleAvatarUpdate = (event: CustomEvent) => {
-      setAvatar(event.detail.avatar)
-    }
-
-    window.addEventListener('avatarUpdated', handleAvatarUpdate as EventListener)
-
-    return () => {
-      window.removeEventListener('avatarUpdated', handleAvatarUpdate as EventListener)
+    try {
+      const response = await fetch(`/api/notifications?userId=${userId}&isRead=false&limit=5`)
+      const data = await response.json()
+      if (data.success) {
+        setNotifications(data.notifications || [])
+        setUnreadCount(data.unreadCount || 0)
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error)
     }
   }, [])
 
-  const fetchAnnouncements = async () => {
+  const markAllAsRead = useCallback(async () => {
+    const userId = localStorage.getItem('userId')
+    if (!userId) return
+
     try {
-      const response = await fetch('/api/announcements?targetAudience=all')
-      const data = await response.json()
-      if (data.announcements) {
-        setAnnouncements(data.announcements.slice(0, 5))
-      }
+      await fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, isRead: true })
+      })
+      setUnreadCount(0)
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
     } catch (error) {
-      console.error('Error fetching announcements:', error)
+      console.error('Error marking notifications as read:', error)
     }
-  }
+  }, [])
 
   const fetchAvatar = async () => {
     try {
@@ -107,9 +108,68 @@ export function DashboardHeader({ userName = "User", userRole = "User", role = "
     }
   }
 
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      setMounted(true)
+    })
+    fetchNotifications()
+    fetchAvatar()
+
+    // Polling setiap 30 detik untuk cek notifikasi baru
+    const interval = setInterval(fetchNotifications, 30000)
+
+    // Listen for avatar update event
+    const handleAvatarUpdate = (event: CustomEvent) => {
+      setAvatar(event.detail.avatar)
+    }
+
+    window.addEventListener('avatarUpdated', handleAvatarUpdate as EventListener)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('avatarUpdated', handleAvatarUpdate as EventListener)
+    }
+  }, [fetchNotifications])
+
+  const handleNotificationOpenChange = (open: boolean) => {
+    setNotificationOpen(open)
+    // Ketika popover dibuka, langsung mark all as read
+    if (open && unreadCount > 0) {
+      markAllAsRead()
+    }
+  }
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'alert':
+        return <AlertCircle className="h-4 w-4 text-red-500" />
+      case 'warning':
+        return <AlertTriangle className="h-4 w-4 text-orange-500" />
+      default:
+        return <Info className="h-4 w-4 text-blue-500" />
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const today = new Date()
+    const diffTime = Math.abs(today.getTime() - date.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+    if (diffDays === 0) return 'Hari ini'
+    if (diffDays === 1) return 'Kemarin'
+    if (diffDays <= 7) return `${diffDays} hari lalu`
+
+    return date.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
+  }
+
   return (
     <div className="flex items-center gap-2">
-      <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
+      <Popover open={notificationOpen} onOpenChange={handleNotificationOpenChange}>
               <PopoverTrigger asChild>
                 <Button
                   variant="ghost"
@@ -117,88 +177,62 @@ export function DashboardHeader({ userName = "User", userRole = "User", role = "
                   className="relative"
                 >
                   <Bell className="h-5 w-5" />
-                  {announcements.length > 0 && (
-                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
                   )}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-96 p-0" align="end">
                 <div className="p-4 border-b">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold">Pengumuman Terbaru</h3>
-                    <span className="text-sm text-muted-foreground">{announcements.length} pengumuman</span>
+                    <h3 className="font-semibold">Notifikasi</h3>
+                    {unreadCount > 0 && (
+                      <span className="text-xs text-red-500 font-medium">{unreadCount} belum dibaca</span>
+                    )}
                   </div>
                 </div>
                 <div className="max-h-80 overflow-y-auto">
-                  {announcements.length > 0 ? (
+                  {notifications.length > 0 ? (
                     <div className="divide-y">
-                      {announcements.map((announcement) => {
-                        const getPriorityColor = (priority: string) => {
-                          switch (priority) {
-                            case 'urgent':
-                              return 'text-red-600'
-                            case 'important':
-                              return 'text-orange-600'
-                            default:
-                              return 'text-blue-600'
-                          }
-                        }
-
-                        const formatDate = (dateString: string) => {
-                          const date = new Date(dateString)
-                          const today = new Date()
-                          const diffTime = Math.abs(today.getTime() - date.getTime())
-                          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-                          
-                          if (diffDays === 0) return 'Hari ini'
-                          if (diffDays === 1) return 'Kemarin'
-                          if (diffDays <= 7) return `${diffDays} hari lalu`
-                          
-                          return date.toLocaleDateString('id-ID', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric'
-                          })
-                        }
-
-                        return (
-                          <button
-                            key={announcement.id}
-                            className="w-full text-left p-4 hover:bg-muted transition-colors block"
-                            onClick={() => {
-                              const announcementPage = role === 'ortu' ? '/dashboard/ortu/pengumuman' : 
-                                                          role === 'guru' ? '/dashboard/guru/pengumuman' :
-                                                          '/dashboard/kepsek/pengumuman'
-                              setNotificationOpen(false)
-                              router.push(announcementPage)
-                            }}
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="flex-shrink-0 mt-0.5">
-                                <CalendarIcon className={`h-4 w-4 ${getPriorityColor(announcement.priority)}`} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium line-clamp-1">{announcement.title}</p>
-                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                  {announcement.content.substring(0, 80)}
-                                  {announcement.content.length > 80 ? '...' : ''}
-                                </p>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <Clock className="h-3 w-3 text-muted-foreground" />
-                                  <span className="text-xs text-muted-foreground">
-                                    {formatDate(announcement.createdAt)}
-                                  </span>
-                                </div>
+                      {notifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          className="p-4 hover:bg-muted transition-colors block cursor-pointer"
+                          onClick={() => {
+                            const announcementPage = role === 'ortu' ? '/dashboard/ortu/pengumuman' :
+                                                    role === 'guru' ? '/dashboard/guru/pengumuman' :
+                                                    role === 'admin' ? '/dashboard/admin/pengumuman' :
+                                                    '/dashboard/kepsek/pengumuman'
+                            setNotificationOpen(false)
+                            router.push(announcementPage)
+                          }}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0 mt-0.5">
+                              {getTypeIcon(notification.type)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium line-clamp-1">{notification.title}</p>
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                {notification.message}
+                              </p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <Clock className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">
+                                  {formatDate(notification.createdAt)}
+                                </span>
                               </div>
                             </div>
-                          </button>
-                        )
-                      })}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <div className="p-8 text-center text-muted-foreground">
                       <Bell className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p>Belum ada pengumuman</p>
+                      <p className="text-sm">Tidak ada notifikasi baru</p>
                     </div>
                   )}
                 </div>
@@ -207,8 +241,9 @@ export function DashboardHeader({ userName = "User", userRole = "User", role = "
                     variant="ghost"
                     className="w-full text-sm"
                     onClick={() => {
-                      const announcementPage = role === 'ortu' ? '/dashboard/ortu/pengumuman' : 
+                      const announcementPage = role === 'ortu' ? '/dashboard/ortu/pengumuman' :
                                             role === 'guru' ? '/dashboard/guru/pengumuman' :
+                                            role === 'admin' ? '/dashboard/admin/pengumuman' :
                                             '/dashboard/kepsek/pengumuman'
                       setNotificationOpen(false)
                       router.push(announcementPage)

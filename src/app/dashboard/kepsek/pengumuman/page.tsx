@@ -123,8 +123,9 @@ export default function KepsekPengumumanPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formData,
-          createdBy: currentUserId
+        ...formData,
+          createdBy: currentUserId,
+          creatorRole: localStorage.getItem('userRole')
         })
       })
 

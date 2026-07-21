@@ -7,10 +7,11 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId')
     const isRead = searchParams.get('isRead')
     const type = searchParams.get('type')
+    const limit = searchParams.get('limit')
 
     const where: any = {}
     if (userId) where.userId = userId
-    if (isRead !== null) where.isRead = isRead === 'true'
+    if (isRead !== null && isRead !== '') where.isRead = isRead === 'true'
     if (type) where.type = type
 
     const notifications = await db.notification.findMany({
@@ -25,16 +26,29 @@ export async function GET(request: NextRequest) {
       },
       orderBy: {
         createdAt: 'desc'
-      }
+      },
+      take: limit ? parseInt(limit) : undefined
     })
+
+    // Juga hitung total unread untuk user ini
+    let unreadCount = 0
+    if (userId) {
+      unreadCount = await db.notification.count({
+        where: {
+          userId: userId,
+          isRead: false
+        }
+      })
+    }
 
     return NextResponse.json({
       success: true,
+      unreadCount,
       notifications: notifications.map(notif => ({
         id: notif.id,
         userId: notif.userId,
-        userName: notif.user.name,
-        userRole: notif.user.role,
+        userName: notif.user?.name,
+        userRole: notif.user?.role,
         title: notif.title,
         message: notif.message,
         type: notif.type,
@@ -54,8 +68,27 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json()
-    const { ids, isRead } = body
+    const { ids, isRead, userId } = body
 
+    // Mode 1: Mark semua notifikasi unread untuk user tertentu
+    if (userId) {
+      await db.notification.updateMany({
+        where: {
+          userId: userId,
+          isRead: false
+        },
+        data: {
+          isRead: isRead !== undefined ? isRead : true
+        }
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: 'Semua notifikasi berhasil ditandai dibaca'
+      })
+    }
+
+    // Mode 2: Mark notifikasi berdasarkan ID
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return NextResponse.json(
         { success: false, error: 'Invalid request' },

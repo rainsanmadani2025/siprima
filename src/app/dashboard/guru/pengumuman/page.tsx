@@ -37,6 +37,7 @@ export default function GuruPengumumanPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [socket, setSocket] = useState<Socket | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string>('')
 
   // Form state
   const [formData, setFormData] = useState({
@@ -69,12 +70,16 @@ export default function GuruPengumumanPage() {
       transports: ['websocket', 'polling']
     })
 
-    socketInstance.on('connect', () => {
+        socketInstance.on('connect', () => {
+      const userId = localStorage.getItem('userId') || ''
+      const userName = localStorage.getItem('userName') || ''
+      const userRole = localStorage.getItem('userRole') || ''
+      setCurrentUserId(userId)
       console.log('Guru connected to chat service')
       socketInstance.emit('user:join', {
-        userId: 'user-teacher-1',
-        role: 'GURU',
-        name: 'Ibu Siti Aminah'
+        userId,
+        role: userRole.toUpperCase(),
+        name: userName
       })
     })
 
@@ -110,9 +115,10 @@ export default function GuruPengumumanPage() {
       const response = await fetch('/api/announcements', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+          body: JSON.stringify({
           ...formData,
-          createdBy: 'user-teacher-1'
+          createdBy: currentUserId || localStorage.getItem('userId'),
+          creatorRole: localStorage.getItem('userRole')
         })
       })
 
