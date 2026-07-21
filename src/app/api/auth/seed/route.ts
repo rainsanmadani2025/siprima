@@ -49,7 +49,7 @@ export async function GET() {
 
     // Insert semua user dengan password yang sudah di-hash
     const createdUsers = await Promise.all(
-      users.map(user => db.user.create({
+      users.map(async (user) => db.user.create({
         data: { ...user, password: await hashPassword(user.password) }
       }))
     )

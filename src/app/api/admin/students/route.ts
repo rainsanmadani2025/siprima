@@ -13,7 +13,6 @@ async function findOrCreateParent(name: string) {
   parent = allParents.find(p => p.user.name.toLowerCase() === trimmedName.toLowerCase())
   if (parent) return parent
   const newUser = await db.user.create({
-      const newUser = await db.user.create({
     data: { username: `ortu_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, password: await hashPassword('ortu_default_2024'), name: trimmedName, role: 'ORTU', isActive: true }
   })
   return await db.parent.create({ data: { userId: newUser.id, fatherName: trimmedName }, include: { user: true } })
