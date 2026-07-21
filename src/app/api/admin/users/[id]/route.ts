@@ -54,6 +54,7 @@ export async function PATCH(
 
     // Build update data object
     const updateData: any = {}
+    if (username !== undefined) updateData.username = username
     if (name !== undefined) updateData.name = name
     if (email !== undefined && email.trim() !== '') updateData.email = email.trim() || null
     if (phone !== undefined && phone.trim() !== '') updateData.phone = phone.trim() || null
