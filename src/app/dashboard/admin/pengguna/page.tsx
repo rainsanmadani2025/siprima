@@ -440,7 +440,6 @@ export default function PenggunaPage() {
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   required
-                  disabled={!!editingUser}
                 />
               </div>
               <div className="grid gap-2">
