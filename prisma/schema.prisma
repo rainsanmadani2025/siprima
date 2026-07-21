@@ -301,9 +301,9 @@ model Notification {
 model Message {
   id          String   @id @default(cuid())
   senderId    String
-  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
   receiverId  String
-  receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
   parentId    String?
   parent      Parent?  @relation(fields: [parentId], references: [id])
   subject     String?
