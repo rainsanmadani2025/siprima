@@ -80,6 +80,8 @@ export default function DataAnakPage() {
 
   const [anakData, setAnakData] = useState<AnakData | null>(null)
   const [parentData, setParentData] = useState<ParentData | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [currentUserName, setCurrentUserName] = useState<string>('Bapak/Ibu Orang Tua')
 
   const [editData, setEditData] = useState({
     nama: '',
@@ -108,9 +110,10 @@ export default function DataAnakPage() {
 
   // Fetch data from API
   const fetchData = async () => {
+    if (!currentUserId) return
     try {
       setLoading(true)
-      const response = await fetch('/api/parent/children')
+      const response = await fetch(`/api/parent/children?userId=${currentUserId}`)
       const data = await response.json()
 
       if (data.children && data.children.length > 0) {
@@ -152,8 +155,17 @@ export default function DataAnakPage() {
   }
 
   useEffect(() => {
-    fetchData()
+    const userId = localStorage.getItem('userId')
+    const userName = localStorage.getItem('userName')
+    if (userId) setCurrentUserId(userId)
+    if (userName) setCurrentUserName(userName)
   }, [])
+
+  useEffect(() => {
+    if (currentUserId) {
+      fetchData()
+    }
+  }, [currentUserId])
 
   const handleEdit = () => {
     if (!anakData || !parentData) return
@@ -231,6 +243,7 @@ export default function DataAnakPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+	  userId: currentUserId,
           fatherName: editData.namaAyah,
           fatherOccupation: editData.pekerjaanAyah,
           fatherPhone: editData.noHpAyah,
@@ -312,7 +325,7 @@ export default function DataAnakPage() {
 
   if (loading) {
     return (
-      <DashboardLayout role="ortu" userName="Bapak/Ibu Orang Tua">
+      <DashboardLayout role="ortu" userName={currentUserName}>
         <div className="flex items-center justify-center min-h-96">
           <Loader2 className="w-8 h-8 animate-spin" />
         </div>
@@ -322,7 +335,7 @@ export default function DataAnakPage() {
 
   if (!anakData || !parentData) {
     return (
-      <DashboardLayout role="ortu" userName="Bapak/Ibu Orang Tua">
+      <DashboardLayout role="ortu" userName={currentUserName}>
         <div className="flex items-center justify-center min-h-96">
           <p className="text-gray-600">Data anak tidak ditemukan</p>
         </div>
@@ -331,7 +344,7 @@ export default function DataAnakPage() {
   }
 
   return (
-    <DashboardLayout role="ortu" userName="Bapak/Ibu Orang Tua">
+    <DashboardLayout role="ortu" userName={currentUserName}>
       <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4">
         <div>

@@ -6,9 +6,19 @@ export async function PUT(request: Request) {
   try {
     const body = await request.json()
 
-    // For demo purposes, update the first parent
-    // In production, you would get the parent ID from the authenticated session
-    const parent = await db.parent.findFirst()
+    if (!body.userId) {
+      return NextResponse.json(
+        { error: 'Parameter userId diperlukan' },
+        { status: 400 }
+      )
+    }
+
+    // Find parent by userId (linked from User table)
+    const parent = await db.parent.findFirst({
+      where: {
+        userId: body.userId
+      }
+    })
 
     if (!parent) {
       return NextResponse.json(
@@ -43,10 +53,25 @@ export async function PUT(request: Request) {
   }
 }
 
-// GET /api/parent/profile - Get parent profile
-export async function GET() {
+// GET /api/parent/profile?userId=xxx - Get parent profile
+export async function GET(request: Request) {
   try {
-    const parent = await db.parent.findFirst()
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('userId')
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Parameter userId diperlukan' },
+        { status: 400 }
+      )
+    }
+
+    // Find parent by userId (linked from User table)
+    const parent = await db.parent.findFirst({
+      where: {
+        userId: userId
+      }
+    })
 
     if (!parent) {
       return NextResponse.json(

@@ -25,6 +25,7 @@ interface Student {
 
 interface ParentData {
   id: string
+  userId?: string
   address?: string
   occupation?: string
   fatherName?: string
@@ -51,6 +52,7 @@ export default function OrtuProfilPage() {
   const [parentData, setParentData] = useState<ParentData | null>(null)
   const [userData, setUserData] = useState<UserData | null>(null)
   const [isEditing, setIsEditing] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     address: '',
@@ -66,41 +68,48 @@ export default function OrtuProfilPage() {
   })
 
   useEffect(() => {
-    fetchData()
+    const userId = localStorage.getItem('userId')
+    if (userId) setCurrentUserId(userId)
   }, [])
+
+  useEffect(() => {
+    if (currentUserId) {
+      fetchData()
+    }
+  }, [currentUserId])
 
   const fetchData = async () => {
     try {
-      // Get current user's student(s)
-      const studentsResponse = await fetch('/api/students')
-      const studentsData = await studentsResponse.json()
+      // Fetch own children using the fixed API
+      const childrenResponse = await fetch(`/api/parent/children?userId=${currentUserId}`)
+      const childrenData = await childrenResponse.json()
       
-      if (studentsData.students && studentsData.students.length > 0) {
-        setStudents(studentsData.students)
+      if (childrenData.children && childrenData.children.length > 0) {
+        setStudents(childrenData.children)
+      }
 
-        // Get parent data from the first student
-        const parentResponse = await fetch(`/api/parents/${studentsData.students[0].parentId}`)
-        const parentData = await parentResponse.json()
-        
-        if (parentData.parent) {
-          setParentData(parentData.parent)
-          setFormData({
-            address: parentData.parent.address || '',
-            occupation: parentData.parent.occupation || '',
-            fatherName: parentData.parent.fatherName || '',
-            fatherOccupation: parentData.parent.fatherOccupation || '',
-            fatherPhone: parentData.parent.fatherPhone || '',
-            fatherEmail: parentData.parent.fatherEmail || '',
-            motherName: parentData.parent.motherName || '',
-            motherOccupation: parentData.parent.motherOccupation || '',
-            motherPhone: parentData.parent.motherPhone || '',
-            motherEmail: parentData.parent.motherEmail || '',
-          })
-        }
+      // Fetch own profile using the fixed API
+      const profileResponse = await fetch(`/api/parent/profile?userId=${currentUserId}`)
+      const profileData = await profileResponse.json()
+      
+      if (profileData.parent) {
+        setParentData(profileData.parent)
+        setFormData({
+          address: profileData.parent.address || '',
+          occupation: profileData.parent.occupation || '',
+          fatherName: profileData.parent.fatherName || '',
+          fatherOccupation: profileData.parent.fatherOccupation || '',
+          fatherPhone: profileData.parent.fatherPhone || '',
+          fatherEmail: profileData.parent.fatherEmail || '',
+          motherName: profileData.parent.motherName || '',
+          motherOccupation: profileData.parent.motherOccupation || '',
+          motherPhone: profileData.parent.motherPhone || '',
+          motherEmail: profileData.parent.motherEmail || '',
+        })
 
         // Get user data
-        if (parentData.parent?.userId) {
-          const userResponse = await fetch(`/api/users/${parentData.parent.userId}`)
+        if (profileData.parent.userId) {
+          const userResponse = await fetch(`/api/users/${profileData.parent.userId}`)
           const userData = await userResponse.json()
           if (userData.user) {
             setUserData({
@@ -124,7 +133,6 @@ export default function OrtuProfilPage() {
 
   const handleCancel = () => {
     setIsEditing(false)
-    // Reset form to original data
     if (parentData) {
       setFormData({
         address: parentData.address || '',
@@ -142,23 +150,25 @@ export default function OrtuProfilPage() {
   }
 
   const handleSave = async () => {
-    if (!parentData) return
+    if (!currentUserId) return
 
     setSaving(true)
     try {
-      const response = await fetch(`/api/parents/${parentData.id}`, {
+      const response = await fetch('/api/parent/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          userId: currentUserId,
+          ...formData
+        })
       })
 
       const data = await response.json()
-      if (data.success) {
+      if (data.parent) {
         setParentData(data.parent)
         setIsEditing(false)
-        // Show success message (you could add a toast here)
       }
     } catch (error) {
       console.error('Error saving profile:', error)
@@ -180,7 +190,7 @@ export default function OrtuProfilPage() {
 
   if (loading) {
     return (
-      <DashboardLayout role="ortu" userName="Orang Tua">
+      <DashboardLayout role="ortu" userName={userData?.name || "Orang Tua"}>
         <div className="flex items-center justify-center min-h-96">
           <Loader2 className="w-8 h-8 animate-spin" />
         </div>

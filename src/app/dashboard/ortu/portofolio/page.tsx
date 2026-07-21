@@ -42,12 +42,26 @@ export default function PortofolioPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('karya')
   const [socket, setSocket] = useState<Socket | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [currentUserName, setCurrentUserName] = useState<string>('Bapak/Ibu Orang Tua')
+  const [studentId, setStudentId] = useState<string | null>(null)
 
-  // Student ID yang sedang login (hardcoded untuk demo)
-  const studentId = 'student-1'
+  // Fetch student ID from parent/children API
+  const fetchStudentId = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/parent/children?userId=${userId}`)
+      const data = await response.json()
+      if (data.children && data.children.length > 0) {
+        setStudentId(data.children[0].id)
+      }
+    } catch (error) {
+      console.error('Error fetching student ID:', error)
+    }
+  }
 
   // Fetch portfolios from API
   const fetchPortfolios = useCallback(async () => {
+    if (!studentId) return
     try {
       setLoading(true)
       const response = await fetch(`/api/portfolios?studentId=${studentId}`)
@@ -60,8 +74,20 @@ export default function PortofolioPage() {
     }
   }, [studentId])
 
+  useEffect(() => {
+    const userId = localStorage.getItem('userId')
+    const userName = localStorage.getItem('userName')
+    if (userId) {
+      setCurrentUserId(userId)
+      fetchStudentId(userId)
+    }
+    if (userName) setCurrentUserName(userName)
+  }, [])
+
   // Initialize WebSocket for real-time updates
   useEffect(() => {
+    if (!currentUserId) return
+
     const socketInstance = io('/', {
       query: { XTransformPort: 3003 },
       transports: ['websocket', 'polling']
@@ -70,9 +96,9 @@ export default function PortofolioPage() {
     socketInstance.on('connect', () => {
       console.log('Connected to chat service for portfolios')
       socketInstance.emit('user:join', {
-        userId: 'user-parent-1',
+        userId: currentUserId,
         role: 'ORTU',
-        name: 'Bapak Ahmad Fauzi'
+        name: currentUserName
       })
     })
 
@@ -90,7 +116,7 @@ export default function PortofolioPage() {
     return () => {
       socketInstance.disconnect()
     }
-  }, [fetchPortfolios, studentId])
+  }, [fetchPortfolios, studentId, currentUserId, currentUserName])
 
   // Initial fetch
   useEffect(() => {
@@ -176,7 +202,7 @@ export default function PortofolioPage() {
   }
 
   return (
-    <DashboardLayout role="ortu" userName="Bapak/Ibu Orang Tua">
+    <DashboardLayout role="ortu" userName={currentUserName}>
       <div className="space-y-6">
       <div className="flex justify-between items-center pb-4">
         <div>

@@ -1,17 +1,28 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-// GET /api/parent/children - Get all children for the current parent
-export async function GET() {
+// GET /api/parent/children - Get children for the logged-in parent
+export async function GET(request: NextRequest) {
   try {
-    // For demo purposes, we'll return the first parent's children
-    // In production, you would get the parent ID from the authenticated session
-    const parent = await db.parent.findFirst({
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('userId')
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'userId diperlukan' },
+        { status: 400 }
+      )
+    }
+
+    // Cari parent berdasarkan userId yang login
+    const parent = await db.parent.findUnique({
+      where: { userId },
       include: {
         children: {
           include: {
             class: true
-          }
+          },
+          where: { status: 'aktif' }
         }
       }
     })
@@ -30,6 +41,7 @@ export async function GET() {
     return NextResponse.json({
       parent: {
         id: parent.id,
+        userId: parent.userId,
         fatherName: parent.fatherName,
         fatherOccupation: parent.fatherOccupation,
         fatherPhone: parent.fatherPhone,

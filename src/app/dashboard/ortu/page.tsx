@@ -68,25 +68,33 @@ export default function OrtuDashboardPage() {
   const [stats, setStats] = useState<OrtuStatistics | null>(null)
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [currentUserName, setCurrentUserName] = useState<string>('Bapak/Ibu Orang Tua')
   
-  // Demo student ID (in real app, this would come from authenticated user's children)
-  const studentId = 'demo-student-id'
+  useEffect(() => {
+    const userId = localStorage.getItem('userId')
+    const userName = localStorage.getItem('userName')
+    if (userId) setCurrentUserId(userId)
+    if (userName) setCurrentUserName(userName)
+  }, [])
 
   useEffect(() => {
-    fetchStatistics()
-    fetchAnnouncements()
-  }, [])
+    if (currentUserId) {
+      fetchStatistics()
+      fetchAnnouncements()
+    }
+  }, [currentUserId])
 
   const fetchStatistics = async () => {
     try {
-      // Get students to find the first one (for demo purposes)
-      const studentsResponse = await fetch('/api/students')
-      const studentsData = await studentsResponse.json()
+      // Fetch children from the fixed parent/children API
+      const childrenResponse = await fetch(`/api/parent/children?userId=${currentUserId}`)
+      const childrenData = await childrenResponse.json()
       
-      if (studentsData.students && studentsData.students.length > 0) {
-        const actualStudentId = studentsData.students[0].id
+      if (childrenData.children && childrenData.children.length > 0) {
+        const firstChildId = childrenData.children[0].id
         
-        const response = await fetch(`/api/dashboard/ortu/statistics?studentId=${actualStudentId}`)
+        const response = await fetch(`/api/dashboard/ortu/statistics?studentId=${firstChildId}`)
         const data = await response.json()
         if (data.success) {
           setStats(data.data)
@@ -102,7 +110,7 @@ export default function OrtuDashboardPage() {
       const response = await fetch('/api/announcements?targetAudience=all')
       const data = await response.json()
       if (data.announcements) {
-        setAnnouncements(data.announcements.slice(0, 3)) // Ambil 3 terbaru
+        setAnnouncements(data.announcements.slice(0, 3))
       }
     } catch (error) {
       console.error('Error fetching announcements:', error)
@@ -135,7 +143,7 @@ export default function OrtuDashboardPage() {
 
   if (loading) {
     return (
-      <DashboardLayout role="ortu" userName="Bapak/Ibu Orang Tua">
+      <DashboardLayout role="ortu" userName={currentUserName}>
         <div className="flex items-center justify-center min-h-96">
           <Loader2 className="w-8 h-8 animate-spin" />
         </div>
@@ -144,13 +152,13 @@ export default function OrtuDashboardPage() {
   }
 
   return (
-    <DashboardLayout role="ortu" userName="Bapak/Ibu Orang Tua">
+    <DashboardLayout role="ortu" userName={currentUserName}>
       <div className="space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard Orang Tua</h1>
           <p className="text-muted-foreground mt-2">
-            Selamat datang, Bapak/Ibu Orang Tua
+            Selamat datang, {currentUserName}
           </p>
         </div>
 
