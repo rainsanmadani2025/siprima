@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-const ASPECTS = ['agama_moral', 'fisik_motorik', 'kognitif', 'bahasa', 'sosial_emosional', 'seni'] as const
-
-const ASPECT_LABELS: Record<string, string> = {
-  agama_moral: 'Nilai Agama & Moral',
-  fisik_motorik: 'Fisik Motorik',
-  kognitif: 'Kognitif',
-  bahasa: 'Bahasa',
-  sosial_emosional: 'Sosial Emosional',
-  seni: 'Seni',
-}
-
 const SCORE_VALUES: Record<string, number> = { BB: 1, MB: 2, BSH: 3, BSB: 4 }
 
 function getDominantScore(scores: string[]): string {
@@ -34,19 +23,42 @@ function getScoreColor(score: string): string {
   }
 }
 
+function formatAspectLabel(aspect: string): string {
+  return aspect
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+function getCurrentSemester(): string {
+  const now = new Date()
+  const month = now.getMonth() + 1
+  return month >= 7 ? 'Ganjil' : 'Genap'
+}
+
+function getCurrentAcademicYear(): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth() + 1
+  if (month >= 7) {
+    return `${year}/${year + 1}`
+  }
+  return `${year - 1}/${year}`
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
-    const semester = searchParams.get('semester') || getCurrentSemester()
-    const academicYear = searchParams.get('academicYear') || getCurrentAcademicYear()
+    let semester = searchParams.get('semester') || getCurrentSemester()
+    let academicYear = searchParams.get('academicYear') || getCurrentAcademicYear()
 
     // 1. Total active students
     const totalStudents = await db.student.count({
       where: { status: 'aktif' }
     })
 
-    // 2. All assessments for the semester
-    const assessments = await db.studentAssessment.findMany({
+    // 2. Try to find assessments for the selected semester
+    let assessments = await db.studentAssessment.findMany({
       where: { semester, academicYear },
       include: {
         student: { select: { id: true, name: true, nis: true, class: { select: { id: true, name: true, ageGroup: true, teacherId: true } } } },
@@ -54,11 +66,32 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // 3. Unique assessed students
+    // 3. Fallback: jika tidak ada data, cari semester terakhir yang ada datanya
+    if (assessments.length === 0) {
+      const latestAssessment = await db.studentAssessment.findFirst({
+        orderBy: { createdAt: 'desc' },
+        select: { semester: true, academicYear: true }
+      })
+
+      if (latestAssessment) {
+        semester = latestAssessment.semester
+        academicYear = latestAssessment.academicYear
+
+        assessments = await db.studentAssessment.findMany({
+          where: { semester, academicYear },
+          include: {
+            student: { select: { id: true, name: true, nis: true, class: { select: { id: true, name: true, ageGroup: true, teacherId: true } } } },
+            teacher: { include: { user: { select: { name: true } } } }
+          }
+        })
+      }
+    }
+
+    // 4. Unique assessed students
     const assessedStudentIds = new Set(assessments.map(a => a.studentId))
     const assessedCount = assessedStudentIds.size
 
-    // 4. Calculate overall stats
+    // 5. Calculate overall stats
     let anecdotalCount = 0
     let documentationCount = 0
     const allScores: string[] = []
@@ -72,8 +105,10 @@ export async function GET(request: NextRequest) {
     const completionPercent = totalStudents > 0 ? Math.round((assessedCount / totalStudents) * 100) : 0
     const averageScore = getDominantScore(allScores)
 
-    // 5. Per-aspect statistics
-    const aspectStats = ASPECTS.map(aspect => {
+    // 6. Get unique aspects from database (dynamic)
+    const uniqueAspects = [...new Set(assessments.map(a => a.aspect).filter(Boolean))]
+
+    const aspectStats = uniqueAspects.map(aspect => {
       const aspectAssessments = assessments.filter(a => a.aspect === aspect)
       const scores = aspectAssessments.map(a => a.score).filter(Boolean)
       const assessedInAspect = new Set(aspectAssessments.map(a => a.studentId)).size
@@ -85,7 +120,7 @@ export async function GET(request: NextRequest) {
 
       return {
         aspect,
-        label: ASPECT_LABELS[aspect],
+        label: formatAspectLabel(aspect),
         percent,
         dominant,
         color: getScoreColor(dominant),
@@ -95,7 +130,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // 6. Per-teacher assessment status
+    // 7. Per-teacher assessment status
     const teachers = await db.teacher.findMany({
       include: {
         user: { select: { name: true } },
@@ -103,7 +138,7 @@ export async function GET(request: NextRequest) {
           include: {
             students: {
               where: { status: 'aktif' },
-              select: { id: true, name: true, nis: true }
+              select: { id: true }
             }
           }
         }
@@ -139,12 +174,12 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // 7. Per-class data for motorik & bahasa tab
+    // 8. Per-class data for motorik & bahasa tab
     const classes = await db.class.findMany({
       include: {
         students: {
           where: { status: 'aktif' },
-          select: { id: true, name: true, nis: true }
+          select: { id: true }
         }
       }
     })
@@ -153,44 +188,44 @@ export async function GET(request: NextRequest) {
       const studentIds = cls.students.map(s => s.id)
       const classAssessments = assessments.filter(a => studentIds.includes(a.studentId))
 
-      const fisikMotorik = classAssessments.filter(a => a.aspect === 'fisik_motorik')
-      const bahasa = classAssessments.filter(a => a.aspect === 'bahasa')
-
       return {
         classId: cls.id,
         className: cls.name,
         ageGroup: cls.ageGroup,
         totalStudents: cls.students.length,
         fisikMotorik: {
-          dominant: getDominantScore(fisikMotorik.map(a => a.score).filter(Boolean)),
-          assessedCount: new Set(fisikMotorik.map(a => a.studentId)).size
+          dominant: getDominantScore(classAssessments.filter(a => a.aspect.includes('motorik') || a.aspect.includes('jasmani')).map(a => a.score).filter(Boolean)),
+          assessedCount: new Set(classAssessments.filter(a => a.aspect.includes('motorik') || a.aspect.includes('jasmani')).map(a => a.studentId)).size
         },
         bahasa: {
-          dominant: getDominantScore(bahasa.map(a => a.score).filter(Boolean)),
-          assessedCount: new Set(bahasa.map(a => a.studentId)).size
+          dominant: getDominantScore(classAssessments.filter(a => a.aspect.includes('bahasa')).map(a => a.score).filter(Boolean)),
+          assessedCount: new Set(classAssessments.filter(a => a.aspect.includes('bahasa')).map(a => a.studentId)).size
         }
       }
     })
 
-    // 8. Student-level social-emotional data
+    // 9. Student-level social-emotional data (cari aspek yang relevan)
+    const sosialKeywords = ['sosial', 'emosional', 'jati_diri']
+    const sosialAspects = uniqueAspects.filter(a => sosialKeywords.some(k => a.includes(k)))
+
     const students = await db.student.findMany({
       where: { status: 'aktif' },
       include: {
         class: { select: { id: true, name: true } },
         assessments: {
-          where: { semester, academicYear, aspect: 'sosial_emosional' }
+          where: { semester, academicYear, aspect: { in: sosialAspects.length > 0 ? sosialAspects : uniqueAspects } }
         }
       },
       orderBy: { name: 'asc' }
     })
 
     const studentSosialEmosional = students.map(student => {
-      const sosialScores = student.assessments.map(a => a.score).filter(Boolean)
+      const scores = student.assessments.map(a => a.score).filter(Boolean)
       return {
         studentId: student.id,
         studentName: student.name,
         className: student.class?.name || '-',
-        dominant: getDominantScore(sosialScores),
+        dominant: getDominantScore(scores),
         assessmentCount: student.assessments.length
       }
     })
@@ -221,20 +256,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-function getCurrentSemester(): string {
-  const now = new Date()
-  const month = now.getMonth() + 1
-  return month >= 7 ? 'Ganjil' : 'Genap'
-}
-
-function getCurrentAcademicYear(): string {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth() + 1
-  if (month >= 7) {
-    return `${year}/${year + 1}`
-  }
-  return `${year - 1}/${year}`
 }
