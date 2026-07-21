@@ -51,7 +51,6 @@ export default function KepsekProfilPage() {
     gender: "Laki-laki",
     lastEducation: "",
     address: "",
-    password: "",
   })
 
   useEffect(() => {
@@ -78,7 +77,6 @@ export default function KepsekProfilPage() {
           gender: data.data.gender || "Laki-laki",
           lastEducation: data.data.lastEducation || "",
           address: data.data.address || "",
-          password: "",
         })
       } else {
         throw new Error(data.error || 'Gagal memuat profil')
@@ -122,13 +120,6 @@ export default function KepsekProfilPage() {
         submitData.avatar = photoPreview
       }
 
-      // Only include password if filled
-      if (formData.password && formData.password.trim() !== '') {
-        submitData.password = formData.password
-      } else {
-        delete submitData.password
-      }
-
       const response = await fetch('/api/kepsek/profil', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -144,7 +135,6 @@ export default function KepsekProfilPage() {
         })
         setProfile(data.data)
         setIsPhotoChanged(false)
-        setFormData(prev => ({ ...prev, password: "" }))
       } else {
         throw new Error(data.error || 'Gagal menyimpan profil')
       }
@@ -347,24 +337,6 @@ export default function KepsekProfilPage() {
                       className="rounded-l-none"
                     />
                   </div>
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="password">Password Baru (opsional)</Label>
-                  <div className="flex">
-                    <User className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
-                    <Input
-                      id="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="rounded-l-none"
-                      placeholder="Isi untuk mengubah password"
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Kosongkan jika tidak ingin mengubah password
-                  </p>
                 </div>
 
                 <div className="space-y-2 md:col-span-2">

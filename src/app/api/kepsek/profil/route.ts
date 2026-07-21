@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, email, phone, nuptk, birthPlace, birthDate, gender, lastEducation, address, avatar, password } = body
+    const { name, email, phone, nuptk, birthPlace, birthDate, gender, lastEducation, address, avatar, } = body
 
     // Get the kepsek user (for now, get the first active kepsek)
     const kepsek = await db.user.findFirst({
@@ -79,11 +79,6 @@ export async function PUT(request: NextRequest) {
     // Only update avatar if provided
     if (avatar !== undefined) {
       updateData.avatar = avatar
-    }
-
-    // Only update password if provided
-    if (password && password.trim() !== '') {
-      updateData.password = password // In production, hash this!
     }
 
     const updatedUser = await db.user.update({

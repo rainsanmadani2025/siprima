@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, User, Moon, Sun, Clock, AlertTriangle, Info, AlertCircle } from "lucide-react"
+import { Bell, User, Moon, Sun, Clock, AlertTriangle, Info, AlertCircle, Eye, EyeOff, KeyRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -15,6 +15,16 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { useEffect, useState, useCallback } from "react"
@@ -44,6 +54,57 @@ export function DashboardHeader({ userName = "User", userRole = "User", role = "
   const [unreadCount, setUnreadCount] = useState(0)
   const [notificationOpen, setNotificationOpen] = useState(false)
   const [avatar, setAvatar] = useState<string | null>(null)
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
+  const [oldPassword, setOldPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [showOldPassword, setShowOldPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [passwordError, setPasswordError] = useState("")
+  const [passwordLoading, setPasswordLoading] = useState(false)
+
+  const handleChangePassword = async () => {
+    setPasswordError("")
+
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      setPasswordError("Semua field harus diisi")
+      return
+    }
+    if (newPassword.length < 6) {
+      setPasswordError("Password baru minimal 6 karakter")
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Konfirmasi password tidak cocok")
+      return
+    }
+
+    setPasswordLoading(true)
+    try {
+      const userId = localStorage.getItem('userId')
+      const response = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, oldPassword, newPassword })
+      })
+      const data = await response.json()
+
+      if (response.ok) {
+        setPasswordDialogOpen(false)
+        setOldPassword("")
+        setNewPassword("")
+        setConfirmPassword("")
+        alert('Password berhasil diubah')
+      } else {
+        setPasswordError(data.error || 'Gagal mengubah password')
+      }
+    } catch {
+      setPasswordError('Terjadi kesalahan')
+    } finally {
+      setPasswordLoading(false)
+    }
+  }
 
   const handleLogout = () => {
     localStorage.clear()
@@ -115,10 +176,8 @@ export function DashboardHeader({ userName = "User", userRole = "User", role = "
     fetchNotifications()
     fetchAvatar()
 
-    // Polling setiap 30 detik untuk cek notifikasi baru
     const interval = setInterval(fetchNotifications, 30000)
 
-    // Listen for avatar update event
     const handleAvatarUpdate = (event: CustomEvent) => {
       setAvatar(event.detail.avatar)
     }
@@ -133,7 +192,6 @@ export function DashboardHeader({ userName = "User", userRole = "User", role = "
 
   const handleNotificationOpenChange = (open: boolean) => {
     setNotificationOpen(open)
-    // Ketika popover dibuka, langsung mark all as read
     if (open && unreadCount > 0) {
       markAllAsRead()
     }
@@ -299,6 +357,10 @@ export function DashboardHeader({ userName = "User", userRole = "User", role = "
                   <User className="mr-2 h-4 w-4" />
                   <span>Profil</span>
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setPasswordDialogOpen(true)}>
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  <span>Ubah Password</span>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-destructive" onClick={handleLogout}>
                   <span className="mr-2 h-4 w-4">🚪</span>
@@ -306,6 +368,89 @@ export function DashboardHeader({ userName = "User", userRole = "User", role = "
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Ubah Password</DialogTitle>
+                  <DialogDescription>Masukkan password lama dan password baru Anda</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="old-password">Password Lama</Label>
+                    <div className="relative">
+                      <Input
+                        id="old-password"
+                        type={showOldPassword ? "text" : "password"}
+                        value={oldPassword}
+                        onChange={(e) => setOldPassword(e.target.value)}
+                        placeholder="Masukkan password lama"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                        onClick={() => setShowOldPassword(!showOldPassword)}
+                      >
+                        {showOldPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-password">Password Baru</Label>
+                    <div className="relative">
+                      <Input
+                        id="new-password"
+                        type={showNewPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Minimal 6 karakter"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                      >
+                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-password">Konfirmasi Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirm-password"
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Ulangi password baru"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                  {passwordError && (
+                    <p className="text-sm text-destructive">{passwordError}</p>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setPasswordDialogOpen(false)}>Batal</Button>
+                  <Button onClick={handleChangePassword} disabled={passwordLoading}>
+                    {passwordLoading ? "Menyimpan..." : "Simpan"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
     </div>
   )
 }

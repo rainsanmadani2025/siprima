@@ -63,15 +63,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validasi password dengan bcrypt
-    console.log('Verifying password...')
-    console.log('Password hash from DB:', user.password.substring(0, 20) + '...')
-    console.log('Password entered length:', password.length)
-
+    // Validasi password (support hash dan plain text)
     const isPasswordValid = await bcrypt.compare(password, user.password)
-    console.log('Password valid:', isPasswordValid)
 
-    if (!isPasswordValid) {
+    // Auto-migration: jika password masih plain text, hash otomatis
+    if (!isPasswordValid && !user.password.startsWith('$2')) {
+      if (password === user.password) {
+        const hashed = await bcrypt.hash(password, 10)
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { password: hashed }
+        })
+      } else {
+        return NextResponse.json(
+          { message: 'Username atau password salah' },
+          { status: 401 }
+        )
+      }
+    } else if (!isPasswordValid) {
       return NextResponse.json(
         { message: 'Username atau password salah' },
         { status: 401 }

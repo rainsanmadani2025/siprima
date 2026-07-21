@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { hashPassword } from '@/lib/auth'
 
 // GET - Fetch all users with optional role filter
 export async function GET(request: NextRequest) {
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
     const user = await db.user.create({
       data: {
         username,
-        password, // In production, this should be hashed!
+        password: await hashPassword(password),
         name,
         email,
         phone,

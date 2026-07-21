@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { UserRole } from '@prisma/client'
+import { hashPassword } from '@/lib/auth'
 
 export async function GET() {
   try {
@@ -46,9 +47,11 @@ export async function GET() {
       },
     ]
 
-    // Insert semua user
+    // Insert semua user dengan password yang sudah di-hash
     const createdUsers = await Promise.all(
-      users.map(user => db.user.create({ data: user }))
+      users.map(user => db.user.create({
+        data: { ...user, password: await hashPassword(user.password) }
+      }))
     )
 
     return NextResponse.json({

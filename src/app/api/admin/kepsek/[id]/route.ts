@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { hashPassword } from '@/lib/auth'
 
 // PATCH - Update kepsek
 export async function PATCH(
@@ -40,7 +41,7 @@ export async function PATCH(
     if (phone !== undefined) userUpdate.phone = phone
     if (isActive !== undefined) userUpdate.isActive = isActive
     if (avatar !== undefined) userUpdate.avatar = avatar
-    if (password) userUpdate.password = password
+    if (password) userUpdate.password = await hashPassword(password)
 
     const updatedUser = await db.user.update({
       where: { id },
