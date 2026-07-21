@@ -753,8 +753,41 @@ export default function BuatRPPPage() {
 
       if (data.success) {
         toast({
-          title: "Berhasil",
+                    title: "Berhasil",
           description: "RPP berhasil disimpan"
+        })
+        router.push('/dashboard/guru/perencanaan')
+      } else {
+        throw new Error(data.error || 'Gagal menyimpan RPP')
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Gagal menyimpan RPP"
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handlePreviewPDF = async () => {
+    try {
+      setLoadingPDF(true)
+
+      const response = await fetch('/api/rpp/export-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          namaSekolah: schoolProfile?.name || "RA INSAN MADANI",
+          alamatSekolah: schoolProfile?.address || ""
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Gagal membuat preview PDF')
+      }
 
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
