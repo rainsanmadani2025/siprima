@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { DashboardLayout } from '@/components/dashboard/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -200,7 +201,8 @@ export default function KepsekPengumumanPage() {
   }
 
   return (
-    <div className="space-y-6">
+  <DashboardLayout role="kepsek" userName="Kepala Sekolah">
+    <div className="space-y-6">    
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Pengelolaan Pengumuman</h1>
@@ -221,6 +223,7 @@ export default function KepsekPengumumanPage() {
           </Button>
         </div>
       </div>
+  </DashboardLayout>
 
       {/* Form Pengumuman */}
       {showForm && (
