@@ -52,3 +52,12 @@ server.log
 
 # Backups
 backups/
+
+tool-results/
+upload/
+examples/
+.zscripts/
+download/
+skills/
+scripts/
+*.log
