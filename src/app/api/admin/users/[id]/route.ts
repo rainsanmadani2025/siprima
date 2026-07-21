@@ -99,6 +99,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
+
     // Check if user exists
     const existingUser = await db.user.findUnique({
       where: { id: id }
