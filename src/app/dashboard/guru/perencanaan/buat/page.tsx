@@ -155,19 +155,25 @@ export default function BuatRPPPage() {
 
   const fetchUserAndClasses = async () => {
     try {
-      // Get teacher name from localStorage (set by login page)
       const localName = localStorage.getItem('userName')
+      const userId = localStorage.getItem('userId')
       if (localName) {
         setFormData(prev => ({
           ...prev,
           guru: localName
         }))
       }
+      if (userId) {
+        const res = await fetch(`/api/guru/profile?userId=${userId}`)
+        const data = await res.json()
+        if (data.success && data.teacher?.id) {
+          setTeacherId(data.teacher.id)
+        }
+      }
     } catch (error) {
       console.error('Error fetching user data from localStorage:', error)
     }
   }
-
   const fetchSchoolProfile = async () => {
     try {
       const response = await fetch('/api/school/profile')
@@ -737,14 +743,18 @@ export default function BuatRPPPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          namaSekolah: schoolProfile?.name || "RA INSAN MADANI",
-          alamatSekolah: schoolProfile?.address || ""
-        }),
+                    namaSekolah: schoolProfile?.name || "RA INSAN MADANI",
+          alamatSekolah: schoolProfile?.address || "",
+          teacherId: teacherId || undefined
+        })
       })
 
-      if (!response.ok) {
-        throw new Error('Gagal membuat preview PDF')
-      }
+      const data = await response.json()
+
+      if (data.success) {
+        toast({
+          title: "Berhasil",
+          description: "RPP berhasil disimpan"
 
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
