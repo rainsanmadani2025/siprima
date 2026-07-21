@@ -68,6 +68,7 @@ const menuItems = {
       items: [
         { href: "/dashboard/kepsek/laporan", icon: FileText, label: "Laporan" },
         { href: "/dashboard/kepsek/pengumuman", icon: Bell, label: "Pengumuman" },
+        { href: "/dashboard/kepsek/komunikasi", icon: MessageSquare, label: "Komunikasi" },
         { href: "/dashboard/kepsek/notifikasi", icon: MessageSquare, label: "Notifikasi" },
       ]
     },
