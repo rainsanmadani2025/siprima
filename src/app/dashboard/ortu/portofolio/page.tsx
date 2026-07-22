@@ -169,12 +169,12 @@ export default function PortofolioPage() {
                 </a>
               )}
               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                <Button size="sm" variant="secondary">
+                <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); setPreviewItem(item); }}>
                   <Eye className="w-4 h-4 mr-1" />
                   {type === 'video' ? 'Putar' : 'Lihat'}
                 </Button>
                 {item.fileUrl && (
-                  <Button size="sm" variant="secondary" onClick={() => window.open(item.fileUrl!, '_blank')}>
+                  <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); window.open(item.fileUrl!, '_blank'); }}>
                     <Download className="w-4 h-4 mr-1" />
                     Download
                   </Button>
