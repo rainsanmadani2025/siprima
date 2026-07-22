@@ -80,6 +80,8 @@ export default function GuruPortofolioPage() {
 
   // Fetch portfolios
   const fetchPortfolios = useCallback(async () => {
+    // Jangan fetch sebelum siswa selesai dimuat
+    if (filterStudent === 'semua' && students.length === 0) return
     try {
       setLoading(true)
       const params = new URLSearchParams()
