@@ -108,24 +108,7 @@ export default function AdminParentsPage() {
       const data = await response.json()
 
       if (data.success && data.parents) {
-        const parentsWithDetails = await Promise.all(
-          data.parents.map(async (p: any) => {
-            const detailRes = await fetch(`/api/parents/${p.id}`)
-            const detailData = await detailRes.json()
-            if (detailData.success && detailData.parent) {
-              return {
-                ...detailData.parent,
-                name: detailData.parent.user.name,
-                email: detailData.parent.user.email,
-                phone: detailData.parent.user.phone,
-                avatar: detailData.parent.user.avatar
-              }
-            }
-            return null
-          })
-        )
-
-        setParentList(parentsWithDetails.filter((p): p is ParentData => p !== null))
+        setParentList(data.parents)
       }
     } catch (error) {
       console.error('Error fetching parents:', error)
