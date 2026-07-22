@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Users, UserPlus, UserCheck, UserX, Search, Baby, Loader2 } from "lucide-react"
+import { Users, UserPlus, UserCheck, UserX, Search, Baby, Loader2, Eye, Mail, Phone, MapPin, Calendar, User } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect } from "react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface Student {
   id: string
@@ -26,7 +27,7 @@ interface Student {
   parent: {
     fatherName: string | null
     motherName: string | null
-  }
+  } | null
 }
 
 export default function KepsekSiswaPage() {
@@ -34,6 +35,7 @@ export default function KepsekSiswaPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [filterKelas, setFilterKelas] = useState("semua")
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
 
   // Fetch students from API
   const fetchStudents = async () => {
@@ -251,7 +253,10 @@ export default function KepsekSiswaPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">Detail</Button>
+                        <Button variant="ghost" size="sm" onClick={() => setSelectedStudent(student)}>
+                          <Eye className="h-4 w-4 mr-1" />
+                          Detail
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -293,7 +298,7 @@ export default function KepsekSiswaPage() {
                             <Badge variant="outline">{student.class?.name || '-'}</Badge>
                           </TableCell>
                           <TableCell>
-                            {student.parent.fatherName || student.parent.motherName || '-'}
+                            {student.parent?.fatherName || student.parent?.motherName || '-'}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -343,6 +348,89 @@ export default function KepsekSiswaPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Detail Siswa Dialog */}
+        <Dialog open={!!selectedStudent} onOpenChange={() => setSelectedStudent(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Detail Siswa
+              </DialogTitle>
+              <DialogDescription>
+                Informasi lengkap data siswa dan orang tua
+              </DialogDescription>
+            </DialogHeader>
+            {selectedStudent && (
+              <div className="space-y-4">
+                {/* Header */}
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                    <User className="w-7 h-7 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold">{selectedStudent.name}</h3>
+                    <Badge className={selectedStudent.status === 'aktif' ? 'bg-green-600' : 'bg-red-600'}>
+                      {selectedStudent.status === 'aktif' ? 'Aktif' : selectedStudent.status}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Info Grid */}
+                <div className="grid gap-3">
+                  <div className="flex items-center gap-3 text-sm">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground w-28">NIS</span>
+                    <span className="font-medium">{selectedStudent.nis}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground w-28">Tanggal Lahir</span>
+                    <span className="font-medium">{selectedStudent.birthDate}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground w-28">Jenis Kelamin</span>
+                    <span className="font-medium">{selectedStudent.gender}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <Baby className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground w-28">Kelas</span>
+                    <span className="font-medium">{selectedStudent.class?.name ? `Kelas ${selectedStudent.class.name}` : 'Tanpa Kelas'}</span>
+                  </div>
+                  {selectedStudent.address && (
+                    <div className="flex items-start gap-3 text-sm">
+                      <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <span className="text-muted-foreground w-28">Alamat</span>
+                      <span className="font-medium">{selectedStudent.address}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Orang Tua */}
+                <div className="rounded-lg border p-4 space-y-3">
+                  <h4 className="text-sm font-semibold">Data Orang Tua</h4>
+                  <div className="grid gap-3">
+                    <div className="flex items-center gap-3 text-sm">
+                      <User className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground w-28">Ayah</span>
+                      <span className="font-medium">{selectedStudent.parent?.fatherName || '-'}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <User className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground w-28">Ibu</span>
+                      <span className="font-medium">{selectedStudent.parent?.motherName || '-'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <Button variant="outline" onClick={() => setSelectedStudent(null)} className="w-full">
+                  Tutup
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   )
