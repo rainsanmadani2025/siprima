@@ -408,83 +408,81 @@ export default function KepsekSiswaPage() {
                   )}
                 </div>
 
-                {(selectedStudent.parent?.fatherName || selectedStudent.parent?.fatherPhone || selectedStudent.parent?.fatherEmail) && (
-                  <div className="rounded-lg border p-4 space-y-3">
-                    <h4 className="text-sm font-semibold">Data Ayah</h4>
-                    <div className="grid gap-3">
-                      <div className="flex items-center gap-3 text-sm">
-                        <User className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-muted-foreground w-28">Nama</span>
-                        <span className="font-medium">{selectedStudent.parent.fatherName || '-'}</span>
-                      </div>
-                      {selectedStudent.parent.fatherOccupation && (
-                        <div className="flex items-center gap-3 text-sm">
-                          <Briefcase className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-muted-foreground w-28">Pekerjaan</span>
-                          <span className="font-medium">{selectedStudent.parent.fatherOccupation}</span>
-                        </div>
+                <div className="rounded-lg border p-4 space-y-3">
+                  <h4 className="text-sm font-semibold">Data Ayah</h4>
+                  <div className="grid gap-3">
+                    <div className="flex items-center gap-3 text-sm">
+                      <User className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground w-28">Nama</span>
+                      <span className="font-medium">{selectedStudent.parent?.fatherName || '-'}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Briefcase className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground w-28">Pekerjaan</span>
+                      <span className="font-medium">{selectedStudent.parent?.fatherOccupation || '-'}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Phone className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground w-28">No. HP</span>
+                      {selectedStudent.parent?.fatherPhone ? (
+                        <a href={`tel:${selectedStudent.parent.fatherPhone}`} className="font-medium text-primary hover:underline">{selectedStudent.parent.fatherPhone}</a>
+                      ) : (
+                        <span className="font-medium">-</span>
                       )}
-                      {selectedStudent.parent.fatherPhone && (
-                        <div className="flex items-center gap-3 text-sm">
-                          <Phone className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-muted-foreground w-28">No. HP</span>
-                          <a href={`tel:${selectedStudent.parent.fatherPhone}`} className="font-medium text-primary hover:underline">{selectedStudent.parent.fatherPhone}</a>
-                        </div>
-                      )}
-                      {selectedStudent.parent.fatherEmail && (
-                        <div className="flex items-center gap-3 text-sm">
-                          <Mail className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-muted-foreground w-28">Email</span>
-                          <a href={`mailto:${selectedStudent.parent.fatherEmail}`} className="font-medium text-primary hover:underline break-all">{selectedStudent.parent.fatherEmail}</a>
-                        </div>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Mail className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground w-28">Email</span>
+                      {selectedStudent.parent?.fatherEmail ? (
+                        <a href={`mailto:${selectedStudent.parent.fatherEmail}`} className="font-medium text-primary hover:underline break-all">{selectedStudent.parent.fatherEmail}</a>
+                      ) : (
+                        <span className="font-medium">-</span>
                       )}
                     </div>
                   </div>
-                )}
+                </div>
 
-                {(selectedStudent.parent?.motherName || selectedStudent.parent?.motherPhone || selectedStudent.parent?.motherEmail) && (
-                  <div className="rounded-lg border p-4 space-y-3">
-                    <h4 className="text-sm font-semibold">Data Ibu</h4>
-                    <div className="grid gap-3">
-                      <div className="flex items-center gap-3 text-sm">
-                        <User className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-muted-foreground w-28">Nama</span>
-                        <span className="font-medium">{selectedStudent.parent.motherName || '-'}</span>
-                      </div>
-                      {selectedStudent.parent.motherOccupation && (
-                        <div className="flex items-center gap-3 text-sm">
-                          <Briefcase className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-muted-foreground w-28">Pekerjaan</span>
-                          <span className="font-medium">{selectedStudent.parent.motherOccupation}</span>
-                        </div>
+                <div className="rounded-lg border p-4 space-y-3">
+                  <h4 className="text-sm font-semibold">Data Ibu</h4>
+                  <div className="grid gap-3">
+                    <div className="flex items-center gap-3 text-sm">
+                      <User className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground w-28">Nama</span>
+                      <span className="font-medium">{selectedStudent.parent?.motherName || '-'}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Briefcase className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground w-28">Pekerjaan</span>
+                      <span className="font-medium">{selectedStudent.parent?.motherOccupation || '-'}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Phone className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground w-28">No. HP</span>
+                      {selectedStudent.parent?.motherPhone ? (
+                        <a href={`tel:${selectedStudent.parent.motherPhone}`} className="font-medium text-primary hover:underline">{selectedStudent.parent.motherPhone}</a>
+                      ) : (
+                        <span className="font-medium">-</span>
                       )}
-                      {selectedStudent.parent.motherPhone && (
-                        <div className="flex items-center gap-3 text-sm">
-                          <Phone className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-muted-foreground w-28">No. HP</span>
-                          <a href={`tel:${selectedStudent.parent.motherPhone}`} className="font-medium text-primary hover:underline">{selectedStudent.parent.motherPhone}</a>
-                        </div>
-                      )}
-                      {selectedStudent.parent.motherEmail && (
-                        <div className="flex items-center gap-3 text-sm">
-                          <Mail className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-muted-foreground w-28">Email</span>
-                          <a href={`mailto:${selectedStudent.parent.motherEmail}`} className="font-medium text-primary hover:underline break-all">{selectedStudent.parent.motherEmail}</a>
-                        </div>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Mail className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground w-28">Email</span>
+                      {selectedStudent.parent?.motherEmail ? (
+                        <a href={`mailto:${selectedStudent.parent.motherEmail}`} className="font-medium text-primary hover:underline break-all">{selectedStudent.parent.motherEmail}</a>
+                      ) : (
+                        <span className="font-medium">-</span>
                       )}
                     </div>
                   </div>
-                )}
+                </div>
 
-                {selectedStudent.parent?.address && (
-                  <div className="rounded-lg border p-4 space-y-3">
-                    <h4 className="text-sm font-semibold">Alamat Orang Tua</h4>
-                    <div className="flex items-start gap-3 text-sm">
-                      <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
-                      <span className="font-medium">{selectedStudent.parent.address}</span>
-                    </div>
+                <div className="rounded-lg border p-4 space-y-3">
+                  <h4 className="text-sm font-semibold">Alamat Orang Tua</h4>
+                  <div className="flex items-start gap-3 text-sm">
+                    <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                    <span className="font-medium">{selectedStudent.parent?.address || '-'}</span>
                   </div>
-                )}
+                </div>
 
                 <Button variant="outline" onClick={() => setSelectedStudent(null)} className="w-full">
                   Tutup
