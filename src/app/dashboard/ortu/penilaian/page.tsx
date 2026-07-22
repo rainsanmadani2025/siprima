@@ -1,625 +1,634 @@
-"use client";
+'use client'
 
-import { useState, useEffect, useCallback } from "react";
+import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
-  Baby,
-  BookOpen,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from '@/components/ui/dialog'
+import {
   Heart,
+  User,
   Brain,
-  MessageSquare,
+  MessageCircle,
   Users,
   Palette,
-  ChevronDown,
-  ChevronUp,
-  Filter,
-  BarChart3,
-  TrendingUp,
   Calendar,
-  Award,
   FileText,
-  AlertCircle,
+  ArrowLeft,
   Loader2,
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Eye,
+  ClipboardList,
+  ChevronRight,
+  AlertCircle
+} from 'lucide-react'
+import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 
-interface ChildData {
-  id: string;
-  name: string;
-  class: string;
-  nisn?: string;
-  photo?: string;
-}
-
-interface AssessmentData {
-  id: string;
-  aspect: string;
-  score: string;
-  notes?: string;
-  observation?: string;
-  date: string;
-}
-
-interface ChildAssessment {
-  child: ChildData;
-  assessments: Record<string, AssessmentData[]>;
-}
-
-interface ApiResponse {
-  children: ChildAssessment[];
-  availablePeriods: { semester: string; academicYear: string }[];
-}
-
-const ASPECT_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string; bgColor: string; borderColor: string }> = {
-  agama: {
-    label: "Nilai Agama & Moral",
+// Mapping aspek penilaian dari database key → label, icon, warna
+const aspectConfig: Record<string, { label: string; icon: any; gradient: string; bgGradient: string; description: string }> = {
+  agama_budi_pekerti: {
+    label: 'Nilai Agama & Budi Pekerti',
     icon: Heart,
-    color: "text-purple-600",
-    bgColor: "bg-purple-50",
-    borderColor: "border-purple-200",
+    gradient: 'from-emerald-500 to-green-600',
+    bgGradient: 'from-emerald-500/20 to-green-600/20 hover:from-emerald-500/30 hover:to-green-600/30',
+    description: 'Nilai agama, moral, dan perilaku'
   },
-  fisik: {
-    label: "Perkembangan Fisik Motorik",
-    icon: Baby,
-    color: "text-green-600",
-    bgColor: "bg-green-50",
-    borderColor: "border-green-200",
+  agama_moral: {
+    label: 'Nilai Agama & Moral',
+    icon: Heart,
+    gradient: 'from-emerald-500 to-green-600',
+    bgGradient: 'from-emerald-500/20 to-green-600/20 hover:from-emerald-500/30 hover:to-green-600/30',
+    description: 'Perkembangan nilai dan keyakinan agama'
+  },
+  jati_diri: {
+    label: 'Jati Diri',
+    icon: User,
+    gradient: 'from-blue-500 to-indigo-600',
+    bgGradient: 'from-blue-500/20 to-indigo-600/20 hover:from-blue-500/30 hover:to-indigo-600/30',
+    description: 'Kemandirian dan percaya diri'
+  },
+  fisik_motorik: {
+    label: 'Fisik Motorik',
+    icon: User,
+    gradient: 'from-blue-500 to-indigo-600',
+    bgGradient: 'from-blue-500/20 to-indigo-600/20 hover:from-blue-500/30 hover:to-indigo-600/30',
+    description: 'Motorik kasar dan halus'
   },
   kognitif: {
-    label: "Perkembangan Kognitif",
+    label: 'Kognitif',
     icon: Brain,
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
-    borderColor: "border-blue-200",
+    gradient: 'from-purple-500 to-violet-600',
+    bgGradient: 'from-purple-500/20 to-violet-600/20 hover:from-purple-500/30 hover:to-violet-600/30',
+    description: 'Berpikir logis, memecahkan masalah'
   },
   bahasa: {
-    label: "Perkembangan Bahasa",
-    icon: MessageSquare,
-    color: "text-orange-600",
-    bgColor: "bg-orange-50",
-    borderColor: "border-orange-200",
+    label: 'Bahasa',
+    icon: MessageCircle,
+    gradient: 'from-orange-500 to-amber-500',
+    bgGradient: 'from-orange-500/20 to-amber-500/20 hover:from-orange-500/30 hover:to-amber-500/30',
+    description: 'Mendengar, berbicara, membaca'
   },
   sosial_emosional: {
-    label: "Perkembangan Sosial-Emosional",
+    label: 'Sosial Emosional',
     icon: Users,
-    color: "text-pink-600",
-    bgColor: "bg-pink-50",
-    borderColor: "border-pink-200",
+    gradient: 'from-pink-500 to-rose-600',
+    bgGradient: 'from-pink-500/20 to-rose-600/20 hover:from-pink-500/30 hover:to-rose-600/30',
+    description: 'Bersosialisasi, mengenali emosi'
   },
   seni: {
-    label: "Perkembangan Seni",
+    label: 'Seni',
     icon: Palette,
-    color: "text-indigo-600",
-    bgColor: "bg-indigo-50",
-    borderColor: "border-indigo-200",
+    gradient: 'from-teal-500 to-cyan-600',
+    bgGradient: 'from-teal-500/20 to-cyan-600/20 hover:from-teal-500/30 hover:to-cyan-600/30',
+    description: 'Kreativitas dan ekspresi seni'
   },
-};
-
-const SCORE_CONFIG: Record<string, { label: string; color: string; bgColor: string; description: string }> = {
-  BB: {
-    label: "Belum Berkembang",
-    color: "text-red-600",
-    bgColor: "bg-red-50",
-    description: "Anak belum menunjukkan perkembangan pada aspek ini",
-  },
-  MB: {
-    label: "Mulai Berkembang",
-    color: "text-yellow-600",
-    bgColor: "bg-yellow-50",
-    description: "Anak mulai menunjukkan perkembangan tetapi belum konsisten",
-  },
-  BSH: {
-    label: "Berkembang Sesuai Harapan",
-    color: "text-green-600",
-    bgColor: "bg-green-50",
-    description: "Perkembangan anak sesuai dengan harapan untuk usianya",
-  },
-  BSB: {
-    label: "Berkembang Sangat Baik",
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
-    description: "Anak menunjukkan perkembangan melampaui harapan usianya",
-  },
-};
-
-const SCORE_ORDER: Record<string, number> = { BB: 1, MB: 2, BSH: 3, BSB: 4 };
-
-function getScoreBadge(score: string) {
-  const config = SCORE_CONFIG[score] || SCORE_CONFIG["BB"];
-  return (
-    <span
-      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${config.color} ${config.bgColor}`}
-    >
-      <Award className="w-3 h-3" />
-      {score}
-    </span>
-  );
+  literasi_sains: {
+    label: 'Literasi, Sains & Teknologi',
+    icon: Brain,
+    gradient: 'from-purple-500 to-violet-600',
+    bgGradient: 'from-purple-500/20 to-violet-600/20 hover:from-purple-500/30 hover:to-violet-600/30',
+    description: 'Dasar literasi, matematika, sains'
+  }
 }
 
-function getLatestScore(assessments: AssessmentData[]) {
-  if (!assessments || assessments.length === 0) return null;
-  const sorted = [...assessments].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-  return sorted[0];
+const scoreLabels: Record<string, string> = {
+  BB: 'Belum Berkembang',
+  MB: 'Mulai Berkembang',
+  BSH: 'Berkembang Sesuai Harapan',
+  BSB: 'Berkembang Sangat Baik'
+}
+
+interface ChildData {
+  id: string
+  name: string
+  nis: string
+  className: string | null
+  aspects: Record<string, {
+    latestScore: string
+    totalAssessments: number
+    assessments: Array<{
+      id: string
+      date: string
+      score: string
+      notes: string
+      observation: string
+      documentation: string | null
+      teacherName: string
+    }>
+  }>
+}
+
+interface PeriodData {
+  semester: string
+  academicYear: string
 }
 
 export default function PenilaianPage() {
-  const [data, setData] = useState<ApiResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedSemester, setSelectedSemester] = useState<string>("all");
-  const [selectedAcademicYear, setSelectedAcademicYear] =
-    useState<string>("all");
-  const [expandedAspects, setExpandedAspects] = useState<Set<string>>(
-    new Set()
-  );
-  const [activeChildTab, setActiveChildTab] = useState<string>("");
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [children, setChildren] = useState<ChildData[]>([])
+  const [selectedChildIdx, setSelectedChildIdx] = useState(0)
+  const [availablePeriods, setAvailablePeriods] = useState<PeriodData[]>([])
+  const [selectedPeriodIdx, setSelectedPeriodIdx] = useState(0)
+  const [selectedAspect, setSelectedAspect] = useState<string | null>(null)
+  const [detailOpen, setDetailOpen] = useState(false)
 
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-	if (typeof window === "undefined") return;
-
-	const userId = localStorage.getItem("userId");
-
-	if (!userId) {
-  	setError("Sesi login tidak ditemukan. Silakan login kembali.");
-  	return;
-	}      
-
-      const params = new URLSearchParams();
-      if (selectedSemester && selectedSemester !== "all")
-        params.set("semester", selectedSemester);
-      if (selectedAcademicYear && selectedAcademicYear !== "all")
-        params.set("academicYear", selectedAcademicYear);
-
-      const query = params.toString() ? `?${params.toString()}` : "";
-      const res = await fetch(`/api/parent/assessments${query}`, {
-        cache: "no-store",
-      });
-
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(errText || "Gagal memuat data penilaian");
-      }
-
-      const result: ApiResponse = await res.json();
-      setData(result);
-
-      if (result.children.length > 0 && !activeChildTab) {
-        setActiveChildTab(result.children[0].child.id);
-      }
-    } catch (err: any) {
-      setError(err.message || "Terjadi kesalahan saat memuat data");
-    } finally {
-      setLoading(false);
+  const getProgressWidth = (nilai: string) => {
+    switch (nilai) {
+      case 'BB': return '25%'
+      case 'MB': return '50%'
+      case 'BSH': return '75%'
+      case 'BSB': return '100%'
+      default: return '0%'
     }
-  }, [selectedSemester, selectedAcademicYear, activeChildTab]);
+  }
 
+  const formatPeriodLabel = (semester: string, academicYear: string) => {
+    const s = semester ? semester.charAt(0).toUpperCase() + semester.slice(1) : '-'
+    const y = academicYear || '-'
+    return `Semester ${s} ${y}`
+  }
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-'
+    try {
+      const d = new Date(dateStr)
+      return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+    } catch {
+      return dateStr
+    }
+  }
+
+  // Fetch data dari API
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    const userId = localStorage.getItem('userId')
+    if (!userId) {
+      setLoading(false)
+      setErrorMsg('Sesi login tidak ditemukan. Silakan login kembali.')
+      return
+    }
 
-  const toggleAspect = (aspectKey: string) => {
-    setExpandedAspects((prev) => {
-      const next = new Set(prev);
-      if (next.has(aspectKey)) {
-        next.delete(aspectKey);
-      } else {
-        next.add(aspectKey);
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        setErrorMsg(null)
+
+        const params = new URLSearchParams()
+        params.set('userId', userId)
+
+        // If a period is selected, filter by it
+        const selectedPeriod = availablePeriods[selectedPeriodIdx]
+        if (selectedPeriod && availablePeriods.length > 0) {
+          params.set('semester', selectedPeriod.semester)
+          params.set('academicYear', selectedPeriod.academicYear)
+        }
+
+        const res = await fetch(`/api/parent/assessments?${params.toString()}`)
+        const data = await res.json()
+
+        if (data.success) {
+          setChildren(data.children || [])
+          setAvailablePeriods(data.availablePeriods || [])
+        } else {
+          setErrorMsg(data.error || 'Gagal memuat data penilaian')
+        }
+      } catch (error) {
+        console.error('Error fetching assessments:', error)
+        setErrorMsg('Terjadi kesalahan saat memuat data')
+      } finally {
+        setLoading(false)
       }
-      return next;
-    });
-  };
+    }
 
-  const getOverallProgress = (
-    assessments: Record<string, AssessmentData[]>
-  ) => {
-    const aspects = Object.keys(assessments);
-    if (aspects.length === 0) return null;
+    fetchData()
+  }, [selectedPeriodIdx])
 
-    let totalScore = 0;
-    let count = 0;
+  // Reset child index saat children berubah
+  useEffect(() => {
+    if (selectedChildIdx >= children.length) {
+      setSelectedChildIdx(0)
+    }
+  }, [children.length])
 
-    aspects.forEach((aspect) => {
-      const latest = getLatestScore(assessments[aspect]);
-      if (latest) {
-        totalScore += SCORE_ORDER[latest.score] || 0;
-        count++;
-      }
-    });
+  // Ambil data anak yang dipilih + filter periode
+  const selectedChild = children[selectedChildIdx] || null
+  const selectedPeriod = availablePeriods[selectedPeriodIdx] || null
 
-    if (count === 0) return null;
-    const avg = totalScore / count;
+  // Filter aspects berdasarkan periode yang dipilih (jika ada)
+  const filteredAspects = selectedChild?.aspects || {}
 
-    if (avg >= 3.5) return { label: "Sangat Baik", color: "text-blue-600", bgColor: "bg-blue-50", icon: TrendingUp };
-    if (avg >= 2.5) return { label: "Sesuai Harapan", color: "text-green-600", bgColor: "bg-green-50", icon: BarChart3 };
-    if (avg >= 1.5) return { label: "Mulai Berkembang", color: "text-yellow-600", bgColor: "bg-yellow-50", icon: BarChart3 };
-    return { label: "Perlu Perhatian", color: "text-red-600", bgColor: "bg-red-50", icon: AlertCircle };
-  };
+  const handleDetailClick = (aspectKey: string) => {
+    setSelectedAspect(aspectKey)
+    setDetailOpen(true)
+  }
 
-  const activeChildIndex = data?.children.findIndex(
-    (c) => c.child.id === activeChildTab
-  );
-  const activeChildData =
-    activeChildIndex !== undefined && activeChildIndex >= 0
-      ? data?.children[activeChildIndex]
-      : null;
-
+  // Loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-10 h-10 text-primary animate-spin" />
-          <p className="text-muted-foreground text-sm">Memuat data penilaian...</p>
+      <DashboardLayout role="ortu" userName="Bapak/Ibu Orang Tua">
+        <div className="flex items-center justify-center min-h-96">
+          <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
         </div>
-      </div>
-    );
+      </DashboardLayout>
+    )
   }
 
-  if (error) {
+  // Error state
+  if (errorMsg) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Card className="max-w-md mx-auto border-red-200">
-          <CardContent className="flex flex-col items-center gap-4 pt-6">
-            <AlertCircle className="w-12 h-12 text-red-500" />
-            <p className="text-center text-muted-foreground">{error}</p>
-            <Button variant="outline" onClick={fetchData}>
-              Coba Lagi
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+      <DashboardLayout role="ortu" userName="Bapak/Ibu Orang Tua">
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Penilaian Perkembangan Anak</h1>
+            <p className="text-gray-600 mt-2">Hasil observasi dan penilaian guru pada aspek perkembangan PAUD</p>
+          </div>
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
+              <p className="text-lg font-medium text-red-600">{errorMsg}</p>
+              <Button
+                variant="outline"
+                onClick={() => window.location.reload()}
+                className="mt-6 gap-2"
+              >
+                Coba Lagi
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    )
   }
 
-  if (!data || data.children.length === 0) {
+  // No children
+  if (children.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Card className="max-w-md mx-auto">
-          <CardContent className="flex flex-col items-center gap-4 pt-6">
-            <FileText className="w-12 h-12 text-muted-foreground/50" />
-            <div className="text-center">
-              <p className="font-medium text-muted-foreground">
-                Belum Ada Data Penilaian
-              </p>
-              <p className="text-sm text-muted-foreground/70 mt-1">
-                Data penilaian perkembangan anak belum tersedia. Silakan hubungi guru untuk informasi lebih lanjut.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
+      <DashboardLayout role="ortu" userName="Bapak/Ibu Orang Tua">
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Penilaian Perkembangan Anak</h1>
+            <p className="text-gray-600 mt-2">Hasil observasi dan penilaian guru pada aspek perkembangan PAUD</p>
+          </div>
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <AlertCircle className="w-16 h-16 text-muted-foreground mb-4" />
+              <p className="text-lg font-medium text-muted-foreground">Belum ada data anak terdaftar</p>
+              <p className="text-sm text-muted-foreground mt-1">Data penilaian akan muncul setelah guru melakukan penilaian</p>
+              <Button
+                variant="outline"
+                onClick={() => router.push('/dashboard/ortu')}
+                className="mt-6 gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Kembali ke Beranda
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    )
   }
 
-  const overallProgress = activeChildData
-    ? getOverallProgress(activeChildData.assessments)
-    : null;
+  const aspectKeys = Object.keys(filteredAspects)
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-primary" />
-            Penilaian Perkembangan Anak
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Pantau perkembangan dan penilaian anak Anda secara berkala
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Filter:</span>
-        </div>
-      </div>
-
-      {/* Filter Bar */}
-      <Card>
-        <CardContent className="py-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex items-center gap-2 flex-1">
-              <Calendar className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium whitespace-nowrap">
-                Semester:
-              </span>
-              <Select
-                value={selectedSemester}
-                onValueChange={setSelectedSemester}
-              >
-                <SelectTrigger className="w-full sm:w-40">
-                  <SelectValue placeholder="Semua Semester" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Semester</SelectItem>
-                  {data.availablePeriods
-                    .filter(
-                      (p, i, arr) =>
-                        arr.findIndex((x) => x.semester === p.semester) === i
-                    )
-                    .map((p) => (
-                      <SelectItem key={p.semester} value={p.semester}>
-                        Semester {p.semester}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2 flex-1">
-              <span className="text-sm font-medium whitespace-nowrap">
-                Tahun Ajaran:
-              </span>
-              <Select
-                value={selectedAcademicYear}
-                onValueChange={setSelectedAcademicYear}
-              >
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Semua Tahun Ajaran" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Tahun Ajaran</SelectItem>
-                  {data.availablePeriods
-                    .filter(
-                      (p, i, arr) =>
-                        arr.findIndex(
-                          (x) => x.academicYear === p.academicYear
-                        ) === i
-                    )
-                    .map((p) => (
-                      <SelectItem
-                        key={p.academicYear}
-                        value={p.academicYear}
-                      >
-                        {p.academicYear}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Child Tabs */}
-      {data.children.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {data.children.map((childAssessment) => (
+    <DashboardLayout role="ortu" userName="Bapak/Ibu Orang Tua">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Penilaian Perkembangan Anak</h1>
+            <p className="text-gray-600 mt-1">Hasil observasi dan penilaian guru pada aspek perkembangan PAUD</p>
             <Button
-              key={childAssessment.child.id}
-              variant={
-                activeChildTab === childAssessment.child.id
-                  ? "default"
-                  : "outline"
-              }
-              size="sm"
-              onClick={() =>
-                setActiveChildTab(childAssessment.child.id)
-              }
-              className="whitespace-nowrap"
+              variant="outline"
+              onClick={() => router.push('/dashboard/ortu')}
+              className="mt-4 gap-2 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 active:scale-95 transition-all cursor-pointer"
             >
-              {childAssessment.child.name}
-              {childAssessment.child.class && (
-                <Badge variant="secondary" className="ml-2 text-xs">
-                  {childAssessment.child.class}
-                </Badge>
-              )}
+              <ArrowLeft className="w-4 h-4" />
+              Kembali ke Beranda
             </Button>
-          ))}
-        </div>
-      )}
-
-      {/* Active Child Content */}
-      {activeChildData && (
-        <>
-          {/* Child Info Card + Overall Progress */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="md:col-span-2">
-              <CardContent className="flex items-center gap-4 py-4">
-                <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
-                  {activeChildData.child.name
-                    .charAt(0)
-                    .toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h2 className="font-semibold text-lg truncate">
-                    {activeChildData.child.name}
-                  </h2>
-                  <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">
-                    {activeChildData.child.class && (
-                      <Badge variant="outline">
-                        Kelas {activeChildData.child.class}
-                      </Badge>
-                    )}
-                    {activeChildData.child.nisn && (
-                      <span>NISN: {activeChildData.child.nisn}</span>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {overallProgress && (
-              <Card
-                className={`${overallProgress.bgColor} border-2 ${overallProgress.color}`}
-              >
-                <CardContent className="flex items-center gap-3 py-4">
-                  <overallProgress.icon className="w-8 h-8" />
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground">
-                      Perkembangan Keseluruhan
-                    </p>
-                    <p
-                      className={`font-bold text-lg ${overallProgress.color}`}
-                    >
-                      {overallProgress.label}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
+        </div>
 
-          {/* Score Legend */}
-          <Card>
-            <CardContent className="py-3">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="text-xs font-medium text-muted-foreground">
-                  Keterangan Nilai:
-                </span>
-                {Object.entries(SCORE_CONFIG).map(([key, config]) => (
-                  <div key={key} className="flex items-center gap-1.5">
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${config.color} ${config.bgColor}`}
-                    >
-                      {key}
-                    </span>
-                    <span className="text-xs text-muted-foreground hidden sm:inline">
-                      {config.label}
-                    </span>
-                  </div>
-                ))}
+        {/* Selector: Anak & Periode */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Pilih Anak */}
+              <div className="flex items-center gap-3">
+                <User className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm text-gray-600 mb-1.5">Pilih Anak</p>
+                  <Select
+                    value={String(selectedChildIdx)}
+                    onValueChange={(val) => setSelectedChildIdx(Number(val))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih anak" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {children.map((child, idx) => (
+                        <SelectItem key={child.id} value={String(idx)}>
+                          {child.name} {child.nis ? `(${child.nis})` : ''} {child.className ? `— ${child.className}` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Pilih Periode */}
+              <div className="flex items-center gap-3">
+                <Calendar className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm text-gray-600 mb-1.5">Pilih Periode</p>
+                  <Select
+                    value={String(selectedPeriodIdx)}
+                    onValueChange={(val) => setSelectedPeriodIdx(Number(val))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih periode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="-1">Semua Periode</SelectItem>
+                      {availablePeriods.map((period, idx) => (
+                        <SelectItem key={idx} value={String(idx)}>
+                          {formatPeriodLabel(period.semester, period.academicYear)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Info Anak */}
+        {selectedChild && (
+          <Card className="bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-bold text-lg">
+                {selectedChild.name.charAt(0)}
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900">{selectedChild.name}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  {selectedChild.nis && (
+                    <Badge variant="outline">NIS: {selectedChild.nis}</Badge>
+                  )}
+                  {selectedChild.className && (
+                    <Badge variant="secondary">{selectedChild.className}</Badge>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
+        )}
 
-          {/* Assessment Aspect Cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {Object.entries(ASPECT_CONFIG).map(([key, config]) => {
-              const assessments = activeChildData.assessments[key] || [];
-              const latest = getLatestScore(assessments);
-              const isExpanded = expandedAspects.has(key);
+        {/* Tabel Perkembangan */}
+        {selectedChild && aspectKeys.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <ClipboardList className="w-5 h-5 text-emerald-600" />
+                Perkembangan {selectedChild.name}
+                {selectedPeriod && (
+                  <Badge variant="outline" className="ml-2 font-normal">
+                    {formatPeriodLabel(selectedPeriod.semester, selectedPeriod.academicYear)}
+                  </Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[220px]">Aspek</TableHead>
+                      <TableHead className="w-[200px]">Deskripsi</TableHead>
+                      <TableHead className="w-[100px]">Nilai</TableHead>
+                      <TableHead className="w-[160px]">Progress</TableHead>
+                      <TableHead className="w-[80px] text-center">Jumlah</TableHead>
+                      <TableHead className="text-right w-[100px]">Detail</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {aspectKeys.map((aspectKey) => {
+                      const config = aspectConfig[aspectKey] || {
+                        label: aspectKey,
+                        icon: ClipboardList,
+                        gradient: 'from-gray-500 to-gray-600',
+                        bgGradient: 'from-gray-500/20 to-gray-600/20',
+                        description: aspectKey
+                      }
+                      const Icon = config.icon
+                      const aspectData = filteredAspects[aspectKey]
+                      const score = aspectData?.latestScore || '-'
 
-              return (
-                <Card
-                  key={key}
-                  className={`border ${config.borderColor} overflow-hidden`}
-                >
-                  {/* Card Header */}
-                  <CardHeader
-                    className={`py-4 px-5 ${config.bgColor} cursor-pointer select-none`}
-                    onClick={() => toggleAspect(key)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-10 h-10 rounded-lg flex items-center justify-center ${config.bgColor} ${config.color}`}
-                        >
-                          <config.icon className="w-5 h-5" />
+                      return (
+                        <TableRow key={aspectKey} className={config.bgGradient}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 bg-gradient-to-br ${config.gradient} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                                <Icon className="w-5 h-5 text-white" />
+                              </div>
+                              <span className="font-semibold text-gray-900">{config.label}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-gray-700 text-sm">
+                            {config.description}
+                          </TableCell>
+                          <TableCell>
+                            {score !== '-' ? (
+                              <Badge className={`bg-gradient-to-r ${config.gradient} text-white border-0`}>
+                                {score}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {score !== '-' ? (
+                              <div className="w-full bg-gray-200 rounded-full h-3">
+                                <div
+                                  className={`bg-gradient-to-r ${config.gradient} rounded-full h-full transition-all duration-500`}
+                                  style={{ width: getProgressWidth(score) }}
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-full bg-gray-200 rounded-full h-3" />
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="outline">
+                              {aspectData?.totalAssessments || 0}x
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDetailClick(aspectKey)}
+                              className="gap-1 hover:bg-white/60"
+                            >
+                              <Eye className="w-4 h-4" />
+                              Detail
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        ) : selectedChild ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <ClipboardList className="w-16 h-16 text-muted-foreground mb-4" />
+              <p className="text-lg font-medium text-muted-foreground">Belum ada data penilaian</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Data penilaian akan muncul setelah guru melakukan penilaian untuk {selectedChild.name}
+              </p>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {/* Keterangan Penilaian */}
+        <Card className="bg-gradient-to-r from-amber-50 to-blue-50 border-amber-200">
+          <CardContent className="p-4 space-y-4">
+            <div className="flex items-start gap-3">
+              <FileText className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-semibold text-amber-900">Keterangan Penilaian</p>
+                <p className="text-amber-800">
+                  Penilaian dilakukan oleh guru berdasarkan observasi harian. BB = Belum Berkembang, MB = Mulai Berkembang,
+                  BSH = Berkembang Sesuai Harapan, BSB = Berkembang Sangat Baik.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <FileText className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-semibold text-blue-900">Catatan</p>
+                <p className="text-blue-800">
+                  Penilaian ini bersifat dinamis dan akan terus diperbarui oleh guru. Jika ada pertanyaan mengenai perkembangan anak,
+                  silakan hubungi guru melalui menu Komunikasi.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Dialog Detail Per Aspek */}
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardList className="w-5 h-5 text-emerald-600" />
+              Detail Penilaian
+            </DialogTitle>
+            <DialogDescription>
+              {selectedAspect && selectedChild && (
+                <>
+                  {selectedChild.name} —{' '}
+                  {aspectConfig[selectedAspect]?.label || selectedAspect}
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedAspect && selectedChild && filteredAspects[selectedAspect] && (
+            <div className="space-y-4 py-2">
+              {/* Ringkasan */}
+              <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
+                <div className={`w-12 h-12 bg-gradient-to-br ${aspectConfig[selectedAspect]?.gradient || 'from-gray-500 to-gray-600'} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                  {(() => {
+                    const Icon = aspectConfig[selectedAspect]?.icon || ClipboardList
+                    return <Icon className="w-6 h-6 text-white" />
+                  })()}
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold">{aspectConfig[selectedAspect]?.label || selectedAspect}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Total {filteredAspects[selectedAspect].totalAssessments}x penilaian
+                  </p>
+                </div>
+                {filteredAspects[selectedAspect].latestScore && (
+                  <Badge className={`bg-gradient-to-r ${aspectConfig[selectedAspect]?.gradient || ''} text-white border-0 text-lg px-3 py-1`}>
+                    {filteredAspects[selectedAspect].latestScore}
+                  </Badge>
+                )}
+              </div>
+
+              {/* Daftar Penilaian */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-gray-600 uppercase tracking-wider">
+                  Riwayat Penilaian
+                </h4>
+                {filteredAspects[selectedAspect].assessments.length > 0 ? (
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                    {filteredAspects[selectedAspect].assessments.map((item, idx) => (
+                      <div key={item.id} className="border rounded-lg p-4 hover:bg-muted/30 transition-colors">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
+                              {idx + 1}
+                            </div>
+                            <span className="font-medium text-sm">{formatDate(item.date)}</span>
+                            <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                            <Badge variant="outline" className="text-xs">
+                              {item.score} — {scoreLabels[item.score] || item.score}
+                            </Badge>
+                          </div>
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">{item.teacherName}</span>
                         </div>
-                        <div>
-                          <CardTitle className="text-sm font-semibold">
-                            {config.label}
-                          </CardTitle>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {assessments.length > 0
-                              ? `${assessments.length} penilaian`
-                              : "Belum ada penilaian"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {latest && getScoreBadge(latest.score)}
-                        {isExpanded ? (
-                          <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                        ) : (
-                          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+
+                        {/* Catatan / Notes */}
+                        {item.notes && (
+                          <div className="mt-2 ml-8">
+                            <p className="text-sm text-gray-700">{item.notes}</p>
+                          </div>
+                        )}
+
+                        {/* Observasi / Catatan Anekdot */}
+                        {item.observation && (
+                          <div className="mt-2 ml-8 p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
+                            <span className="font-medium">Catatan Observasi:</span> {item.observation}
+                          </div>
+                        )}
+
+                        {/* Dokumentasi */}
+                        {item.documentation && (
+                          <div className="mt-2 ml-8">
+                            <Badge variant="secondary" className="text-xs">
+                              📎 Dokumentasi tersedia
+                            </Badge>
+                          </div>
                         )}
                       </div>
-                    </div>
-                  </CardHeader>
-
-                  {/* Expanded Content */}
-                  {isExpanded && (
-                    <CardContent className="pt-4 px-5 pb-5 space-y-3">
-                      {assessments.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-4">
-                          Belum ada penilaian untuk aspek ini
-                        </p>
-                      ) : (
-                        <div className="space-y-3 max-h-72 overflow-y-auto">
-                          {[...assessments]
-                            .sort(
-                              (a, b) =>
-                                new Date(b.date).getTime() -
-                                new Date(a.date).getTime()
-                            )
-                            .map((assessment) => {
-                              const scoreConfig =
-                                SCORE_CONFIG[assessment.score] ||
-                                SCORE_CONFIG["BB"];
-                              return (
-                                <div
-                                  key={assessment.id}
-                                  className="border rounded-lg p-3 space-y-2"
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                      {getScoreBadge(assessment.score)}
-                                      <span className="text-xs text-muted-foreground">
-                                        {new Date(assessment.date).toLocaleDateString(
-                                          "id-ID",
-                                          {
-                                            day: "numeric",
-                                            month: "long",
-                                            year: "numeric",
-                                          }
-                                        )}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  {scoreConfig && (
-                                    <p
-                                      className={`text-xs ${scoreConfig.color}`}
-                                    >
-                                      {scoreConfig.description}
-                                    </p>
-                                  )}
-                                  {assessment.observation && (
-                                    <div className="mt-2">
-                                      <p className="text-xs font-medium text-muted-foreground mb-1">
-                                        Observasi:
-                                      </p>
-                                      <p className="text-sm text-foreground/90">
-                                        {assessment.observation}
-                                      </p>
-                                    </div>
-                                  )}
-                                  {assessment.notes && (
-                                    <div className="mt-2">
-                                      <p className="text-xs font-medium text-muted-foreground mb-1">
-                                        Catatan Guru:
-                                      </p>
-                                      <p className="text-sm text-foreground/90">
-                                        {assessment.notes}
-                                      </p>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                        </div>
-                      )}
-                    </CardContent>
-                  )}
-                </Card>
-              );
-            })}
-          </div>
-        </>
-      )}
-    </div>
-  );
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">Belum ada riwayat penilaian</p>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </DashboardLayout>
+  )
 }
