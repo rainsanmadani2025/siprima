@@ -102,13 +102,19 @@ export default function GuruPortofolioPage() {
     } finally {
       setLoading(false)
     }
-  }, [filterType, filterStudent])
+    }, [filterType, filterStudent, students])
 
   // Initial fetch
   useEffect(() => {
     fetchStudents()
-    fetchPortfolios()
-  }, [fetchStudents, fetchPortfolios])
+  }, [fetchStudents])
+
+  // Fetch portfolios after students loaded
+  useEffect(() => {
+    if (students.length > 0 || studentsLoading === false) {
+      fetchPortfolios()
+    }
+  }, [fetchPortfolios, students.length, studentsLoading])
 
   // Refresh data when page becomes visible (e.g., after returning from edit page)
   useEffect(() => {
