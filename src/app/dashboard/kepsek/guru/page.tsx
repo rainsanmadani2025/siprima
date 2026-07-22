@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Users, GraduationCap, Calendar, CheckCircle2, Clock, Search, Loader2, AlertCircle } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Plus, Users, GraduationCap, Calendar, CheckCircle2, Clock, Search, Loader2, AlertCircle, Eye, Mail, Phone, BookOpen, User } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useEffect, useState } from "react"
@@ -42,6 +43,7 @@ export default function KepsekGuruPage() {
   const [loading, setLoading] = useState(true)
   const [filterStatus, setFilterStatus] = useState("semua")
   const [searchQuery, setSearchQuery] = useState("")
+  const [selectedTeacher, setSelectedTeacher] = useState<TeacherData | null>(null)
 
   useEffect(() => {
     fetchTeachers()
@@ -247,7 +249,10 @@ export default function KepsekGuruPage() {
                             )}
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="sm">Detail</Button>
+                            <Button variant="ghost" size="sm" onClick={() => setSelectedTeacher(teacher)}>
+                              <Eye className="h-4 w-4 mr-1" />
+                              Detail
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -350,6 +355,131 @@ export default function KepsekGuruPage() {
             )}
           </>
         )}
+
+        {/* Detail Guru Dialog */}
+        <Dialog open={!!selectedTeacher} onOpenChange={() => setSelectedTeacher(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Detail Guru
+              </DialogTitle>
+            </DialogHeader>
+            {selectedTeacher && (
+              <div className="space-y-4">
+                {/* Header */}
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                    <User className="w-7 h-7 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold">{selectedTeacher.name}</h3>
+                    <Badge className={selectedTeacher.employmentStatus === 'tetap' ? 'bg-green-600' : 'bg-orange-600'}>
+                      {selectedTeacher.employmentStatus === 'tetap' ? 'Guru Tetap' : 'Guru Honorer'}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Info Grid */}
+                <div className="grid gap-3">
+                  <div className="flex items-center gap-3 text-sm">
+                    <BookOpen className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground w-28">NUPTK</span>
+                    <span className="font-medium">{selectedTeacher.nuptk || '-'}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <Mail className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground w-28">Email</span>
+                    <span className="font-medium">{selectedTeacher.email || '-'}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground w-28">Telepon</span>
+                    <span className="font-medium">{selectedTeacher.phone || '-'}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <GraduationCap className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground w-28">Pendidikan</span>
+                    <span className="font-medium">{selectedTeacher.lastEducation || '-'}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <BookOpen className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground w-28">Mata Kegiatan</span>
+                    <span className="font-medium">{selectedTeacher.subjects || '-'}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <Users className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground w-28">Kelas Ampu</span>
+                    <span className="font-medium">
+                      {selectedTeacher.classes.length > 0 
+                        ? selectedTeacher.classes.map(c => `Kelas ${c.name} (${c.studentCount} siswa)`).join(', ')
+                        : '-'
+                      }
+                    </span>
+                  </div>
+                </div>
+
+                {/* Kehadiran Hari Ini */}
+                <div className="rounded-lg border p-4 space-y-2">
+                  <h4 className="text-sm font-semibold">Kehadiran Hari Ini</h4>
+                  {selectedTeacher.todayAttendance ? (
+                    <div className="flex items-center gap-2">
+                      {selectedTeacher.todayAttendance === 'hadir' && <CheckCircle2 className="w-5 h-5 text-green-600" />}
+                      {selectedTeacher.todayAttendance === 'izin' && <Clock className="w-5 h-5 text-blue-600" />}
+                      {selectedTeacher.todayAttendance === 'sakit' && <Clock className="w-5 h-5 text-orange-600" />}
+                      {selectedTeacher.todayAttendance === 'alpha' && <Clock className="w-5 h-5 text-red-600" />}
+                      <span className={`font-medium capitalize ${
+                        selectedTeacher.todayAttendance === 'hadir' ? 'text-green-600' :
+                        selectedTeacher.todayAttendance === 'izin' ? 'text-blue-600' :
+                        selectedTeacher.todayAttendance === 'sakit' ? 'text-orange-600' : 'text-red-600'
+                      }`}>
+                        {selectedTeacher.todayAttendance}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Belum melakukan absensi</p>
+                  )}
+                </div>
+
+                {/* Rekap Absensi Bulanan */}
+                <div className="rounded-lg border p-4 space-y-3">
+                  <h4 className="text-sm font-semibold">Rekap Absensi Bulan Ini</h4>
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                    <div className="rounded-md bg-green-50 p-2">
+                      <div className="text-lg font-bold text-green-600">{selectedTeacher.attendance.hadir}</div>
+                      <div className="text-xs text-green-700">Hadir</div>
+                    </div>
+                    <div className="rounded-md bg-blue-50 p-2">
+                      <div className="text-lg font-bold text-blue-600">{selectedTeacher.attendance.izin}</div>
+                      <div className="text-xs text-blue-700">Izin</div>
+                    </div>
+                    <div className="rounded-md bg-orange-50 p-2">
+                      <div className="text-lg font-bold text-orange-600">{selectedTeacher.attendance.sakit}</div>
+                      <div className="text-xs text-orange-700">Sakit</div>
+                    </div>
+                    <div className="rounded-md bg-red-50 p-2">
+                      <div className="text-lg font-bold text-red-600">{selectedTeacher.attendance.alpha}</div>
+                      <div className="text-xs text-red-700">Alpha</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Persentase Kehadiran</span>
+                    <Badge className={
+                      selectedTeacher.attendance.percentage >= 90 ? 'bg-green-600' :
+                      selectedTeacher.attendance.percentage >= 70 ? 'bg-yellow-600' : 'bg-red-600'
+                    }>
+                      {selectedTeacher.attendance.percentage}%
+                    </Badge>
+                  </div>
+                </div>
+
+                <Button variant="outline" onClick={() => setSelectedTeacher(null)} className="w-full">
+                  Tutup
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   )
