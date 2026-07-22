@@ -85,6 +85,9 @@ export default function GuruPortofolioPage() {
       const params = new URLSearchParams()
       if (filterStudent !== 'semua') {
         params.append('studentId', filterStudent)
+      } else if (students.length > 0) {
+        const myStudentIds = students.map(s => s.id).join(',')
+        params.append('studentIds', myStudentIds)
       }
       if (filterType !== 'semua') {
         params.append('type', filterType)

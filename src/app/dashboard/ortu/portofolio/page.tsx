@@ -19,6 +19,12 @@ import {
 import { io, Socket } from 'socket.io-client'
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 
+interface Child {
+  id: string
+  name: string
+  nis: string
+}
+
 interface Portfolio {
   id: string
   studentId: string
@@ -42,29 +48,31 @@ export default function PortofolioPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('karya')
   const [socket, setSocket] = useState<Socket | null>(null)
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const [currentUserName, setCurrentUserName] = useState<string>('Bapak/Ibu Orang Tua')
-  const [studentId, setStudentId] = useState<string | null>(null)
+  const [children, setChildren] = useState<Child[]>([])
+  const [childIds, setChildIds] = useState('')
 
-  // Fetch student ID from parent/children API
-  const fetchStudentId = async (userId: string) => {
-    try {
-      const response = await fetch(`/api/parent/children?userId=${userId}`)
-      const data = await response.json()
-      if (data.children && data.children.length > 0) {
-        setStudentId(data.children[0].id)
-      }
-    } catch (error) {
-      console.error('Error fetching student ID:', error)
-    }
-  }
+  // Fetch children of logged-in parent
+  useEffect(() => {
+    const userId = localStorage.getItem('userId')
+    if (!userId) return
+
+    fetch(`/api/parent/children?userId=${userId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.children) {
+          setChildren(data.children)
+          setChildIds(data.children.map((c: Child) => c.id).join(','))
+        }
+      })
+      .catch(console.error)
+  }, [])
 
   // Fetch portfolios from API
   const fetchPortfolios = useCallback(async () => {
-    if (!studentId) return
+    if (!childIds) return
     try {
       setLoading(true)
-      const response = await fetch(`/api/portfolios?studentId=${studentId}`)
+      const response = await fetch(`/api/portfolios?studentIds=${childIds}`)
       const data = await response.json()
       setPortfolios(data.portfolios || [])
     } catch (error) {
@@ -72,22 +80,15 @@ export default function PortofolioPage() {
     } finally {
       setLoading(false)
     }
-  }, [studentId])
+  }, [childIds])
 
+  // Re-fetch when childIds loaded
   useEffect(() => {
-    const userId = localStorage.getItem('userId')
-    const userName = localStorage.getItem('userName')
-    if (userId) {
-      setCurrentUserId(userId)
-      fetchStudentId(userId)
-    }
-    if (userName) setCurrentUserName(userName)
-  }, [])
+    if (childIds) fetchPortfolios()
+  }, [childIds, fetchPortfolios])
 
   // Initialize WebSocket for real-time updates
   useEffect(() => {
-    if (!currentUserId) return
-
     const socketInstance = io('/', {
       query: { XTransformPort: 3003 },
       transports: ['websocket', 'polling']
@@ -95,18 +96,18 @@ export default function PortofolioPage() {
 
     socketInstance.on('connect', () => {
       console.log('Connected to chat service for portfolios')
+      const userId = localStorage.getItem('userId') || ''
+      const userName = localStorage.getItem('userName') || 'Orang Tua'
       socketInstance.emit('user:join', {
-        userId: currentUserId,
+        userId,
         role: 'ORTU',
-        name: currentUserName
+        name: userName
       })
     })
 
     // Listen for new portfolio
     socketInstance.on('portfolio:new', (data) => {
-      console.log('New portfolio received:', data)
-      // If portfolio belongs to this parent's child, refresh
-      if (data.studentId === studentId) {
+      if (children.some(c => c.id === data.studentId)) {
         fetchPortfolios()
       }
     })
@@ -116,12 +117,7 @@ export default function PortofolioPage() {
     return () => {
       socketInstance.disconnect()
     }
-  }, [fetchPortfolios, studentId, currentUserId, currentUserName])
-
-  // Initial fetch
-  useEffect(() => {
-    fetchPortfolios()
-  }, [fetchPortfolios])
+  }, [fetchPortfolios, children])
 
   const filterByType = (type: string) => {
     return portfolios.filter(p => p.type === type)
@@ -202,7 +198,7 @@ export default function PortofolioPage() {
   }
 
   return (
-    <DashboardLayout role="ortu" userName={currentUserName}>
+    <DashboardLayout role="ortu" userName="Bapak/Ibu Orang Tua">
       <div className="space-y-6">
       <div className="flex justify-between items-center pb-4">
         <div>

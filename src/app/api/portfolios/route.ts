@@ -6,12 +6,15 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const studentId = searchParams.get('studentId')
+    const studentIds = searchParams.get('studentIds')
     const type = searchParams.get('type') // karya/foto/video
 
     const where: any = {}
 
     if (studentId) {
       where.studentId = studentId
+    } else if (studentIds) {
+      where.studentId = { in: studentIds.split(',') }
     }
 
     if (type) {
