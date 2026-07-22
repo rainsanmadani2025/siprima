@@ -152,9 +152,22 @@ export default function PortofolioPage() {
               type === 'foto' ? 'bg-gradient-to-br from-blue-100 to-cyan-100' :
               'bg-gradient-to-br from-rose-100 to-orange-100'
             }`}>
-              {type === 'karya' && <Palette className="w-16 h-16 text-purple-400 group-hover:scale-110 transition-transform" />}
-              {type === 'foto' && <Camera className="w-16 h-16 text-blue-400 group-hover:scale-110 transition-transform" />}
-              {type === 'video' && <Video className="w-16 h-16 text-rose-400 group-hover:scale-110 transition-transform" />}
+              {item.fileUrl && (
+                <img
+                  src={item.fileUrl}
+                  alt={item.title}
+                  className="max-w-full max-h-full object-contain"
+                />
+              )}
+              {!item.fileUrl && type === 'karya' && <Palette className="w-16 h-16 text-purple-400" />}
+              {!item.fileUrl && type === 'foto' && <Camera className="w-16 h-16 text-blue-400" />}
+              {!item.fileUrl && type === 'video' && <Video className="w-16 h-16 text-rose-400" />}
+              {item.videoUrl && (
+                <a href={item.videoUrl} target="_blank" rel="noopener noreferrer"
+                   className="absolute bottom-2 right-2 bg-white/80 rounded-full p-1">
+                  <Video className="w-4 h-4 text-rose-600" />
+                </a>
+              )}
               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                 <Button size="sm" variant="secondary">
                   <Eye className="w-4 h-4 mr-1" />
