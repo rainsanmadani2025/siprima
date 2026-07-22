@@ -1,24 +1,114 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { FileText, Download, Eye, Calendar, Users, GraduationCap, TrendingUp } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Download, Eye, Calendar, GraduationCap, TrendingUp, Loader2 } from "lucide-react"
+
+interface Kegiatan {
+  id: string
+  title: string
+  date: string
+  category: string
+  attendees: number | null
+  description: string
+}
+
+interface GuruReport {
+  teacherId: string
+  teacherName: string
+  rpphCount: number
+  totalRpph: number
+  assessmentCount: number
+  attendPercent: number
+  statusLabel: string
+  statusColor: string
+}
+
+interface SiswaReportRow {
+  studentId: string
+  studentName: string
+  className: string
+  percent: number
+  dominant: string
+  dominantColor: string
+  reportStatusLabel: string
+  reportStatusColor: string
+}
+
+interface LaporanData {
+  kegiatan: Kegiatan[]
+  guruReport: GuruReport[]
+  siswaReport: {
+    summary: {
+      totalReports: number
+      totalStudents: number
+      bsbCount: number
+      bshCount: number
+      mbCount: number
+      bbCount: number
+    }
+    students: SiswaReportRow[]
+  }
+  meta: {
+    semester: string
+    academicYear: string
+    currentMonth: string
+    currentYear: number
+  }
+}
+
+function formatDate(dateStr: string): string {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr + 'T00:00:00')
+  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+}
 
 export default function KepsekLaporanPage() {
+  const [data, setData] = useState<LaporanData | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/kepsek/laporan')
+      .then(res => res.json())
+      .then(result => {
+        if (result.success) setData(result.data)
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) {
+    return (
+      <DashboardLayout role="kepsek" userName="Kepala Sekolah">
+        <div className="flex items-center justify-center min-h-96">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  if (!data) {
+    return (
+      <DashboardLayout role="kepsek" userName="Kepala Sekolah">
+        <div className="text-center py-8 text-muted-foreground">Gagal memuat data laporan</div>
+      </DashboardLayout>
+    )
+  }
+
+  const { kegiatan, guruReport, siswaReport, meta } = data
+
   return (
     <DashboardLayout role="kepsek" userName="Kepala Sekolah">
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Laporan</h1>
-            <p className="text-muted-foreground mt-2">
-              Kelola dan akses berbagai laporan sekolah
-            </p>
+            <p className="text-muted-foreground mt-2">Kelola dan akses berbagai laporan sekolah</p>
           </div>
         </div>
 
@@ -38,111 +128,44 @@ export default function KepsekLaporanPage() {
                     <Calendar className="h-5 w-5" />
                     Laporan Kegiatan Sekolah
                   </CardTitle>
-                  <Button>
-                    <Download className="mr-2 h-4 w-4" />
-                    Download Semua
-                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Judul Kegiatan</TableHead>
-                      <TableHead>Tanggal</TableHead>
-                      <TableHead>Kategori</TableHead>
-                      <TableHead>Peserta</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell className="font-medium">Pentas Seni Akhir Semester</TableCell>
-                      <TableCell>20 Des 2024</TableCell>
-                      <TableCell>
-                        <Badge>Pentas Seni</Badge>
-                      </TableCell>
-                      <TableCell>156 siswa, 24 guru, 200 wali murid</TableCell>
-                      <TableCell>
-                        <Badge className="bg-green-600">Selesai</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium">Outing Class ke Kebun Raya</TableCell>
-                      <TableCell>15 Des 2024</TableCell>
-                      <TableCell>
-                        <Badge>Outing Class</Badge>
-                      </TableCell>
-                      <TableCell>80 siswa kelas B, 10 guru</TableCell>
-                      <TableCell>
-                        <Badge className="bg-green-600">Selesai</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium">Rapat Wali Murid</TableCell>
-                      <TableCell>10 Des 2024</TableCell>
-                      <TableCell>
-                        <Badge>Rapat</Badge>
-                      </TableCell>
-                      <TableCell>150 wali murid, 24 guru</TableCell>
-                      <TableCell>
-                        <Badge className="bg-green-600">Selesai</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium">Parenting Day</TableCell>
-                      <TableCell>5 Des 2024</TableCell>
-                      <TableCell>
-                        <Badge>Parenting Day</Badge>
-                      </TableCell>
-                      <TableCell>100 orang tua, 12 guru</TableCell>
-                      <TableCell>
-                        <Badge className="bg-green-600">Selesai</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                {kegiatan.length > 0 ? (
+                  <div className="rounded-md border overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Judul Kegiatan</TableHead>
+                          <TableHead>Tanggal</TableHead>
+                          <TableHead>Kategori</TableHead>
+                          <TableHead>Peserta</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Aksi</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {kegiatan.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="font-medium">{item.title}</TableCell>
+                            <TableCell>{formatDate(item.date)}</TableCell>
+                            <TableCell><Badge>{item.category}</Badge></TableCell>
+                            <TableCell>{item.attendees ? `${item.attendees} orang` : '-'}</TableCell>
+                            <TableCell><Badge className="bg-green-600">Selesai</Badge></TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex gap-2 justify-end">
+                                <Button variant="ghost" size="sm"><Eye className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="sm"><Download className="h-4 w-4" /></Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">Belum ada data kegiatan sekolah</div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -156,119 +179,44 @@ export default function KepsekLaporanPage() {
                     <GraduationCap className="h-5 w-5" />
                     Laporan Bulanan Guru
                   </CardTitle>
-                  <div className="flex gap-2">
-                    <Select defaultValue="januari">
-                      <SelectTrigger className="w-40">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="januari">Januari 2025</SelectItem>
-                        <SelectItem value="desember">Desember 2024</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button>
-                      <Download className="mr-2 h-4 w-4" />
-                      Download Semua
-                    </Button>
-                  </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nama Guru</TableHead>
-                      <TableHead>Bulan</TableHead>
-                      <TableHead>Jumlah RPPH</TableHead>
-                      <TableHead>Jumlah Penilaian</TableHead>
-                      <TableHead>Kehadiran</TableHead>
-                      <TableHead>Status Laporan</TableHead>
-                      <TableHead className="text-right">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell className="font-medium">Ibu Sari, S.Pd</TableCell>
-                      <TableCell>Januari 2025</TableCell>
-                      <TableCell>20/20</TableCell>
-                      <TableCell>38/40</TableCell>
-                      <TableCell>95%</TableCell>
-                      <TableCell>
-                        <Badge className="bg-green-600">Disetujui</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium">Ibu Ani, S.Pd</TableCell>
-                      <TableCell>Januari 2025</TableCell>
-                      <TableCell>21/21</TableCell>
-                      <TableCell>42/42</TableCell>
-                      <TableCell>100%</TableCell>
-                      <TableCell>
-                        <Badge className="bg-green-600">Disetujui</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium">Bapak Budi, S.Pd</TableCell>
-                      <TableCell>Januari 2025</TableCell>
-                      <TableCell>18/21</TableCell>
-                      <TableCell>35/42</TableCell>
-                      <TableCell>90%</TableCell>
-                      <TableCell>
-                        <Badge className="bg-yellow-600">Menunggu Review</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium">Ibu Dewi, S.Pd</TableCell>
-                      <TableCell>Januari 2025</TableCell>
-                      <TableCell>20/21</TableCell>
-                      <TableCell>40/42</TableCell>
-                      <TableCell>95%</TableCell>
-                      <TableCell>
-                        <Badge className="bg-yellow-600">Draft</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                {guruReport.length > 0 ? (
+                  <div className="rounded-md border overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nama Guru</TableHead>
+                          <TableHead>Jumlah RPPH</TableHead>
+                          <TableHead>Jumlah Penilaian</TableHead>
+                          <TableHead>Kehadiran</TableHead>
+                          <TableHead>Status Laporan</TableHead>
+                          <TableHead className="text-right">Aksi</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {guruReport.map((guru) => (
+                          <TableRow key={guru.teacherId}>
+                            <TableCell className="font-medium">{guru.teacherName}</TableCell>
+                            <TableCell>{guru.rpphCount}/{guru.totalRpph}</TableCell>
+                            <TableCell>{guru.assessmentCount}</TableCell>
+                            <TableCell>{guru.attendPercent}%</TableCell>
+                            <TableCell><Badge className={guru.statusColor}>{guru.statusLabel}</Badge></TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex gap-2 justify-end">
+                                <Button variant="ghost" size="sm"><Eye className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="sm"><Download className="h-4 w-4" /></Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">Belum ada data guru</div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -280,36 +228,20 @@ export default function KepsekLaporanPage() {
                 <div className="flex justify-between items-center">
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
-                    Laporan Perkembangan Siswa
+                    Laporan Perkembangan Siswa — {meta.semester} {meta.academicYear}
                   </CardTitle>
-                  <div className="flex gap-2">
-                    <Select defaultValue="ganjil">
-                      <SelectTrigger className="w-48">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ganjil">Semester Ganjil 2024/2025</SelectItem>
-                        <SelectItem value="genap">Semester Genap 2024/2025</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button>
-                      <Download className="mr-2 h-4 w-4" />
-                      Download Semua
-                    </Button>
-                  </div>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {/* Ringkasan Perkembangan */}
                   <div className="grid gap-4 md:grid-cols-4">
                     <Card>
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium">Total Raport</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-2xl font-bold">148</div>
-                        <p className="text-xs text-muted-foreground mt-1">Dari 156 siswa</p>
+                        <div className="text-2xl font-bold">{siswaReport.summary.totalReports}</div>
+                        <p className="text-xs text-muted-foreground mt-1">Dari {siswaReport.summary.totalStudents} siswa</p>
                       </CardContent>
                     </Card>
                     <Card>
@@ -317,8 +249,8 @@ export default function KepsekLaporanPage() {
                         <CardTitle className="text-sm font-medium">Sangat Baik (BSB)</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-2xl font-bold text-green-600">45</div>
-                        <p className="text-xs text-muted-foreground mt-1">30% siswa</p>
+                        <div className="text-2xl font-bold text-green-600">{siswaReport.summary.bsbCount}</div>
+                        <p className="text-xs text-muted-foreground mt-1">{siswaReport.summary.totalStudents > 0 ? Math.round((siswaReport.summary.bsbCount / siswaReport.summary.totalStudents) * 100) : 0}% siswa</p>
                       </CardContent>
                     </Card>
                     <Card>
@@ -326,8 +258,8 @@ export default function KepsekLaporanPage() {
                         <CardTitle className="text-sm font-medium">Baik (BSH)</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-2xl font-bold text-blue-600">85</div>
-                        <p className="text-xs text-muted-foreground mt-1">57% siswa</p>
+                        <div className="text-2xl font-bold text-blue-600">{siswaReport.summary.bshCount}</div>
+                        <p className="text-xs text-muted-foreground mt-1">{siswaReport.summary.totalStudents > 0 ? Math.round((siswaReport.summary.bshCount / siswaReport.summary.totalStudents) * 100) : 0}% siswa</p>
                       </CardContent>
                     </Card>
                     <Card>
@@ -335,111 +267,60 @@ export default function KepsekLaporanPage() {
                         <CardTitle className="text-sm font-medium">Perlu Bimbingan (MB)</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-2xl font-bold text-yellow-600">18</div>
-                        <p className="text-xs text-muted-foreground mt-1">12% siswa</p>
+                        <div className="text-2xl font-bold text-yellow-600">{siswaReport.summary.mbCount}</div>
+                        <p className="text-xs text-muted-foreground mt-1">{siswaReport.summary.totalStudents > 0 ? Math.round((siswaReport.summary.mbCount / siswaReport.summary.totalStudents) * 100) : 0}% siswa</p>
                       </CardContent>
                     </Card>
                   </div>
 
-                  {/* Tabel Laporan Siswa */}
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nama Siswa</TableHead>
-                        <TableHead>Kelas</TableHead>
-                        <TableHead>Nilai Rata-rata</TableHead>
-                        <TableHead>Predikat</TableHead>
-                        <TableHead>Status Raport</TableHead>
-                        <TableHead className="text-right">Aksi</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell className="font-medium">Ahmad Fauzi</TableCell>
-                        <TableCell>B1</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
-                              <div className="h-full bg-green-600" style={{ width: '92%' }}></div>
-                            </div>
-                            <span className="text-sm">92%</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className="bg-green-600">BSB</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className="bg-green-600">Selesai</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex gap-2 justify-end">
-                            <Button variant="ghost" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <Download className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">Aisyah Putri</TableCell>
-                        <TableCell>B1</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
-                              <div className="h-full bg-blue-600" style={{ width: '85%' }}></div>
-                            </div>
-                            <span className="text-sm">85%</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className="bg-blue-600">BSH</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className="bg-green-600">Selesai</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex gap-2 justify-end">
-                            <Button variant="ghost" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <Download className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">Budi Santoso</TableCell>
-                        <TableCell>B1</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
-                              <div className="h-full bg-yellow-600" style={{ width: '72%' }}></div>
-                            </div>
-                            <span className="text-sm">72%</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className="bg-yellow-600">MB</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className="bg-yellow-600">Draft</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex gap-2 justify-end">
-                            <Button variant="ghost" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <Download className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
+                  {siswaReport.students.length > 0 ? (
+                    <div className="rounded-md border overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Nama Siswa</TableHead>
+                            <TableHead>Kelas</TableHead>
+                            <TableHead>Nilai Rata-rata</TableHead>
+                            <TableHead>Predikat</TableHead>
+                            <TableHead>Status Raport</TableHead>
+                            <TableHead className="text-right">Aksi</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {siswaReport.students.map((s) => (
+                            <TableRow key={s.studentId}>
+                              <TableCell className="font-medium">{s.studentName}</TableCell>
+                              <TableCell>{s.className}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
+                                    <div className="h-full bg-green-600" style={{ width: `${s.percent}%` }}></div>
+                                  </div>
+                                  <span className="text-sm">{s.percent}%</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {s.dominant !== '-' ? (
+                                  <Badge className={s.dominantColor}>{s.dominant}</Badge>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell><Badge className={s.reportStatusColor}>{s.reportStatusLabel}</Badge></TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex gap-2 justify-end">
+                                  <Button variant="ghost" size="sm"><Eye className="h-4 w-4" /></Button>
+                                  <Button variant="ghost" size="sm"><Download className="h-4 w-4" /></Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">Belum ada data laporan perkembangan siswa</div>
+                  )}
                 </div>
               </CardContent>
             </Card>
