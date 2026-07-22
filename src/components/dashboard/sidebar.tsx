@@ -61,6 +61,7 @@ const menuItems = {
         { href: "/dashboard/kepsek/pembelajaran", icon: BookOpen, label: "Monitoring Pembelajaran" },
         { href: "/dashboard/kepsek/penilaian", icon: ClipboardList, label: "Monitoring Penilaian" },
         { href: "/dashboard/kepsek/absensi", icon: Calendar, label: "Monitoring Absensi" },
+	{ href: "/dashboard/kepsek/portofolio", icon: FileText, label: "Portofolio Siswa" },
       ]
     },
     {
