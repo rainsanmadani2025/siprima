@@ -95,7 +95,7 @@ export default function KepsekPortofolioPage() {
         params.append('type', filterType)
       }
 
-      const response = await fetch(`/api/kepsek/portfolios?${params}`)
+      const response = await fetch(`/api/kepsek/portofolios?${params}`)
       const data = await response.json()
       if (data.success) {
         setPortfolios(data.portfolios || [])
