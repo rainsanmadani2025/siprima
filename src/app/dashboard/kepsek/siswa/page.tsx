@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Users, UserPlus, UserCheck, UserX, Search, Baby, Loader2, Eye, Mail, Phone, MapPin, Calendar, User } from "lucide-react"
+import { Users, UserPlus, UserCheck, UserX, Search, Baby, Loader2, Eye, Mail, Phone, MapPin, Calendar, User, Briefcase } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect } from "react"
@@ -26,7 +26,15 @@ interface Student {
   } | null
   parent: {
     fatherName: string | null
+    fatherOccupation: string | null
+    fatherPhone: string | null
+    fatherEmail: string | null
     motherName: string | null
+    motherOccupation: string | null
+    motherPhone: string | null
+    motherEmail: string | null
+    address: string | null
+    occupation: string | null
   } | null
 }
 
@@ -37,7 +45,6 @@ export default function KepsekSiswaPage() {
   const [filterKelas, setFilterKelas] = useState("semua")
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
 
-  // Fetch students from API
   const fetchStudents = async () => {
     try {
       setLoading(true)
@@ -55,7 +62,6 @@ export default function KepsekSiswaPage() {
     fetchStudents()
   }, [])
 
-  // Filter students based on search query and class
   const filteredStudents = students.filter(student => {
     const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          student.nis.toLowerCase().includes(searchQuery.toLowerCase())
@@ -65,12 +71,10 @@ export default function KepsekSiswaPage() {
     return matchesSearch && matchesClass
   })
 
-  // Calculate statistics
   const totalStudents = students.length
   const activeStudents = students.filter(s => s.status === 'aktif').length
   const inactiveStudents = students.filter(s => s.status !== 'aktif').length
 
-  // Group by class
   const studentsByClass = students.reduce((acc, student) => {
     const className = student.class?.name || 'Tanpa Kelas'
     if (!acc[className]) {
@@ -117,7 +121,6 @@ export default function KepsekSiswaPage() {
           </div>
         </div>
 
-        {/* Statistik Siswa */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -168,7 +171,6 @@ export default function KepsekSiswaPage() {
           </Card>
         </div>
 
-        {/* Jumlah Siswa Per Kelas */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -206,7 +208,6 @@ export default function KepsekSiswaPage() {
           </CardContent>
         </Card>
 
-        {/* Data Siswa Aktif */}
         <Card>
           <CardHeader>
             <CardTitle>Daftar Siswa {filterKelas === 'semua' ? 'Semua Kelas' : filterKelas}</CardTitle>
@@ -266,7 +267,6 @@ export default function KepsekSiswaPage() {
           </CardContent>
         </Card>
 
-        {/* Data Siswa Berdasarkan Status */}
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
@@ -285,6 +285,7 @@ export default function KepsekSiswaPage() {
                       <TableHead>Nama</TableHead>
                       <TableHead>Kelas</TableHead>
                       <TableHead>Orang Tua</TableHead>
+                      <TableHead>Kontak</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -299,6 +300,9 @@ export default function KepsekSiswaPage() {
                           </TableCell>
                           <TableCell>
                             {student.parent?.fatherName || student.parent?.motherName || '-'}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {student.parent?.fatherPhone || student.parent?.motherPhone || '-'}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -349,7 +353,6 @@ export default function KepsekSiswaPage() {
           </Card>
         </div>
 
-        {/* Detail Siswa Dialog */}
         <Dialog open={!!selectedStudent} onOpenChange={() => setSelectedStudent(null)}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
@@ -363,7 +366,6 @@ export default function KepsekSiswaPage() {
             </DialogHeader>
             {selectedStudent && (
               <div className="space-y-4">
-                {/* Header */}
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
                     <User className="w-7 h-7 text-primary" />
@@ -376,7 +378,6 @@ export default function KepsekSiswaPage() {
                   </div>
                 </div>
 
-                {/* Info Grid */}
                 <div className="grid gap-3">
                   <div className="flex items-center gap-3 text-sm">
                     <User className="w-4 h-4 text-muted-foreground" />
@@ -407,22 +408,83 @@ export default function KepsekSiswaPage() {
                   )}
                 </div>
 
-                {/* Orang Tua */}
-                <div className="rounded-lg border p-4 space-y-3">
-                  <h4 className="text-sm font-semibold">Data Orang Tua</h4>
-                  <div className="grid gap-3">
-                    <div className="flex items-center gap-3 text-sm">
-                      <User className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground w-28">Ayah</span>
-                      <span className="font-medium">{selectedStudent.parent?.fatherName || '-'}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <User className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground w-28">Ibu</span>
-                      <span className="font-medium">{selectedStudent.parent?.motherName || '-'}</span>
+                {(selectedStudent.parent?.fatherName || selectedStudent.parent?.fatherPhone || selectedStudent.parent?.fatherEmail) && (
+                  <div className="rounded-lg border p-4 space-y-3">
+                    <h4 className="text-sm font-semibold">Data Ayah</h4>
+                    <div className="grid gap-3">
+                      <div className="flex items-center gap-3 text-sm">
+                        <User className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-muted-foreground w-28">Nama</span>
+                        <span className="font-medium">{selectedStudent.parent.fatherName || '-'}</span>
+                      </div>
+                      {selectedStudent.parent.fatherOccupation && (
+                        <div className="flex items-center gap-3 text-sm">
+                          <Briefcase className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-muted-foreground w-28">Pekerjaan</span>
+                          <span className="font-medium">{selectedStudent.parent.fatherOccupation}</span>
+                        </div>
+                      )}
+                      {selectedStudent.parent.fatherPhone && (
+                        <div className="flex items-center gap-3 text-sm">
+                          <Phone className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-muted-foreground w-28">No. HP</span>
+                          <a href={`tel:${selectedStudent.parent.fatherPhone}`} className="font-medium text-primary hover:underline">{selectedStudent.parent.fatherPhone}</a>
+                        </div>
+                      )}
+                      {selectedStudent.parent.fatherEmail && (
+                        <div className="flex items-center gap-3 text-sm">
+                          <Mail className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-muted-foreground w-28">Email</span>
+                          <a href={`mailto:${selectedStudent.parent.fatherEmail}`} className="font-medium text-primary hover:underline break-all">{selectedStudent.parent.fatherEmail}</a>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
+                )}
+
+                {(selectedStudent.parent?.motherName || selectedStudent.parent?.motherPhone || selectedStudent.parent?.motherEmail) && (
+                  <div className="rounded-lg border p-4 space-y-3">
+                    <h4 className="text-sm font-semibold">Data Ibu</h4>
+                    <div className="grid gap-3">
+                      <div className="flex items-center gap-3 text-sm">
+                        <User className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-muted-foreground w-28">Nama</span>
+                        <span className="font-medium">{selectedStudent.parent.motherName || '-'}</span>
+                      </div>
+                      {selectedStudent.parent.motherOccupation && (
+                        <div className="flex items-center gap-3 text-sm">
+                          <Briefcase className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-muted-foreground w-28">Pekerjaan</span>
+                          <span className="font-medium">{selectedStudent.parent.motherOccupation}</span>
+                        </div>
+                      )}
+                      {selectedStudent.parent.motherPhone && (
+                        <div className="flex items-center gap-3 text-sm">
+                          <Phone className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-muted-foreground w-28">No. HP</span>
+                          <a href={`tel:${selectedStudent.parent.motherPhone}`} className="font-medium text-primary hover:underline">{selectedStudent.parent.motherPhone}</a>
+                        </div>
+                      )}
+                      {selectedStudent.parent.motherEmail && (
+                        <div className="flex items-center gap-3 text-sm">
+                          <Mail className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-muted-foreground w-28">Email</span>
+                          <a href={`mailto:${selectedStudent.parent.motherEmail}`} className="font-medium text-primary hover:underline break-all">{selectedStudent.parent.motherEmail}</a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {selectedStudent.parent?.address && (
+                  <div className="rounded-lg border p-4 space-y-3">
+                    <h4 className="text-sm font-semibold">Alamat Orang Tua</h4>
+                    <div className="flex items-start gap-3 text-sm">
+                      <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <span className="font-medium">{selectedStudent.parent.address}</span>
+                    </div>
+                  </div>
+                )}
 
                 <Button variant="outline" onClick={() => setSelectedStudent(null)} className="w-full">
                   Tutup
