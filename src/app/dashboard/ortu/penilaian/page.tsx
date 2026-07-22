@@ -169,21 +169,14 @@ export default function PenilaianPage() {
       setLoading(true);
       setError(null);
 
-      if (typeof window === "undefined") return;
+	if (typeof window === "undefined") return;
 
-      const stored = localStorage.getItem("user");
-      if (!stored) {
-        setError("Sesi login tidak ditemukan. Silakan login kembali.");
-        return;
-      }
+	const userId = localStorage.getItem("userId");
 
-      const user = JSON.parse(stored);
-      const userId = user.id || user.userId || user.sub;
-
-      if (!userId) {
-        setError("Data user tidak valid. Silakan login kembali.");
-        return;
-      }
+	if (!userId) {
+  	setError("Sesi login tidak ditemukan. Silakan login kembali.");
+  	return;
+	}      
 
       const params = new URLSearchParams();
       if (selectedSemester && selectedSemester !== "all")
