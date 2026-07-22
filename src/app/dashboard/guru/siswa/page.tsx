@@ -5,12 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Edit, Baby, Search, User, Phone, Mail, MapPin, Calendar, Heart, Syringe, History, Loader2, X, ArrowRight, CheckCircle, AlertCircle, Eye, Ear, } from "lucide-react"
+import { Plus, Edit, Baby, Search, User, Phone, Mail, MapPin, Calendar, Heart, Syringe, History, Loader2, X, ArrowRight, CheckCircle, AlertCircle, Eye, Ear, Briefcase } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { useState, useEffect } from "react"
 
@@ -33,32 +33,42 @@ interface Student {
   immunization: any
   parent: {
     fatherName: string | null
-    motherName: string | null
+    fatherOccupation: string | null
     fatherPhone: string | null
+    fatherEmail: string | null
+    motherName: string | null
+    motherOccupation: string | null
     motherPhone: string | null
-  }
+    motherEmail: string | null
+    address: string | null
+  } | null
 }
-
-interface Parent { id: string; name: string }
-interface Class { id: string; name: string; ageGroup: string }
 
 export default function GuruSiswaPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [teacherClasses, setTeacherClasses] = useState<string[]>([])
-  const [editingStudent, setEditingStudent] = useState(null)
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [parentList, setParentList] = useState<Parent[]>([])
-  const [classList, setClassList] = useState<Class[]>([])
-  const [formData, setFormData] = useState({ nis: "", name: "", birthDate: "", gender: "Laki-laki", address: "", parentId: "", classId: "" })
-  const { toast } = useToast()
 
   // Modal states
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [showHealthModal, setShowHealthModal] = useState(false)
   const [showImmunizationModal, setShowImmunizationModal] = useState(false)
+  
+  // Add/Edit dialog states
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [classList, setClassList] = useState<Array<{ id: string; name: string; ageGroup: string }>>([])
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null)
+  const [formData, setFormData] = useState({
+    nis: "", name: "", birthDate: "", gender: "Laki-laki",
+    address: "", parentName: "", classId: "", status: "aktif",
+    fatherName: "", fatherOccupation: "", fatherPhone: "", fatherEmail: "",
+    motherName: "", motherOccupation: "", motherPhone: "", motherEmail: "",
+    parentAddress: ""
+  })
+  const { toast } = useToast()
+
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
 
   // Fetch students from API
@@ -91,7 +101,7 @@ export default function GuruSiswaPage() {
         const data = await response.json()
         if (data.success && data.teacherClasses) {
           const classNames = data.teacherClasses.map((c: any) => `Kelas ${c.name} (${c.ageGroup})`)
-          setTeacherClasses(classNames); setClassList(data.teacherClasses.map(function(c) { return { id: c.id, name: c.name, ageGroup: c.ageGroup } }))
+          setTeacherClasses(classNames)
         }
       }
     } catch (error) {
@@ -100,7 +110,6 @@ export default function GuruSiswaPage() {
   }
 
 
-  // Fetch class list for the form dropdown
   const fetchClassList = async () => {
     try {
       const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null
@@ -108,14 +117,18 @@ export default function GuruSiswaPage() {
         const response = await fetch(`/api/classes/teacher?userId=${userId}`)
         const data = await response.json()
         if (data.success && data.teacherClasses) {
-          setClassList(data.teacherClasses.map((c: any) => ({ id: c.id, name: c.name, ageGroup: c.ageGroup })))
+          setClassList(data.teacherClasses)
         }
       }
-    } catch (error) { console.error('Error fetching classes:', error) }
+    } catch (error) {
+      console.error('Error fetching class list:', error)
+    }
   }
 
   useEffect(() => {
-    fetchStudents(); fetchTeacherClasses();
+    fetchStudents()
+    fetchTeacherClasses()
+    fetchClassList()
   }, [])
 
   // Filter students based on search query
@@ -123,12 +136,6 @@ export default function GuruSiswaPage() {
     student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     student.nis.toLowerCase().includes(searchQuery.toLowerCase())
   )
-
-  // Calculate statistics
-  const totalStudents = students.length
-  const activeStudents = students.filter(s => s.status === 'aktif').length
-  const maleStudents = students.filter(s => s.gender === 'Laki-laki').length
-  const femaleStudents = students.filter(s => s.gender === 'Perempuan').length
 
   // Handler untuk membuka modal riwayat kelas
   const handleShowHistory = () => {
@@ -141,17 +148,69 @@ export default function GuruSiswaPage() {
   }
 
   // Handler untuk membuka modal data imunisasi
-  var handleAddSiswa = function() { setEditingStudent(null); setFormData({ nis: "", name: "", birthDate: "", gender: "Laki-laki", address: "", parentId: "", classId: "" }); setDialogOpen(true) };
-  var handleEditSiswa = function(student) { setEditingStudent(student); setFormData({ nis: student.nis, name: student.name, birthDate: student.birthDate, gender: student.gender, address: student.address || "", parentId: (student.parent && (student.parent.fatherName || student.parent.motherName)) || "", classId: student.class ? student.class.id : "" }); setDialogOpen(true) };
-  var handleSubmitSiswa = async function(e) { e.preventDefault(); setSubmitting(true); try { var method = editingStudent ? "PATCH" : "POST"; var body = editingStudent ? { id: editingStudent.id, nis: formData.nis, name: formData.name, birthDate: formData.birthDate, gender: formData.gender, address: formData.address, classId: formData.classId || null, parentName: formData.parentId } : formData; var r = await fetch("/api/guru/students", { method: method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); var d = await r.json(); if (d.success) { toast({ title: "Berhasil", description: editingStudent ? "Data siswa diperbarui" : "Siswa baru berhasil ditambahkan" }); setDialogOpen(false); fetchStudents() } else { throw new Error(d.error || "Gagal") } } catch(err) { toast({ variant: "destructive", title: "Error", description: err.message || "Gagal menyimpan data" }) } finally { setSubmitting(false) } };
   const handleShowImmunization = () => {
     setShowImmunizationModal(true)
+  }
+
+
+  const handleAddSiswa = () => {
+    setEditingStudent(null)
+    setFormData({
+      nis: "", name: "", birthDate: "", gender: "Laki-laki",
+      address: "", parentName: "", classId: "", status: "aktif",
+      fatherName: "", fatherOccupation: "", fatherPhone: "", fatherEmail: "",
+      motherName: "", motherOccupation: "", motherPhone: "", motherEmail: "",
+      parentAddress: ""
+    })
+    setDialogOpen(true)
+  }
+
+  const handleEditSiswa = (student: Student) => {
+    setEditingStudent(student)
+    setFormData({
+      nis: student.nis, name: student.name, birthDate: student.birthDate, gender: student.gender,
+      address: student.address || "",
+      parentName: student.parent?.fatherName || student.parent?.motherName || "",
+      classId: student.class?.id || "", status: student.status || "aktif",
+      fatherName: student.parent?.fatherName || "",
+      fatherOccupation: student.parent?.fatherOccupation || "",
+      fatherPhone: student.parent?.fatherPhone || "",
+      fatherEmail: student.parent?.fatherEmail || "",
+      motherName: student.parent?.motherName || "",
+      motherOccupation: student.parent?.motherOccupation || "",
+      motherPhone: student.parent?.motherPhone || "",
+      motherEmail: student.parent?.motherEmail || "",
+      parentAddress: student.parent?.address || ""
+    })
+    setDialogOpen(true)
+  }
+
+  const handleSubmitSiswa = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+    try {
+      const url = '/api/guru/students'
+      const method = editingStudent ? 'PATCH' : 'POST'
+      let body: any = editingStudent ? { ...formData, id: editingStudent.id } : formData
+      // When editing, map parentName to fatherName for the API
+      if (editingStudent && formData.parentName) {
+        body.fatherName = formData.fatherName || formData.parentName
+      }
+      const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const data = await response.json()
+      if (data.success) {
+        toast({ title: editingStudent ? "Berhasil" : "Berhasil", description: editingStudent ? "Data siswa & orang tua diperbaharui" : "Siswa baru berhasil ditambahkan" })
+        setDialogOpen(false)
+        fetchStudents()
+      } else { throw new Error(data.error || 'Gagal menyimpan data') }
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error", description: error.message || "Gagal menyimpan data" })
+    } finally { setSubmitting(false) }
   }
 
   // Helper: Parse JSON string (safely handles already parsed objects)
   const parseJSON = (data: any) => {
     if (!data) return null
-    // If it's already an object (not a string), return as-is
     if (typeof data !== 'string') return data
     try {
       return JSON.parse(data)
@@ -180,7 +239,8 @@ export default function GuruSiswaPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button onClick={handleAddSiswa}><Plus className="mr-2 h-4 w-4" />Tambah Siswa</Button><Button onClick={fetchStudents}>
+            <Button onClick={handleAddSiswa}><Plus className="mr-2 h-4 w-4" />Tambah Siswa</Button>
+            <Button onClick={fetchStudents}>
               <Loader2 className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
@@ -192,13 +252,11 @@ export default function GuruSiswaPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Siswa</CardTitle>
-              <User className="h-4 w-4 text-muted-foreground" />
+              <Baby className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{totalStudents}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {teacherClasses.length > 0 ? teacherClasses.join(', ') : 'Semua kelas'}
-              </p>
+              <div className="text-2xl font-bold">{students.length}</div>
+              <p className="text-xs text-muted-foreground mt-1">Di kelas Anda</p>
             </CardContent>
           </Card>
 
@@ -208,10 +266,8 @@ export default function GuruSiswaPage() {
               <User className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{activeStudents}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {totalStudents > 0 ? Math.round((activeStudents / totalStudents) * 100) : 0}% siswa aktif
-              </p>
+              <div className="text-2xl font-bold text-green-600">{students.filter(s => s.status === 'aktif').length}</div>
+              <p className="text-xs text-muted-foreground mt-1">Status aktif</p>
             </CardContent>
           </Card>
 
@@ -221,10 +277,8 @@ export default function GuruSiswaPage() {
               <User className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{maleStudents}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {totalStudents > 0 ? Math.round((maleStudents / totalStudents) * 100) : 0}% dari total
-              </p>
+              <div className="text-2xl font-bold text-blue-600">{students.filter(s => s.gender === 'Laki-laki').length}</div>
+              <p className="text-xs text-muted-foreground mt-1">Siswa laki-laki</p>
             </CardContent>
           </Card>
 
@@ -234,18 +288,19 @@ export default function GuruSiswaPage() {
               <User className="h-4 w-4 text-pink-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-pink-600">{femaleStudents}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {totalStudents > 0 ? Math.round((femaleStudents / totalStudents) * 100) : 0}% dari total
-              </p>
+              <div className="text-2xl font-bold text-pink-600">{students.filter(s => s.gender === 'Perempuan').length}</div>
+              <p className="text-xs text-muted-foreground mt-1">Siswa perempuan</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Tabel Data Siswa */}
+        {/* Tabel Siswa */}
         <Card>
           <CardHeader>
-            <CardTitle>Daftar Siswa Kelas Anda</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Daftar Siswa
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -295,10 +350,10 @@ export default function GuruSiswaPage() {
                         </TableCell>
                         <TableCell>{student.birthDate}</TableCell>
                         <TableCell>
-                          {student.parent.fatherName || student.parent.motherName || '-'}
+                          {student.parent?.fatherName || student.parent?.motherName || '-'}
                         </TableCell>
                         <TableCell>
-                          {student.parent.fatherPhone || student.parent.motherPhone || '-'}
+                          {student.parent?.fatherPhone || student.parent?.motherPhone || '-'}
                         </TableCell>
                         <TableCell>
                           <Badge variant={student.status === "aktif" ? "default" : "secondary"}>
@@ -307,7 +362,8 @@ export default function GuruSiswaPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="sm" onClick={function(){handleEditSiswa(student)}}>Edit</Button>
+                            <Button variant="ghost" size="sm" onClick={() => setSelectedStudent(student)}><Eye className="mr-1 h-4 w-4" />Detail</Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleEditSiswa(student)}><Edit className="mr-1 h-4 w-4" />Edit</Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -322,10 +378,10 @@ export default function GuruSiswaPage() {
 
         {/* Dialog Tambah/Edit Siswa */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingStudent ? "Edit Data Siswa" : "Tambah Siswa Baru"}</DialogTitle>
-              <DialogDescription>{editingStudent ? "Perbarui informasi siswa" : "Isi form di bawah untuk menambah siswa baru"}</DialogDescription>
+              <DialogDescription>{editingStudent ? "Perbarui informasi siswa dan data orang tua" : "Isi form di bawah untuk menambah siswa baru"}</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmitSiswa}>
               <div className="grid gap-4 py-4">
@@ -398,6 +454,70 @@ export default function GuruSiswaPage() {
                     <Input id="address" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="rounded-l-none" />
                   </div>
                 </div>
+
+                {/* Data Orang Tua Section — hanya tampil saat edit */}
+                {editingStudent && (
+                  <>
+                    <div className="col-span-2 border-t pt-4 mt-2">
+                      <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
+                        <User className="h-4 w-4" /> Data Orang Tua
+                      </h4>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="fatherName">Nama Ayah</Label>
+                        <Input id="fatherName" placeholder="Nama ayah" value={formData.fatherName} onChange={(e) => setFormData({ ...formData, fatherName: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="fatherOccupation">Pekerjaan Ayah</Label>
+                        <Input id="fatherOccupation" placeholder="Pekerjaan ayah" value={formData.fatherOccupation} onChange={(e) => setFormData({ ...formData, fatherOccupation: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="fatherPhone">No. HP Ayah</Label>
+                        <div className="flex">
+                          <Phone className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
+                          <Input id="fatherPhone" placeholder="No. HP ayah" value={formData.fatherPhone} onChange={(e) => setFormData({ ...formData, fatherPhone: e.target.value })} className="rounded-l-none" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="fatherEmail">Email Ayah</Label>
+                        <div className="flex">
+                          <Mail className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
+                          <Input id="fatherEmail" type="email" placeholder="Email ayah" value={formData.fatherEmail} onChange={(e) => setFormData({ ...formData, fatherEmail: e.target.value })} className="rounded-l-none" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="motherName">Nama Ibu</Label>
+                        <Input id="motherName" placeholder="Nama ibu" value={formData.motherName} onChange={(e) => setFormData({ ...formData, motherName: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="motherOccupation">Pekerjaan Ibu</Label>
+                        <Input id="motherOccupation" placeholder="Pekerjaan ibu" value={formData.motherOccupation} onChange={(e) => setFormData({ ...formData, motherOccupation: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="motherPhone">No. HP Ibu</Label>
+                        <div className="flex">
+                          <Phone className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
+                          <Input id="motherPhone" placeholder="No. HP ibu" value={formData.motherPhone} onChange={(e) => setFormData({ ...formData, motherPhone: e.target.value })} className="rounded-l-none" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="motherEmail">Email Ibu</Label>
+                        <div className="flex">
+                          <Mail className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
+                          <Input id="motherEmail" type="email" placeholder="Email ibu" value={formData.motherEmail} onChange={(e) => setFormData({ ...formData, motherEmail: e.target.value })} className="rounded-l-none" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="parentAddress">Alamat Orang Tua</Label>
+                      <div className="flex">
+                        <MapPin className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
+                        <Input id="parentAddress" placeholder="Alamat orang tua" value={formData.parentAddress} onChange={(e) => setFormData({ ...formData, parentAddress: e.target.value })} className="rounded-l-none" />
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button>
@@ -409,139 +529,50 @@ export default function GuruSiswaPage() {
 
         {/* Fitur Tambahan */}
         <div className="grid gap-6 md:grid-cols-3">
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={handleShowHistory}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <History className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-base">
+                <History className="h-5 w-5 text-orange-500" />
                 Riwayat Kelas
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Lihat riwayat perpindahan kelas siswa
-              </p>
-              <Button variant="outline" className="w-full mt-4" onClick={handleShowHistory}>
-                Lihat Riwayat
-              </Button>
+              <p className="text-sm text-muted-foreground">Lihat riwayat perpindahan kelas siswa</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={handleShowHealth}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Heart className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Heart className="h-5 w-5 text-red-500" />
                 Data Kesehatan
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Data kesehatan dan riwayat penyakit siswa
-              </p>
-              <Button variant="outline" className="w-full mt-4" onClick={handleShowHealth}>
-                Lihat Data
-              </Button>
+              <p className="text-sm text-muted-foreground">Lihat data kesehatan seluruh siswa</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={handleShowImmunization}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Syringe className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Syringe className="h-5 w-5 text-blue-500" />
                 Data Imunisasi
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Jadwal dan riwayat imunisasi siswa
-              </p>
-              <Button variant="outline" className="w-full mt-4" onClick={handleShowImmunization}>
-                Lihat Data
-              </Button>
+              <p className="text-sm text-muted-foreground">Lihat jadwal dan riwayat imunisasi siswa</p>
             </CardContent>
           </Card>
         </div>
 
-                {/* Dialog Tambah Siswa */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>{editingStudent ? "Edit Data Siswa" : "Tambah Siswa Baru"}</DialogTitle>
-              <DialogDescription>{editingStudent ? "Perbarui data siswa" : "Isi form di bawah untuk menambah siswa baru"}</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmitSiswa}>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Nama Lengkap *</Label>
-                  <div className="flex">
-                    <Baby className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
-                    <Input id="name" value={formData.name} onChange={function(e){setFormData({...formData, name: e.target.value})}} className="rounded-l-none" required />
-                  </div>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="nis">NIS *</Label>
-                    <Input id="nis" value={formData.nis} onChange={function(e){setFormData({...formData, nis: e.target.value})}} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="gender">Jenis Kelamin *</Label>
-                    <Select value={formData.gender} onValueChange={function(v){setFormData({...formData, gender: v})}}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Laki-laki">Laki-laki</SelectItem>
-                        <SelectItem value="Perempuan">Perempuan</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="birthDate">Tanggal Lahir *</Label>
-                  <div className="flex">
-                    <Calendar className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
-                    <Input id="birthDate" type="date" value={formData.birthDate} onChange={function(e){setFormData({...formData, birthDate: e.target.value})}} className="rounded-l-none" required />
-                  </div>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="parentName">Nama Orang Tua *</Label>
-                    <Input id="parentName" placeholder="Ketik nama ayah/ibu" value={formData.parentId} onChange={function(e){setFormData({...formData, parentId: e.target.value})}} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="classId">Kelas</Label>
-                    <Select value={formData.classId || "none"} onValueChange={function(v){setFormData({...formData, classId: v === "none" ? "" : v})}}>
-                      <SelectTrigger><SelectValue placeholder="Pilih kelas" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Belum ada kelas</SelectItem>
-                        {classList.map(function(cls){return <SelectItem key={cls.id} value={cls.id}>{cls.name} ({cls.ageGroup})</SelectItem>})}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="address">Alamat</Label>
-                  <div className="flex">
-                    <MapPin className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
-                    <Input id="address" value={formData.address} onChange={function(e){setFormData({...formData, address: e.target.value})}} className="rounded-l-none" />
-                  </div>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={function(){setDialogOpen(false)}}>Batal</Button>
-                <Button type="submit" disabled={submitting}>
-                  {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {editingStudent ? "Simpan" : "Tambah"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-{/* Modal Riwayat Kelas */}
+        {/* Modal Riwayat Kelas */}
         <Dialog open={showHistoryModal} onOpenChange={setShowHistoryModal}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <History className="h-5 w-5" />
-                Riwayat Perpindahan Kelas Siswa
+                <History className="h-5 w-5 text-orange-500" />
+                Riwayat Kelas Siswa
               </DialogTitle>
             </DialogHeader>
             <ScrollArea className="max-h-[500px]">
@@ -553,27 +584,22 @@ export default function GuruSiswaPage() {
                   </div>
                 ) : (
                   students.map((student) => {
-                    const history = student.classHistory
+                    const classHistory = parseJSON(student.classHistory)
                     return (
                       <div key={student.id} className="border rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-3">
                           <User className="h-5 w-5 text-muted-foreground" />
                           <span className="font-semibold">{student.name}</span>
                           <Badge variant="secondary">{student.nis}</Badge>
-                          <Badge>{student.class?.name || '-'} ({student.class?.ageGroup || '-'})</Badge>
                         </div>
-                        {history && Array.isArray(history) && history.length > 0 ? (
-                          <div className="space-y-2 ml-7">
-                            {history.map((item: any, idx: number) => (
-                              <div key={idx} className="flex items-start gap-2 text-sm">
-                                <div className="flex flex-col items-center">
-                                  <div className="w-2 h-2 rounded-full bg-primary" />
-                                  {idx < history.length - 1 && <div className="w-0.5 h-8 bg-border" />}
-                                </div>
-                                <div>
-                                  <p className="font-medium">{item.className || item.kelas || 'Kelas tidak diketahui'}</p>
-                                  <p className="text-muted-foreground text-xs">{item.date || item.tanggal || '-'}</p>
-                                  {item.notes && <p className="text-muted-foreground text-xs mt-1">{item.notes}</p>}
+                        {classHistory && Array.isArray(classHistory) && classHistory.length > 0 ? (
+                          <div className="space-y-2 ml-7 text-sm">
+                            {classHistory.map((history: any, idx: number) => (
+                              <div key={idx} className="flex items-start gap-2 p-2 rounded-md bg-muted/50">
+                                <ArrowRight className="h-4 w-4 mt-0.5 text-orange-500" />
+                                <div className="flex-1">
+                                  <span className="font-medium">{history.className || history.name || '-'}</span>
+                                  <span className="text-muted-foreground"> — {history.date || history.tanggal || '-'}</span>
                                 </div>
                               </div>
                             ))}
@@ -608,7 +634,7 @@ export default function GuruSiswaPage() {
                   </div>
                 ) : (
                   students.map((student) => {
-                    const health = student.healthData
+                    const health = parseJSON(student.healthData)
                     return (
                       <div key={student.id} className="border rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-3">
@@ -619,57 +645,47 @@ export default function GuruSiswaPage() {
                         {health ? (
                           <div className="space-y-2 ml-7 text-sm">
                             {health.bloodType && (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-start gap-2">
                                 <span className="font-medium w-32">Golongan Darah:</span>
-                                <Badge variant="outline">{health.bloodType}</Badge>
+                                <span>{health.bloodType}</span>
                               </div>
                             )}
                             {health.height && (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-start gap-2">
                                 <span className="font-medium w-32">Tinggi Badan:</span>
                                 <span>{health.height} cm</span>
                               </div>
                             )}
                             {health.weight && (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-start gap-2">
                                 <span className="font-medium w-32">Berat Badan:</span>
                                 <span>{health.weight} kg</span>
                               </div>
                             )}
                             {health.headCircumference && (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-start gap-2">
                                 <span className="font-medium w-32">Lingkar Kepala:</span>
                                 <span>{health.headCircumference} cm</span>
                               </div>
                             )}
                             {health.waistCircumference && (
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium w-32">Lingkar Perut:</span>
+                              <div className="flex items-start gap-2">
+                                <span className="font-medium w-32">Lingkar Pinggang:</span>
                                 <span>{health.waistCircumference} cm</span>
                               </div>
                             )}
-                            {health.eyesFunction && health.eyesFunction !== "-" && (
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium w-32 flex items-center gap-2"><Eye className="h-3 w-3" /> Fungsi Mata:</span>
-                                <Badge variant={health.eyesFunction === 'normal' ? 'default' : 'secondary'}>
-                                  {health.eyesFunction === 'normal' ? 'Normal' :
-                                   health.eyesFunction === 'rabun_jauh' ? 'Rabun Jauh' :
-                                   health.eyesFunction === 'rabun_dekat' ? 'Rabun Dekat' :
-                                   health.eyesFunction === 'buta_warna' ? 'Buta Warna' :
-                                   health.eyesFunction === 'lainnya' ? 'Lainnya' : health.eyesFunction}
-                                </Badge>
+                            {health.eyesFunction && (
+                              <div className="flex items-start gap-2">
+                                <Eye className="h-4 w-4 mt-0.5" />
+                                <span className="font-medium w-32">Fungsi Mata:</span>
+                                <span>{health.eyesFunction}</span>
                               </div>
                             )}
-                            {health.earsFunction && health.earsFunction !== "-" && (
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium w-32 flex items-center gap-2"><Ear className="h-3 w-3" /> Fungsi Telinga:</span>
-                                <Badge variant={health.earsFunction === 'normal' ? 'default' : 'secondary'}>
-                                  {health.earsFunction === 'normal' ? 'Normal' :
-                                   health.earsFunction === 'gangguan_pendengaran' ? 'Gangguan Pendengaran' :
-                                   health.earsFunction === 'tuli_sebagian' ? 'Tuli Sebagian' :
-                                   health.earsFunction === 'tuli_total' ? 'Tuli Total' :
-                                   health.earsFunction === 'lainnya' ? 'Lainnya' : health.earsFunction}
-                                </Badge>
+                            {health.earsFunction && (
+                              <div className="flex items-start gap-2">
+                                <Ear className="h-4 w-4 mt-0.5" />
+                                <span className="font-medium w-32">Fungsi Telinga:</span>
+                                <span>{health.earsFunction}</span>
                               </div>
                             )}
                             {health.allergies && (
@@ -766,6 +782,134 @@ export default function GuruSiswaPage() {
                 )}
               </div>
             </ScrollArea>
+          </DialogContent>
+        </Dialog>
+
+        {/* Detail Siswa Dialog */}
+        <Dialog open={!!selectedStudent} onOpenChange={() => setSelectedStudent(null)}>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Eye className="h-5 w-5" />
+                Detail Siswa
+              </DialogTitle>
+              <DialogDescription>Informasi lengkap data siswa dan orang tua</DialogDescription>
+            </DialogHeader>
+            {selectedStudent && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                    <User className="w-7 h-7 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold">{selectedStudent.name}</h3>
+                    <Badge variant={selectedStudent.status === 'aktif' ? 'default' : 'secondary'}>
+                      {selectedStudent.status}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="grid gap-3">
+                  <div className="flex items-center gap-3 text-sm">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground w-28">NIS</span>
+                    <span className="font-medium">{selectedStudent.nis}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground w-28">Tanggal Lahir</span>
+                    <span className="font-medium">{selectedStudent.birthDate}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground w-28">Jenis Kelamin</span>
+                    <span className="font-medium">{selectedStudent.gender}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <Baby className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground w-28">Kelas</span>
+                    <span className="font-medium">{selectedStudent.class?.name ? `Kelas ${selectedStudent.class.name} (${selectedStudent.class.ageGroup})` : 'Tanpa Kelas'}</span>
+                  </div>
+                  {selectedStudent.address && (
+                    <div className="flex items-start gap-3 text-sm">
+                      <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <span className="text-muted-foreground w-28">Alamat</span>
+                      <span className="font-medium">{selectedStudent.address}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-lg border p-4 space-y-3">
+                  <h4 className="text-sm font-semibold">Data Ayah</h4>
+                  <div className="grid gap-3">
+                    <div className="flex items-center gap-3 text-sm">
+                      <User className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground w-28">Nama</span>
+                      <span className="font-medium">{selectedStudent.parent?.fatherName || '-'}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Briefcase className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground w-28">Pekerjaan</span>
+                      <span className="font-medium">{selectedStudent.parent?.fatherOccupation || '-'}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Phone className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground w-28">No. HP</span>
+                      {selectedStudent.parent?.fatherPhone ? (
+                        <a href={`tel:${selectedStudent.parent.fatherPhone}`} className="font-medium text-primary hover:underline">{selectedStudent.parent.fatherPhone}</a>
+                      ) : <span className="font-medium">-</span>}
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Mail className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground w-28">Email</span>
+                      {selectedStudent.parent?.fatherEmail ? (
+                        <a href={`mailto:${selectedStudent.parent.fatherEmail}`} className="font-medium text-primary hover:underline break-all">{selectedStudent.parent.fatherEmail}</a>
+                      ) : <span className="font-medium">-</span>}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border p-4 space-y-3">
+                  <h4 className="text-sm font-semibold">Data Ibu</h4>
+                  <div className="grid gap-3">
+                    <div className="flex items-center gap-3 text-sm">
+                      <User className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground w-28">Nama</span>
+                      <span className="font-medium">{selectedStudent.parent?.motherName || '-'}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Briefcase className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground w-28">Pekerjaan</span>
+                      <span className="font-medium">{selectedStudent.parent?.motherOccupation || '-'}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Phone className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground w-28">No. HP</span>
+                      {selectedStudent.parent?.motherPhone ? (
+                        <a href={`tel:${selectedStudent.parent.motherPhone}`} className="font-medium text-primary hover:underline">{selectedStudent.parent.motherPhone}</a>
+                      ) : <span className="font-medium">-</span>}
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Mail className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground w-28">Email</span>
+                      {selectedStudent.parent?.motherEmail ? (
+                        <a href={`mailto:${selectedStudent.parent.motherEmail}`} className="font-medium text-primary hover:underline break-all">{selectedStudent.parent.motherEmail}</a>
+                      ) : <span className="font-medium">-</span>}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border p-4 space-y-3">
+                  <h4 className="text-sm font-semibold">Alamat Orang Tua</h4>
+                  <div className="flex items-start gap-3 text-sm">
+                    <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                    <span className="font-medium">{selectedStudent.parent?.address || '-'}</span>
+                  </div>
+                </div>
+
+                <Button variant="outline" onClick={() => setSelectedStudent(null)} className="w-full">Tutup</Button>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>

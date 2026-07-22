@@ -22,6 +22,7 @@ import {
   ChartLine,
   Shield,
   Stethoscope
+  HeartHandshake
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -167,6 +168,7 @@ const menuItems = {
         { href: "/dashboard/admin/kepsek", icon: GraduationCap, label: "Data Kepala Sekolah" },
         { href: "/dashboard/admin/guru", icon: GraduationCap, label: "Data Guru" },
         { href: "/dashboard/admin/siswa", icon: Users, label: "Data Siswa" },
+	{ href: "/dashboard/admin/parents", icon: HeartHandshake, label: "Data Orang Tua" },
         { href: "/dashboard/admin/kesehatan", icon: Stethoscope, label: "Data Kesehatan Siswa" },
       ]
     },
