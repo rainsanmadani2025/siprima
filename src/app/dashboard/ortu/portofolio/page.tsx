@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   Palette,
   Camera,
@@ -50,6 +51,7 @@ export default function PortofolioPage() {
   const [socket, setSocket] = useState<Socket | null>(null)
   const [children, setChildren] = useState<Child[]>([])
   const [childIds, setChildIds] = useState('')
+  const [previewItem, setPreviewItem] = useState<Portfolio | null>(null)
 
   // Fetch children of logged-in parent
   useEffect(() => {
@@ -347,6 +349,41 @@ export default function PortofolioPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Preview Dialog */}
+      <Dialog open={!!previewItem} onOpenChange={() => setPreviewItem(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{previewItem?.title}</DialogTitle>
+          </DialogHeader>
+          {previewItem && (
+            <div className="space-y-4">
+              {previewItem.fileUrl && (
+                <div className="flex justify-center">
+                  <img src={previewItem.fileUrl} alt={previewItem.title} className="max-h-[70vh] object-contain rounded-lg" />
+                </div>
+              )}
+              {previewItem.videoUrl && (
+                <div className="flex justify-center">
+                  <video controls className="max-h-[70vh] rounded-lg">
+                    <source src={previewItem.videoUrl} type="video/mp4" />
+                    Browser tidak mendukung video.
+                  </video>
+                </div>
+              )}
+              {previewItem.description && (
+                <p className="text-muted-foreground">{previewItem.description}</p>
+              )}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Calendar className="w-4 h-4" />
+                <span>{new Date(previewItem.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+                <span className="mx-2">•</span>
+                <span>Siswa: {previewItem.student.name}</span>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Catatan */}
       <Card className="bg-blue-50 border-blue-200">
