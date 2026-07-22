@@ -384,136 +384,136 @@ export default function GuruSiswaPage() {
               <DialogDescription>{editingStudent ? "Perbarui informasi siswa dan data orang tua" : "Isi form di bawah untuk menambah siswa baru"}</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmitSiswa}>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Nama Lengkap *</Label>
-                  <div className="flex">
-                    <Baby className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
-                    <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="rounded-l-none" required />
-                  </div>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="nis">NIS *</Label>
-                    <Input id="nis" value={formData.nis} onChange={(e) => setFormData({ ...formData, nis: e.target.value })} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="gender">Jenis Kelamin *</Label>
-                    <Select value={formData.gender} onValueChange={(value) => setFormData({ ...formData, gender: value })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Laki-laki">Laki-laki</SelectItem>
-                        <SelectItem value="Perempuan">Perempuan</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="birthDate">Tanggal Lahir *</Label>
-                  <div className="flex">
-                    <Calendar className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
-                    <Input id="birthDate" type="date" value={formData.birthDate} onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })} className="rounded-l-none" required />
-                  </div>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="parentName">Nama Orang Tua *</Label>
-                    <div className="flex">
-                      <Baby className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
-                      <Input id="parentName" placeholder="Ketik nama orang tua..." value={formData.parentName} onChange={(e) => setFormData({ ...formData, parentName: e.target.value })} className="rounded-l-none" required />
+              <div className="space-y-6 py-4">
+
+                {/* === SECTION: Data Siswa === */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-semibold text-emerald-700 uppercase tracking-wider flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+                    Data Siswa
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="name">Nama Lengkap <span className="text-red-500">*</span></Label>
+                        <Input id="name" placeholder="Nama lengkap siswa" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="nis">NIS <span className="text-red-500">*</span></Label>
+                        <Input id="nis" placeholder="Nomor Induk Siswa" value={formData.nis} onChange={(e) => setFormData({ ...formData, nis: e.target.value })} required />
+                      </div>
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="classId">Kelas</Label>
-                    <Select value={formData.classId || "none"} onValueChange={(value) => setFormData({ ...formData, classId: value === "none" ? "" : value })}>
-                      <SelectTrigger><SelectValue placeholder="Pilih kelas" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Belum ada kelas</SelectItem>
-                        {classList.map(cls => (<SelectItem key={cls.id} value={cls.id}>{cls.name} ({cls.ageGroup})</SelectItem>))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="status">Status *</Label>
-                    <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="aktif">Aktif</SelectItem>
-                        <SelectItem value="keluar">Keluar</SelectItem>
-                        <SelectItem value="lulus">Lulus</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="address">Alamat</Label>
-                  <div className="flex">
-                    <MapPin className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
-                    <Input id="address" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="rounded-l-none" />
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="gender">Jenis Kelamin <span className="text-red-500">*</span></Label>
+                        <Select value={formData.gender} onValueChange={(value) => setFormData({ ...formData, gender: value })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Laki-laki">Laki-laki</SelectItem>
+                            <SelectItem value="Perempuan">Perempuan</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="birthDate">Tanggal Lahir <span className="text-red-500">*</span></Label>
+                        <Input id="birthDate" type="date" value={formData.birthDate} onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })} required />
+                      </div>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="classId">Kelas</Label>
+                        <Select value={formData.classId || "none"} onValueChange={(value) => setFormData({ ...formData, classId: value === "none" ? "" : value })}>
+                          <SelectTrigger><SelectValue placeholder="Pilih kelas" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Belum ada kelas</SelectItem>
+                            {classList.map(cls => (<SelectItem key={cls.id} value={cls.id}>{cls.name} ({cls.ageGroup})</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="status">Status <span className="text-red-500">*</span></Label>
+                        <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="aktif">Aktif</SelectItem>
+                            <SelectItem value="keluar">Keluar</SelectItem>
+                            <SelectItem value="lulus">Lulus</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="address">Alamat Siswa</Label>
+                      <Input id="address" placeholder="Alamat lengkap siswa" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+                    </div>
                   </div>
                 </div>
 
-                {/* Data Orang Tua Section — hanya tampil saat edit */}
+                {/* === SECTION: Data Orang Tua (hanya saat Edit) === */}
                 {editingStudent && (
                   <>
-                    <div className="col-span-2 border-t pt-4 mt-2">
-                      <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
-                        <User className="h-4 w-4" /> Data Orang Tua
+                    <div className="border-t" />
+
+                    {/* -- Sub-section: Data Ayah -- */}
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-semibold text-blue-700 uppercase tracking-wider flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-blue-600" />
+                        Data Ayah
                       </h4>
-                    </div>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="fatherName">Nama Ayah</Label>
-                        <Input id="fatherName" placeholder="Nama ayah" value={formData.fatherName} onChange={(e) => setFormData({ ...formData, fatherName: e.target.value })} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="fatherOccupation">Pekerjaan Ayah</Label>
-                        <Input id="fatherOccupation" placeholder="Pekerjaan ayah" value={formData.fatherOccupation} onChange={(e) => setFormData({ ...formData, fatherOccupation: e.target.value })} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="fatherPhone">No. HP Ayah</Label>
-                        <div className="flex">
-                          <Phone className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
-                          <Input id="fatherPhone" placeholder="No. HP ayah" value={formData.fatherPhone} onChange={(e) => setFormData({ ...formData, fatherPhone: e.target.value })} className="rounded-l-none" />
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="fatherName">Nama Ayah</Label>
+                          <Input id="fatherName" placeholder="Nama ayah" value={formData.fatherName} onChange={(e) => setFormData({ ...formData, fatherName: e.target.value })} />
                         </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="fatherEmail">Email Ayah</Label>
-                        <div className="flex">
-                          <Mail className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
-                          <Input id="fatherEmail" type="email" placeholder="Email ayah" value={formData.fatherEmail} onChange={(e) => setFormData({ ...formData, fatherEmail: e.target.value })} className="rounded-l-none" />
+                        <div className="space-y-1.5">
+                          <Label htmlFor="fatherOccupation">Pekerjaan Ayah</Label>
+                          <Input id="fatherOccupation" placeholder="Pekerjaan ayah" value={formData.fatherOccupation} onChange={(e) => setFormData({ ...formData, fatherOccupation: e.target.value })} />
                         </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="motherName">Nama Ibu</Label>
-                        <Input id="motherName" placeholder="Nama ibu" value={formData.motherName} onChange={(e) => setFormData({ ...formData, motherName: e.target.value })} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="motherOccupation">Pekerjaan Ibu</Label>
-                        <Input id="motherOccupation" placeholder="Pekerjaan ibu" value={formData.motherOccupation} onChange={(e) => setFormData({ ...formData, motherOccupation: e.target.value })} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="motherPhone">No. HP Ibu</Label>
-                        <div className="flex">
-                          <Phone className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
-                          <Input id="motherPhone" placeholder="No. HP ibu" value={formData.motherPhone} onChange={(e) => setFormData({ ...formData, motherPhone: e.target.value })} className="rounded-l-none" />
+                        <div className="space-y-1.5">
+                          <Label htmlFor="fatherPhone">No. HP Ayah</Label>
+                          <Input id="fatherPhone" placeholder="08xxxxxxxxxx" value={formData.fatherPhone} onChange={(e) => setFormData({ ...formData, fatherPhone: e.target.value })} />
                         </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="motherEmail">Email Ibu</Label>
-                        <div className="flex">
-                          <Mail className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
-                          <Input id="motherEmail" type="email" placeholder="Email ibu" value={formData.motherEmail} onChange={(e) => setFormData({ ...formData, motherEmail: e.target.value })} className="rounded-l-none" />
+                        <div className="space-y-1.5">
+                          <Label htmlFor="fatherEmail">Email Ayah</Label>
+                          <Input id="fatherEmail" type="email" placeholder="email@contoh.com" value={formData.fatherEmail} onChange={(e) => setFormData({ ...formData, fatherEmail: e.target.value })} />
                         </div>
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="parentAddress">Alamat Orang Tua</Label>
-                      <div className="flex">
-                        <MapPin className="h-10 w-10 bg-muted p-2 rounded-l-lg border border-r-0" />
-                        <Input id="parentAddress" placeholder="Alamat orang tua" value={formData.parentAddress} onChange={(e) => setFormData({ ...formData, parentAddress: e.target.value })} className="rounded-l-none" />
+
+                    {/* -- Sub-section: Data Ibu -- */}
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-semibold text-pink-700 uppercase tracking-wider flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-pink-600" />
+                        Data Ibu
+                      </h4>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="motherName">Nama Ibu</Label>
+                          <Input id="motherName" placeholder="Nama ibu" value={formData.motherName} onChange={(e) => setFormData({ ...formData, motherName: e.target.value })} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="motherOccupation">Pekerjaan Ibu</Label>
+                          <Input id="motherOccupation" placeholder="Pekerjaan ibu" value={formData.motherOccupation} onChange={(e) => setFormData({ ...formData, motherOccupation: e.target.value })} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="motherPhone">No. HP Ibu</Label>
+                          <Input id="motherPhone" placeholder="08xxxxxxxxxx" value={formData.motherPhone} onChange={(e) => setFormData({ ...formData, motherPhone: e.target.value })} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="motherEmail">Email Ibu</Label>
+                          <Input id="motherEmail" type="email" placeholder="email@contoh.com" value={formData.motherEmail} onChange={(e) => setFormData({ ...formData, motherEmail: e.target.value })} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* -- Sub-section: Alamat Orang Tua -- */}
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-semibold text-gray-600 uppercase tracking-wider flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-gray-500" />
+                        Alamat Orang Tua
+                      </h4>
+                      <div className="space-y-1.5">
+                        <Input id="parentAddress" placeholder="Alamat lengkap orang tua" value={formData.parentAddress} onChange={(e) => setFormData({ ...formData, parentAddress: e.target.value })} />
                       </div>
                     </div>
                   </>
