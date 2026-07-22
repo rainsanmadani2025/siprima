@@ -1,35 +1,179 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Calendar, Users, GraduationCap, CheckCircle2, AlertCircle, Download, CalendarClock } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Users, GraduationCap, CheckCircle2, AlertCircle, Download, CalendarClock, Loader2 } from "lucide-react"
+import { Input } from "@/components/ui/input"
+
+interface ClassAttendance {
+  classId: string
+  className: string
+  ageGroup: string
+  totalStudents: number
+  hadir: number
+  izin: number
+  sakit: number
+  alpha: number
+  assessedCount: number
+  percent: number
+  isComplete: boolean
+}
+
+interface TeacherDaily {
+  teacherId: string
+  teacherName: string
+  classNames: string
+  status: string
+  checkInTime: string
+  checkOutTime: string
+  notes: string
+  isHoliday: boolean
+}
+
+interface MonthlyRecap {
+  classId?: string
+  teacherId?: string
+  className?: string
+  teacherName?: string
+  hadir: number
+  izin: number
+  sakit: number
+  alpha: number
+  totalRecords: number
+  percent: number
+}
+
+interface AbsensiData {
+  date: string
+  month: string
+  summary: {
+    studentPercent: number
+    studentHadir: number
+    studentTotal: number
+    teacherPercent: number
+    teacherHadir: number
+    teacherTotal: number
+    totalIzin: number
+    izinStudents: number
+    izinTeachers: number
+    totalSakit: number
+    sakitStudents: number
+    sakitTeachers: number
+  }
+  classAttendance: ClassAttendance[]
+  teacherDailyData: TeacherDaily[]
+  monthlyStudentRecap: MonthlyRecap[]
+  monthlyTeacherRecap: MonthlyRecap[]
+  availableDates: string[]
+  availableMonths: string[]
+}
+
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr + 'T00:00:00')
+  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function formatMonth(monthStr: string): string {
+  const [year, month] = monthStr.split('-')
+  const date = new Date(Number(year), Number(month) - 1, 1)
+  return date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+}
+
+function getPercentColor(percent: number): string {
+  if (percent >= 90) return 'bg-green-600'
+  if (percent >= 70) return 'bg-yellow-600'
+  return 'bg-red-600'
+}
+
+function getStatusIcon(status: string) {
+  switch (status) {
+    case 'hadir':
+      return <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-600" /><span className="text-green-600">Hadir</span></div>
+    case 'izin':
+      return <div className="flex items-center gap-2"><AlertCircle className="h-4 w-4 text-blue-600" /><span className="text-blue-600">Izin</span></div>
+    case 'sakit':
+      return <div className="flex items-center gap-2"><AlertCircle className="h-4 w-4 text-orange-600" /><span className="text-orange-600">Sakit</span></div>
+    case 'alpha':
+      return <div className="flex items-center gap-2"><AlertCircle className="h-4 w-4 text-red-600" /><span className="text-red-600">Alpha</span></div>
+    default:
+      return <span className="text-muted-foreground">-</span>
+  }
+}
 
 export default function KepsekAbsensiPage() {
+  const [data, setData] = useState<AbsensiData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [selectedDate, setSelectedDate] = useState("")
+  const [selectedMonth, setSelectedMonth] = useState("")
+
+  const fetchData = async (date?: string, month?: string) => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams()
+      if (date) params.set('date', date)
+      if (month) params.set('month', month)
+
+      const response = await fetch(`/api/kepsek/absensi?${params.toString()}`)
+      const result = await response.json()
+
+      if (result.success) {
+        setData(result.data)
+        setSelectedDate(result.data.date)
+        setSelectedMonth(result.data.month)
+      }
+    } catch (error) {
+      console.error('Error fetching absensi data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  if (loading) {
+    return (
+      <DashboardLayout role="kepsek" userName="Kepala Sekolah">
+        <div className="flex items-center justify-center min-h-96">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  if (!data) {
+    return (
+      <DashboardLayout role="kepsek" userName="Kepala Sekolah">
+        <div className="text-center py-8 text-muted-foreground">
+          Gagal memuat data absensi
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  const { summary, classAttendance, teacherDailyData, monthlyStudentRecap, monthlyTeacherRecap } = data
+
   return (
     <DashboardLayout role="kepsek" userName="Kepala Sekolah">
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Monitoring Absensi Sekolah</h1>
-            <p className="text-muted-foreground mt-2">
-              Pantau kehadiran siswa dan guru
-            </p>
+            <p className="text-muted-foreground mt-2">Pantau kehadiran siswa dan guru</p>
           </div>
           <div className="flex gap-2">
-            <Select defaultValue="2025-01-07">
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Tanggal" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="2025-01-07">7 Januari 2025</SelectItem>
-                <SelectItem value="2025-01-06">6 Januari 2025</SelectItem>
-              </SelectContent>
-            </Select>
+            <Input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => fetchData(e.target.value)}
+              className="w-48"
+            />
             <Button variant="outline">
               <Download className="mr-2 h-4 w-4" />
               Export
@@ -37,7 +181,7 @@ export default function KepsekAbsensiPage() {
           </div>
         </div>
 
-        {/* Statistik Absensi Hari Ini */}
+        {/* Statistik */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -45,8 +189,8 @@ export default function KepsekAbsensiPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">94%</div>
-              <p className="text-xs text-muted-foreground mt-1">147/156 hadir</p>
+              <div className="text-2xl font-bold text-green-600">{summary.studentPercent}%</div>
+              <p className="text-xs text-muted-foreground mt-1">{summary.studentHadir}/{summary.studentTotal} hadir</p>
             </CardContent>
           </Card>
 
@@ -56,8 +200,8 @@ export default function KepsekAbsensiPage() {
               <GraduationCap className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">92%</div>
-              <p className="text-xs text-muted-foreground mt-1">22/24 hadir</p>
+              <div className="text-2xl font-bold text-green-600">{summary.teacherPercent}%</div>
+              <p className="text-xs text-muted-foreground mt-1">{summary.teacherHadir}/{summary.teacherTotal} hadir</p>
             </CardContent>
           </Card>
 
@@ -67,8 +211,8 @@ export default function KepsekAbsensiPage() {
               <AlertCircle className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">4</div>
-              <p className="text-xs text-muted-foreground mt-1">2 siswa, 2 guru</p>
+              <div className="text-2xl font-bold text-blue-600">{summary.totalIzin}</div>
+              <p className="text-xs text-muted-foreground mt-1">{summary.izinStudents} siswa, {summary.izinTeachers} guru</p>
             </CardContent>
           </Card>
 
@@ -78,8 +222,8 @@ export default function KepsekAbsensiPage() {
               <AlertCircle className="h-4 w-4 text-orange-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">7</div>
-              <p className="text-xs text-muted-foreground mt-1">5 siswa, 2 guru</p>
+              <div className="text-2xl font-bold text-orange-600">{summary.totalSakit}</div>
+              <p className="text-xs text-muted-foreground mt-1">{summary.sakitStudents} siswa, {summary.sakitTeachers} guru</p>
             </CardContent>
           </Card>
         </div>
@@ -97,94 +241,66 @@ export default function KepsekAbsensiPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5" />
-                  Absensi Siswa - 7 Januari 2025
+                  Absensi Siswa - {formatDate(selectedDate)}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Kelas</TableHead>
-                      <TableHead>Total Siswa</TableHead>
-                      <TableHead className="text-center text-green-600">Hadir</TableHead>
-                      <TableHead className="text-center text-blue-600">Izin</TableHead>
-                      <TableHead className="text-center text-orange-600">Sakit</TableHead>
-                      <TableHead className="text-center text-red-600">Alpha</TableHead>
-                      <TableHead className="text-center">Persentase</TableHead>
-                      <TableHead className="text-right">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell className="font-medium">Kelas B1</TableCell>
-                      <TableCell>20</TableCell>
-                      <TableCell className="text-center text-green-600 font-medium">18</TableCell>
-                      <TableCell className="text-center text-blue-600">1</TableCell>
-                      <TableCell className="text-center text-orange-600">1</TableCell>
-                      <TableCell className="text-center text-red-600">0</TableCell>
-                      <TableCell className="text-center">
-                        <Badge className="bg-green-600">90%</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center gap-2 justify-end">
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          <span className="text-sm text-green-600">Lengkap</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium">Kelas B2</TableCell>
-                      <TableCell>19</TableCell>
-                      <TableCell className="text-center text-green-600 font-medium">19</TableCell>
-                      <TableCell className="text-center text-blue-600">0</TableCell>
-                      <TableCell className="text-center text-orange-600">0</TableCell>
-                      <TableCell className="text-center text-red-600">0</TableCell>
-                      <TableCell className="text-center">
-                        <Badge className="bg-green-600">100%</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center gap-2 justify-end">
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          <span className="text-sm text-green-600">Lengkap</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium">Kelas A1</TableCell>
-                      <TableCell>18</TableCell>
-                      <TableCell className="text-center text-green-600 font-medium">17</TableCell>
-                      <TableCell className="text-center text-blue-600">1</TableCell>
-                      <TableCell className="text-center text-orange-600">0</TableCell>
-                      <TableCell className="text-center text-red-600">0</TableCell>
-                      <TableCell className="text-center">
-                        <Badge className="bg-green-600">94%</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center gap-2 justify-end">
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          <span className="text-sm text-green-600">Lengkap</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium">Kelas A2</TableCell>
-                      <TableCell>19</TableCell>
-                      <TableCell className="text-center text-green-600 font-medium">18</TableCell>
-                      <TableCell className="text-center text-blue-600">0</TableCell>
-                      <TableCell className="text-center text-orange-600">1</TableCell>
-                      <TableCell className="text-center text-red-600">0</TableCell>
-                      <TableCell className="text-center">
-                        <Badge className="bg-green-600">95%</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center gap-2 justify-end">
-                          <AlertCircle className="h-4 w-4 text-yellow-600" />
-                          <span className="text-sm text-yellow-600">Perlu Dicek</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                {classAttendance.length > 0 ? (
+                  <div className="rounded-md border overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Kelas</TableHead>
+                          <TableHead>Total Siswa</TableHead>
+                          <TableHead className="text-center text-green-600">Hadir</TableHead>
+                          <TableHead className="text-center text-blue-600">Izin</TableHead>
+                          <TableHead className="text-center text-orange-600">Sakit</TableHead>
+                          <TableHead className="text-center text-red-600">Alpha</TableHead>
+                          <TableHead className="text-center">Persentase</TableHead>
+                          <TableHead className="text-right">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {classAttendance.map((cls) => (
+                          <TableRow key={cls.classId}>
+                            <TableCell className="font-medium">Kelas {cls.className}</TableCell>
+                            <TableCell>{cls.totalStudents}</TableCell>
+                            <TableCell className="text-center text-green-600 font-medium">{cls.hadir}</TableCell>
+                            <TableCell className="text-center text-blue-600">{cls.izin}</TableCell>
+                            <TableCell className="text-center text-orange-600">{cls.sakit}</TableCell>
+                            <TableCell className="text-center text-red-600">{cls.alpha}</TableCell>
+                            <TableCell className="text-center">
+                              {cls.assessedCount > 0 ? (
+                                <Badge className={getPercentColor(cls.percent)}>{cls.percent}%</Badge>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {cls.assessedCount === 0 ? (
+                                <span className="text-muted-foreground text-sm">Belum diisi</span>
+                              ) : cls.isComplete ? (
+                                <div className="flex items-center gap-2 justify-end">
+                                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                  <span className="text-sm text-green-600">Lengkap</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 justify-end">
+                                  <AlertCircle className="h-4 w-4 text-yellow-600" />
+                                  <span className="text-sm text-yellow-600">Belum Lengkap</span>
+                                </div>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Tidak ada data kelas
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -195,208 +311,147 @@ export default function KepsekAbsensiPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <GraduationCap className="h-5 w-5" />
-                  Absensi Guru - 7 Januari 2025
+                  Absensi Guru - {formatDate(selectedDate)}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nama Guru</TableHead>
-                      <TableHead>Kelas Ampu</TableHead>
-                      <TableHead>Jam Masuk</TableHead>
-                      <TableHead>Jam Pulang</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Keterangan</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell className="font-medium">Ibu Sari, S.Pd</TableCell>
-                      <TableCell>B1, B2</TableCell>
-                      <TableCell>07:00</TableCell>
-                      <TableCell>14:00</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          <span className="text-green-600">Hadir</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>-</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium">Ibu Ani, S.Pd</TableCell>
-                      <TableCell>A1, A2</TableCell>
-                      <TableCell>07:00</TableCell>
-                      <TableCell>14:00</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          <span className="text-green-600">Hadir</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>-</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium">Bapak Budi, S.Pd</TableCell>
-                      <TableCell>B1, A1</TableCell>
-                      <TableCell>-</TableCell>
-                      <TableCell>-</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <AlertCircle className="h-4 w-4 text-blue-600" />
-                          <span className="text-blue-600">Izin</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>Izin keluarga</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium">Ibu Dewi, S.Pd</TableCell>
-                      <TableCell>B2, A2</TableCell>
-                      <TableCell>-</TableCell>
-                      <TableCell>-</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <AlertCircle className="h-4 w-4 text-orange-600" />
-                          <span className="text-orange-600">Sakit</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>Demam</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                {teacherDailyData.length > 0 ? (
+                  <div className="rounded-md border overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nama Guru</TableHead>
+                          <TableHead>Kelas Ampu</TableHead>
+                          <TableHead>Jam Masuk</TableHead>
+                          <TableHead>Jam Pulang</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Keterangan</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {teacherDailyData.map((teacher) => (
+                          <TableRow key={teacher.teacherId}>
+                            <TableCell className="font-medium">{teacher.teacherName}</TableCell>
+                            <TableCell>{teacher.classNames || '-'}</TableCell>
+                            <TableCell>{teacher.checkInTime}</TableCell>
+                            <TableCell>{teacher.checkOutTime}</TableCell>
+                            <TableCell>{getStatusIcon(teacher.status)}</TableCell>
+                            <TableCell className="text-muted-foreground">{teacher.notes}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Tidak ada data guru
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Rekap Absensi Bulanan */}
+          {/* Rekap Bulanan */}
           <TabsContent value="rekap" className="space-y-4">
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <CardTitle className="flex items-center gap-2">
                     <CalendarClock className="h-5 w-5" />
-                    Rekap Absensi Bulanan - Januari 2025
+                    Rekap Absensi Bulanan - {formatMonth(selectedMonth)}
                   </CardTitle>
-                  <Select defaultValue="januari">
-                    <SelectTrigger className="w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="januari">Januari</SelectItem>
-                      <SelectItem value="desember">Desember</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    type="month"
+                    value={selectedMonth}
+                    onChange={(e) => fetchData(undefined, e.target.value)}
+                    className="w-48"
+                  />
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {/* Rekap Siswa */}
                   <div>
                     <h3 className="font-semibold mb-3">Rekap Absensi Siswa per Kelas</h3>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Kelas</TableHead>
-                          <TableHead className="text-center">Hadir</TableHead>
-                          <TableHead className="text-center">Izin</TableHead>
-                          <TableHead className="text-center">Sakit</TableHead>
-                          <TableHead className="text-center">Alpha</TableHead>
-                          <TableHead className="text-center">Persentase</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        <TableRow>
-                          <TableCell>Kelas B1</TableCell>
-                          <TableCell className="text-center text-green-600 font-medium">360</TableCell>
-                          <TableCell className="text-center text-blue-600">15</TableCell>
-                          <TableCell className="text-center text-orange-600">10</TableCell>
-                          <TableCell className="text-center text-red-600">5</TableCell>
-                          <TableCell className="text-center">
-                            <Badge className="bg-green-600">93.5%</Badge>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>Kelas B2</TableCell>
-                          <TableCell className="text-center text-green-600 font-medium">380</TableCell>
-                          <TableCell className="text-center text-blue-600">10</TableCell>
-                          <TableCell className="text-center text-orange-600">5</TableCell>
-                          <TableCell className="text-center text-red-600">0</TableCell>
-                          <TableCell className="text-center">
-                            <Badge className="bg-green-600">96.2%</Badge>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>Kelas A1</TableCell>
-                          <TableCell className="text-center text-green-600 font-medium">340</TableCell>
-                          <TableCell className="text-center text-blue-600">12</TableCell>
-                          <TableCell className="text-center text-orange-600">8</TableCell>
-                          <TableCell className="text-center text-red-600">0</TableCell>
-                          <TableCell className="text-center">
-                            <Badge className="bg-green-600">95.2%</Badge>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>Kelas A2</TableCell>
-                          <TableCell className="text-center text-green-600 font-medium">358</TableCell>
-                          <TableCell className="text-center text-blue-600">10</TableCell>
-                          <TableCell className="text-center text-orange-600">12</TableCell>
-                          <TableCell className="text-center text-red-600">0</TableCell>
-                          <TableCell className="text-center">
-                            <Badge className="bg-green-600">94.1%</Badge>
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
+                    {monthlyStudentRecap.length > 0 ? (
+                      <div className="rounded-md border overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Kelas</TableHead>
+                              <TableHead className="text-center">Hadir</TableHead>
+                              <TableHead className="text-center">Izin</TableHead>
+                              <TableHead className="text-center">Sakit</TableHead>
+                              <TableHead className="text-center">Alpha</TableHead>
+                              <TableHead className="text-center">Persentase</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {monthlyStudentRecap.map((cls) => (
+                              <TableRow key={cls.classId}>
+                                <TableCell>Kelas {cls.className}</TableCell>
+                                <TableCell className="text-center text-green-600 font-medium">{cls.hadir}</TableCell>
+                                <TableCell className="text-center text-blue-600">{cls.izin}</TableCell>
+                                <TableCell className="text-center text-orange-600">{cls.sakit}</TableCell>
+                                <TableCell className="text-center text-red-600">{cls.alpha}</TableCell>
+                                <TableCell className="text-center">
+                                  {cls.totalRecords > 0 ? (
+                                    <Badge className={getPercentColor(cls.percent)}>{cls.percent}%</Badge>
+                                  ) : (
+                                    <span className="text-muted-foreground text-sm">-</span>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        Belum ada data absensi siswa bulan ini
+                      </div>
+                    )}
                   </div>
 
-                  {/* Rekap Guru */}
                   <div>
                     <h3 className="font-semibold mb-3">Rekap Absensi Guru</h3>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Nama Guru</TableHead>
-                          <TableHead className="text-center">Hadir</TableHead>
-                          <TableHead className="text-center">Izin</TableHead>
-                          <TableHead className="text-center">Sakit</TableHead>
-                          <TableHead className="text-center">Alpha</TableHead>
-                          <TableHead className="text-center">Persentase</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        <TableRow>
-                          <TableCell>Ibu Sari, S.Pd</TableCell>
-                          <TableCell className="text-center text-green-600 font-medium">20</TableCell>
-                          <TableCell className="text-center text-blue-600">1</TableCell>
-                          <TableCell className="text-center text-orange-600">0</TableCell>
-                          <TableCell className="text-center text-red-600">0</TableCell>
-                          <TableCell className="text-center">
-                            <Badge className="bg-green-600">95.2%</Badge>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>Ibu Ani, S.Pd</TableCell>
-                          <TableCell className="text-center text-green-600 font-medium">21</TableCell>
-                          <TableCell className="text-center text-blue-600">0</TableCell>
-                          <TableCell className="text-center text-orange-600">0</TableCell>
-                          <TableCell className="text-center text-red-600">0</TableCell>
-                          <TableCell className="text-center">
-                            <Badge className="bg-green-600">100%</Badge>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>Bapak Budi, S.Pd</TableCell>
-                          <TableCell className="text-center text-green-600 font-medium">19</TableCell>
-                          <TableCell className="text-center text-blue-600">1</TableCell>
-                          <TableCell className="text-center text-orange-600">1</TableCell>
-                          <TableCell className="text-center text-red-600">0</TableCell>
-                          <TableCell className="text-center">
-                            <Badge className="bg-yellow-600">90.5%</Badge>
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
+                    {monthlyTeacherRecap.length > 0 ? (
+                      <div className="rounded-md border overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Nama Guru</TableHead>
+                              <TableHead className="text-center">Hadir</TableHead>
+                              <TableHead className="text-center">Izin</TableHead>
+                              <TableHead className="text-center">Sakit</TableHead>
+                              <TableHead className="text-center">Alpha</TableHead>
+                              <TableHead className="text-center">Persentase</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {monthlyTeacherRecap.map((teacher) => (
+                              <TableRow key={teacher.teacherId}>
+                                <TableCell>{teacher.teacherName}</TableCell>
+                                <TableCell className="text-center text-green-600 font-medium">{teacher.hadir}</TableCell>
+                                <TableCell className="text-center text-blue-600">{teacher.izin}</TableCell>
+                                <TableCell className="text-center text-orange-600">{teacher.sakit}</TableCell>
+                                <TableCell className="text-center text-red-600">{teacher.alpha}</TableCell>
+                                <TableCell className="text-center">
+                                  {teacher.totalRecords > 0 ? (
+                                    <Badge className={getPercentColor(teacher.percent)}>{teacher.percent}%</Badge>
+                                  ) : (
+                                    <span className="text-muted-foreground text-sm">-</span>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        Belum ada data absensi guru bulan ini
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardContent>
