@@ -179,18 +179,6 @@ export default function PortofolioPage() {
                   {type === 'video' && <Video className="w-16 h-16 text-rose-400" />}
                 </>
               )}
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                <Button size="sm" variant="secondary" onClick={() => handlePreview(item)}>
-                  <Eye className="w-4 h-4 mr-1" />
-                  {type === 'video' ? 'Putar' : 'Lihat'}
-                </Button>
-                {(item.fileUrl || item.videoUrl) && (
-                  <Button size="sm" variant="secondary" onClick={() => handleDownload(item)}>
-                    <Download className="w-4 h-4 mr-1" />
-                    Download
-                  </Button>
-                )}
-              </div>
             </div>
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-2 mb-2">
@@ -200,13 +188,25 @@ export default function PortofolioPage() {
               {item.description && (
                 <p className="text-sm text-gray-600 line-clamp-2 mb-2">{item.description}</p>
               )}
-              <div className="flex items-center gap-1 text-xs text-gray-500">
+              <div className="flex items-center gap-1 text-xs text-gray-500 mb-3">
                 <Calendar className="w-3 h-3" />
                 <span>{new Date(item.date).toLocaleDateString('id-ID', {
                   day: '2-digit',
                   month: 'short',
                   year: 'numeric'
                 })}</span>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => handlePreview(item)} className="flex-1">
+                  <Eye className="w-4 h-4 mr-1" />
+                  Lihat
+                </Button>
+                {(item.fileUrl || item.videoUrl) && (
+                  <Button size="sm" variant="outline" onClick={() => handleDownload(item)} className="flex-1">
+                    <Download className="w-4 h-4 mr-1" />
+                    Download
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
