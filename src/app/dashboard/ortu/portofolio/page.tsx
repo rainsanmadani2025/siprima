@@ -143,6 +143,24 @@ export default function PortofolioPage() {
       )
     }
 
+    const handlePreview = (item: Portfolio) => {
+      setPreviewItem(item)
+    }
+
+    const handleDownload = (item: Portfolio) => {
+      if (item.fileUrl) {
+        const a = document.createElement('a')
+        a.href = item.fileUrl
+        a.download = item.title
+        a.target = '_blank'
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+      } else if (item.videoUrl) {
+        window.open(item.videoUrl, '_blank')
+      }
+    }
+
     return (
       <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {data.map((item) => (
@@ -152,29 +170,22 @@ export default function PortofolioPage() {
               type === 'foto' ? 'bg-gradient-to-br from-blue-100 to-cyan-100' :
               'bg-gradient-to-br from-rose-100 to-orange-100'
             }`}>
-              {item.fileUrl && (
-                <img
-                  src={item.fileUrl}
-                  alt={item.title}
-                  className="max-w-full max-h-full object-contain"
-                />
-              )}
-              {!item.fileUrl && type === 'karya' && <Palette className="w-16 h-16 text-purple-400" />}
-              {!item.fileUrl && type === 'foto' && <Camera className="w-16 h-16 text-blue-400" />}
-              {!item.fileUrl && type === 'video' && <Video className="w-16 h-16 text-rose-400" />}
-              {item.videoUrl && (
-                <a href={item.videoUrl} target="_blank" rel="noopener noreferrer"
-                   className="absolute bottom-2 right-2 bg-white/80 rounded-full p-1">
-                  <Video className="w-4 h-4 text-rose-600" />
-                </a>
+              {item.fileUrl ? (
+                <img src={item.fileUrl} alt={item.title} className="max-w-full max-h-full object-contain" />
+              ) : (
+                <>
+                  {type === 'karya' && <Palette className="w-16 h-16 text-purple-400" />}
+                  {type === 'foto' && <Camera className="w-16 h-16 text-blue-400" />}
+                  {type === 'video' && <Video className="w-16 h-16 text-rose-400" />}
+                </>
               )}
               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); setPreviewItem(item); }}>
+                <Button size="sm" variant="secondary" onClick={() => handlePreview(item)}>
                   <Eye className="w-4 h-4 mr-1" />
                   {type === 'video' ? 'Putar' : 'Lihat'}
                 </Button>
-                {item.fileUrl && (
-                  <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); window.open(item.fileUrl!, '_blank'); }}>
+                {(item.fileUrl || item.videoUrl) && (
+                  <Button size="sm" variant="secondary" onClick={() => handleDownload(item)}>
                     <Download className="w-4 h-4 mr-1" />
                     Download
                   </Button>
