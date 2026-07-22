@@ -24,6 +24,53 @@ export default function KepsekSekolahPage() {
           </Button>
         </div>
 
+	{/* Statistik Tambahan */}
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card className="card-gradient-1 text-primary-foreground">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Kapasitas Kelas</CardTitle>
+              <Users className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">20 siswa</div>
+              <p className="text-xs opacity-80 mt-1">Per kelas</p>
+            </CardContent>
+          </Card>
+
+          <Card className="card-gradient-2 text-primary-foreground">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Rasio Guru:Siswa</CardTitle>
+              <GraduationCap className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">1:6.5</div>
+              <p className="text-xs opacity-80 mt-1">Ideal PAUD</p>
+            </CardContent>
+          </Card>
+
+          <Card className="card-gradient-3 text-primary-foreground">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Usia Sekolah</CardTitle>
+              <Calendar className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">10 Tahun</div>
+              <p className="text-xs opacity-80 mt-1">Sejak 2015</p>
+            </CardContent>
+          </Card>
+
+          <Card className="card-gradient-4 text-primary-foreground">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Status Akreditasi</CardTitle>
+              <Award className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">A (Unggul)</div>
+              <p className="text-xs opacity-80 mt-1">Terakreditasi 2023</p>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Data Sekolah */}
         <Card>
           <CardHeader>
@@ -132,53 +179,6 @@ export default function KepsekSekolahPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Statistik Tambahan */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card className="card-gradient-1 text-primary-foreground">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Kapasitas Kelas</CardTitle>
-              <Users className="h-4 w-4" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">20 siswa</div>
-              <p className="text-xs opacity-80 mt-1">Per kelas</p>
-            </CardContent>
-          </Card>
-
-          <Card className="card-gradient-2 text-primary-foreground">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Rasio Guru:Siswa</CardTitle>
-              <GraduationCap className="h-4 w-4" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">1:6.5</div>
-              <p className="text-xs opacity-80 mt-1">Ideal PAUD</p>
-            </CardContent>
-          </Card>
-
-          <Card className="card-gradient-3 text-primary-foreground">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Usia Sekolah</CardTitle>
-              <Calendar className="h-4 w-4" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">10 Tahun</div>
-              <p className="text-xs opacity-80 mt-1">Sejak 2015</p>
-            </CardContent>
-          </Card>
-
-          <Card className="card-gradient-4 text-primary-foreground">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Status Akreditasi</CardTitle>
-              <Award className="h-4 w-4" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">A (Unggul)</div>
-              <p className="text-xs opacity-80 mt-1">Terakreditasi 2023</p>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </DashboardLayout>
   )
