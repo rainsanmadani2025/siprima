@@ -119,14 +119,6 @@ export default function KepsekSekolahPage() {
               Kelola informasi dan data sekolah
             </p>
           </div>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="mr-2 h-4 w-4" />
-            )}
-            {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
-          </Button>
         </div>
 
         {/* Statistik Tambahan */}
@@ -346,6 +338,14 @@ export default function KepsekSekolahPage() {
               </div>
             </div>
           </CardContent>
+	  <Button onClick={handleSave} disabled={saving}>
+            {saving ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
+            {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+          </Button>
         </Card>
       </div>
     </DashboardLayout>
