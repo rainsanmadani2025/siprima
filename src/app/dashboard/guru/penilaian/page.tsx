@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardAction } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ClipboardList, Star, FileText, Camera, MessageSquare, Download, Save, Loader2, Edit, Upload, CheckCircle2, RefreshCw, X } from "lucide-react"
@@ -571,43 +571,50 @@ export default function GuruPenilaianPage() {
         {/* Assessment Form */}
         <Card>
           <CardHeader>
-            <CardTitle>Form Penilaian</CardTitle>
-            <div className="flex flex-col sm:flex-row gap-4 mt-4">
-              <Select
-                value={selectedStudent?.id || ''}
-                onValueChange={handleStudentChange}
-              >
-                <SelectTrigger className="w-full sm:w-80">
-                  <SelectValue placeholder="Pilih Siswa" />
-                </SelectTrigger>
-                <SelectContent>
-                  {students.map((student) => (
-                    <SelectItem key={student.id} value={student.id}>
-                      {student.name} ({student.nis})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedSemester} onValueChange={setSelectedSemester}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Pilih Semester" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Ganjil">Semester 1 (Ganjil)</SelectItem>
-                  <SelectItem value="Genap">Semester 2 (Genap)</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Tahun Ajaran" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={prevYear}>{prevYear}</SelectItem>
-                  <SelectItem value={currentYear}>{currentYear}</SelectItem>
-                  <SelectItem value={nextYear}>{nextYear}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <CardTitle className="flex items-center gap-2">
+              <ClipboardList className="h-5 w-5" />
+              Form Penilaian
+            </CardTitle>
+            {students.length > 0 && (
+              <CardAction>
+                <div className="flex flex-wrap gap-2">
+                  <Select
+                    value={selectedStudent?.id || ''}
+                    onValueChange={handleStudentChange}
+                  >
+                    <SelectTrigger className="w-full md:w-80">
+                      <SelectValue placeholder="Pilih Siswa" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {students.map((student) => (
+                        <SelectItem key={student.id} value={student.id}>
+                          {student.name} ({student.nis})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={selectedSemester} onValueChange={setSelectedSemester}>
+                    <SelectTrigger className="w-full md:w-48">
+                      <SelectValue placeholder="Pilih Semester" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Ganjil">Semester 1 (Ganjil)</SelectItem>
+                      <SelectItem value="Genap">Semester 2 (Genap)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger className="w-full md:w-40">
+                      <SelectValue placeholder="Tahun Ajaran" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={prevYear}>{prevYear}</SelectItem>
+                      <SelectItem value={currentYear}>{currentYear}</SelectItem>
+                      <SelectItem value={nextYear}>{nextYear}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardAction>
+            )}
           </CardHeader>
           <CardContent>
             {selectedStudent ? (
