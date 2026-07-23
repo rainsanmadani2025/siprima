@@ -121,6 +121,8 @@ export default function GuruRaportPage() {
   const [loadingExportPDF, setLoadingExportPDF] = useState(false)
   const [loadingPreviewWord, setLoadingPreviewWord] = useState(false)
   const [loadingExportWord, setLoadingExportWord] = useState(false)
+  const [publishingReport, setPublishingReport] = useState(false)
+  const [reportPublished, setReportPublished] = useState(false)
   const [schoolInfo, setSchoolInfo] = useState<{ name: string; address: string; npsn: string } | null>(null)
   const [teacherInfo, setTeacherInfo] = useState<{ name: string; nip?: string } | null>(null)
   const [principalInfo, setPrincipalInfo] = useState<{ name: string; nip?: string } | null>(null)
@@ -604,6 +606,78 @@ export default function GuruRaportPage() {
     }
   }
 
+  const handlePublishReport = async () => {
+    if (!selectedStudent || !reportData) {
+      toast({
+        title: "Error",
+        description: "Pilih siswa dan pastikan data raport tersedia",
+        variant: "destructive"
+      })
+      return
+    }
+
+    try {
+      setPublishingReport(true)
+
+      // Cek apakah raport sudah ada
+      const checkRes = await fetch(`/api/student-reports?studentId=${selectedStudent.id}&semester=${selectedSemester.toLowerCase()}&academicYear=2025/2026`)
+      const checkData = await checkRes.json()
+      const existingReport = checkData.reports?.find(
+        (r: any) => r.studentId === selectedStudent.id && r.semester === selectedSemester.toLowerCase() && r.academicYear === '2025/2026'
+      )
+
+      const assessmentsArray = [
+        { aspek: 'A. Nilai Agama dan Budi Pekerti', nilai: reportData.assessments.agama_budi_pekerti?.score || '-', icon: 'Heart' },
+        { aspek: 'B. Jati Diri', nilai: reportData.assessments.jati_diri?.score || '-', icon: 'User' },
+        { aspek: 'C. Literasi, Sains & Teknologi', nilai: reportData.assessments.literasi_sains?.score || '-', icon: 'Brain' },
+      ]
+
+      const body = {
+        studentId: selectedStudent.id,
+        semester: selectedSemester.toLowerCase(),
+        academicYear: '2025/2026',
+        assessments: JSON.stringify(assessmentsArray),
+        teacherNotes: educatorNotes || reportData.assessments.catatan_perkembangan?.observation || '',
+        parentSuggestion: null,
+        activities: JSON.stringify([]),
+        status: 'published',
+        generatedAt: new Date().toISOString()
+      }
+
+      if (existingReport) {
+        // Update existing
+        await fetch(`/api/student-reports/${existingReport.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        })
+      } else {
+        // Create new
+        await fetch('/api/student-reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        })
+      }
+
+      setReportPublished(true)
+      toast({
+        title: "Berhasil",
+        description: "Raport berhasil dipublikasikan. Orang tua siswa dapat melihatnya.",
+        variant: "default"
+      })
+    } catch (error: any) {
+      console.error('Error publishing report:', error)
+      toast({
+        title: "Error",
+        description: error.message || "Gagal mempublikasikan raport",
+        variant: "destructive"
+      })
+    } finally {
+      setPublishingReport(false)
+    }
+  }
+
   const handlePreviewWord = async () => {
     if (!selectedStudent || !reportData) {
       toast({
@@ -800,6 +874,23 @@ export default function GuruRaportPage() {
                       Export Word
                     </Button>
                   </>
+                )}
+                {reportData && (
+                  <Button
+                    onClick={handlePublishReport}
+                    disabled={publishingReport}
+                    size="sm"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    {publishingReport ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : reportPublished ? (
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                    ) : (
+                      <Star className="mr-2 h-4 w-4" />
+                    )}
+                    {publishingReport ? 'Memproses...' : reportPublished ? 'Sudah Dipublish' : 'Publish Raport'}
+                  </Button>
                 )}
               </div>
             </div>
