@@ -35,67 +35,32 @@ import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 // Mapping aspek penilaian dari database key → label, icon, warna
 const aspectConfig: Record<string, { label: string; icon: any; gradient: string; bgGradient: string; description: string }> = {
   agama_budi_pekerti: {
-    label: 'Nilai Agama & Budi Pekerti',
+    label: 'Agama dan Budi Pekerti',
     icon: Heart,
     gradient: 'from-emerald-500 to-green-600',
     bgGradient: 'from-emerald-500/20 to-green-600/20 hover:from-emerald-500/30 hover:to-green-600/30',
-    description: 'Nilai agama, moral, dan perilaku'
-  },
-  agama_moral: {
-    label: 'Nilai Agama & Moral',
-    icon: Heart,
-    gradient: 'from-emerald-500 to-green-600',
-    bgGradient: 'from-emerald-500/20 to-green-600/20 hover:from-emerald-500/30 hover:to-green-600/30',
-    description: 'Perkembangan nilai dan keyakinan agama'
+    description: 'Perkembangan nilai agama, moral, dan budi pekerti'
   },
   jati_diri: {
     label: 'Jati Diri',
     icon: User,
     gradient: 'from-blue-500 to-indigo-600',
     bgGradient: 'from-blue-500/20 to-indigo-600/20 hover:from-blue-500/30 hover:to-indigo-600/30',
-    description: 'Kemandirian dan percaya diri'
-  },
-  fisik_motorik: {
-    label: 'Fisik Motorik',
-    icon: User,
-    gradient: 'from-blue-500 to-indigo-600',
-    bgGradient: 'from-blue-500/20 to-indigo-600/20 hover:from-blue-500/30 hover:to-indigo-600/30',
-    description: 'Motorik kasar dan halus'
-  },
-  kognitif: {
-    label: 'Kognitif',
-    icon: Brain,
-    gradient: 'from-purple-500 to-violet-600',
-    bgGradient: 'from-purple-500/20 to-violet-600/20 hover:from-purple-500/30 hover:to-violet-600/30',
-    description: 'Berpikir logis, memecahkan masalah'
-  },
-  bahasa: {
-    label: 'Bahasa',
-    icon: MessageCircle,
-    gradient: 'from-orange-500 to-amber-500',
-    bgGradient: 'from-orange-500/20 to-amber-500/20 hover:from-orange-500/30 hover:to-amber-500/30',
-    description: 'Mendengar, berbicara, membaca'
-  },
-  sosial_emosional: {
-    label: 'Sosial Emosional',
-    icon: Users,
-    gradient: 'from-pink-500 to-rose-600',
-    bgGradient: 'from-pink-500/20 to-rose-600/20 hover:from-pink-500/30 hover:to-rose-600/30',
-    description: 'Bersosialisasi, mengenali emosi'
-  },
-  seni: {
-    label: 'Seni',
-    icon: Palette,
-    gradient: 'from-teal-500 to-cyan-600',
-    bgGradient: 'from-teal-500/20 to-cyan-600/20 hover:from-teal-500/30 hover:to-cyan-600/30',
-    description: 'Kreativitas dan ekspresi seni'
+    description: 'Kemandirian, percaya diri, dan ekspresi diri'
   },
   literasi_sains: {
-    label: 'Literasi, Sains & Teknologi',
+    label: 'Literasi, Matematika, Sains, Teknologi, Rekayasa, Seni',
     icon: Brain,
     gradient: 'from-purple-500 to-violet-600',
     bgGradient: 'from-purple-500/20 to-violet-600/20 hover:from-purple-500/30 hover:to-violet-600/30',
-    description: 'Dasar literasi, matematika, sains'
+    description: 'Dasar literasi, matematika, sains, teknologi, rekayasa, dan seni'
+  },
+  catatan_perkembangan: {
+    label: 'Observasi Kegiatan & Catatan Perkembangan',
+    icon: FileText,
+    gradient: 'from-amber-500 to-orange-600',
+    bgGradient: 'from-amber-500/20 to-orange-600/20 hover:from-amber-500/30 hover:to-orange-600/30',
+    description: 'Catatan observasi kegiatan dan perkembangan anak'
   }
 }
 
