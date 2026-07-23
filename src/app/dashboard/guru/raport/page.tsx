@@ -871,7 +871,7 @@ export default function GuruRaportPage() {
                   if (student) setSelectedStudent(student)
                 }}
               >
-                <SelectTrigger className="w-full md:w-48">
+                <SelectTrigger className="w-full md:w-64">
                   <SelectValue placeholder="Pilih Siswa" />
                 </SelectTrigger>
                 <SelectContent>
@@ -912,23 +912,26 @@ export default function GuruRaportPage() {
                       Export Word
                     </Button>
                   </>
-                )}
-                {reportData && (
-                  <Button
-                    onClick={handlePublishReport}
-                    disabled={publishingReport}
-                    size="sm"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                  >
-                    {publishingReport ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : reportPublished ? (
-                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                    ) : (
-                      <Star className="mr-2 h-4 w-4" />
-                    )}
-                    {publishingReport ? 'Memproses...' : reportPublished ? 'Sudah Dipublish' : 'Publish Raport'}
-                  </Button>
+                    <Button
+        		onClick={handlePublishReport}
+        		disabled={publishingReport}
+        		size="sm"
+        		className="bg-emerald-600 hover:bg-emerald-700 text-white"
+      			>
+        		publishingReport ? (
+          		<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        		) : reportPublished ? (
+          		<CheckCircle2 className="mr-2 h-4 w-4" />
+        		) : (
+          		<Star className="mr-2 h-4 w-4" />
+        		)}
+
+        		{publishingReport
+          		? "Memproses..."
+          		: reportPublished
+          		? "Sudah Dipublish"
+          		: "Publish Raport"}
+      		    </Button>
                 )}
 	    </div>
           </CardContent>
