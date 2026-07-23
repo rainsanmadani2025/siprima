@@ -888,8 +888,6 @@ export default function GuruRaportPage() {
             </div>
           </CardHeader>
           <CardContent>
-	   <div className="flex flex-wrap gap-2">
-            <CardContent>
   {reportData && (
     <div className="flex items-center justify-between">
 
@@ -975,8 +973,6 @@ export default function GuruRaportPage() {
     </div>
   )}
 </CardContent>
-	    </div>
-          </CardContent>
         </Card>
 
         {/* Report Display */}
