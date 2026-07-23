@@ -272,31 +272,32 @@ export default function PenilaianPage() {
         {/* Info Anak + Selector */}
         {selectedChild && (
           <Card className="bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200">
-            <CardContent className="p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                {/* Info Siswa */}
-                <div className="flex items-center gap-4 flex-shrink-0">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-bold text-lg">
-                    {selectedChild.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">{selectedChild.name}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      {selectedChild.nis && (
-                        <Badge variant="outline">NIS: {selectedChild.nis}</Badge>
-                      )}
-                      {selectedChild.className && (
-                        <Badge variant="secondary">{selectedChild.className}</Badge>
-                      )}
-                    </div>
+            <CardContent className="p-5">
+              {/* Info Siswa */}
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-bold text-lg">
+                  {selectedChild.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">{selectedChild.name}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    {selectedChild.nis && (
+                      <Badge variant="outline">NIS: {selectedChild.nis}</Badge>
+                    )}
+                    {selectedChild.className && (
+                      <Badge variant="secondary">{selectedChild.className}</Badge>
+                    )}
                   </div>
                 </div>
+              </div>
 
-                {/* Separator */}
-                <div className="hidden sm:block w-px h-12 bg-emerald-300" />
+              {/* Separator */}
+              <div className="w-full h-px bg-emerald-300 mb-4" />
 
-                {/* Dropdowns */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
+              {/* Dropdowns */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1.5 block">Pilih Anak</label>
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                     <Select
@@ -315,7 +316,10 @@ export default function PenilaianPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
 
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1.5 block">Pilih Periode</label>
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                     <Select
@@ -342,7 +346,7 @@ export default function PenilaianPage() {
               </div>
             </CardContent>
           </Card>
-        )}
+        )}        
 
         {/* Tabel Perkembangan */}
         {selectedChild && aspectKeys.length > 0 ? (
