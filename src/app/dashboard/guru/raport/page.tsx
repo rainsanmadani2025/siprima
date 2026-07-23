@@ -847,7 +847,7 @@ export default function GuruRaportPage() {
         {/* Student Selection */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap2">
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
                 Pilih Siswa
@@ -889,7 +889,7 @@ export default function GuruRaportPage() {
             </div>
           </CardHeader>
           <CardContent>
-  {reportData && (
+    {reportData && (
     <div className="flex items-center justify-between">
 
       {/* Grup kiri */}
