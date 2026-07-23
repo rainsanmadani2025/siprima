@@ -570,7 +570,7 @@ export default function GuruPenilaianPage() {
 
         {/* Assessment Form */}
         <Card>
-          <CardHeader className="overflow-visible">
+          <CardHeader>
             <CardTitle>Form Penilaian</CardTitle>
             <div className="flex flex-col gap-4 mt-4">
               <Select

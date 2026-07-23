@@ -104,7 +104,7 @@ export function DashboardLayout({ children, role, userName }: DashboardLayoutPro
         </header>
 
         {/* Content Section */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1">
           {/* Sidebar Menu Only (without header) - Desktop */}
           <aside className="hidden lg:flex lg:w-72 lg:flex-col border-r border-border bg-card shrink-0 overflow-hidden">
             <Sidebar role={role} hideHeader={true} />
