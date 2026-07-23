@@ -847,7 +847,7 @@ export default function GuruRaportPage() {
         {/* Student Selection */}
         <Card>
           <CardHeader>
-            <div className="flex items-center gap2">
+            <div className="flex items-center gap-4">
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
                 Pilih Siswa
