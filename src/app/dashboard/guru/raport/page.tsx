@@ -852,17 +852,7 @@ export default function GuruRaportPage() {
                 <FileText className="h-5 w-5" />
                 Pilih Siswa
               </CardTitle>
-              <div className="flex gap-2 flex-wrap items-center">
-                <Select value={selectedSemester} onValueChange={setSelectedSemester}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Pilih Semester" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Ganjil">Semester 1 (Ganjil)</SelectItem>
-                    <SelectItem value="Genap">Semester 2 (Genap)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+
 	      {students.length > 0 ? (
               <Select
                 value={selectedStudent?.id || ''}
@@ -885,6 +875,17 @@ export default function GuruRaportPage() {
             ) : (
               <p className="text-muted-foreground">Tidak ada siswa yang tersedia</p>
             )}
+              <div className="flex gap-2 flex-wrap items-center">
+                <Select value={selectedSemester} onValueChange={setSelectedSemester}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Pilih Semester" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Ganjil">Semester 1 (Ganjil)</SelectItem>
+                    <SelectItem value="Genap">Semester 2 (Genap)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
