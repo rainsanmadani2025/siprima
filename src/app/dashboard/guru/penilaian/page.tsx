@@ -805,7 +805,7 @@ export default function GuruPenilaianPage() {
                         <span className="bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center text-sm">
                           D
                         </span>
-                        Observasi Kegiatan & Catatan Perkembangan
+                        Observasi Kegiatan & Catatan Anekdot
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
