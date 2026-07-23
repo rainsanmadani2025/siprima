@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
-import { Card, CardContent, CardHeader, CardTitle, CardAction } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ClipboardList, Star, FileText, Camera, MessageSquare, Download, Save, Loader2, Edit, Upload, CheckCircle2, RefreshCw, X } from "lucide-react"
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { getCurrentAcademicYear, getSemesterDateRange } from '@/lib/semester-utils'
+import { getCurrentAcademicYear, getSemesterDateRange, getAcademicYearForSemester } from '@/lib/semester-utils'
 
 interface Student {
   id: string
@@ -114,10 +114,6 @@ export default function GuruPenilaianPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [selectedSemester, setSelectedSemester] = useState('Ganjil')
-  const currentYear = getCurrentAcademicYear()
-  const prevYear = `${parseInt(currentYear.split('/')[0]) - 1}/${parseInt(currentYear.split('/')[0])}`
-  const nextYear = `${parseInt(currentYear.split('/')[1])}/${parseInt(currentYear.split('/')[1]) + 1}`
-  const [selectedYear, setSelectedYear] = useState(currentYear)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [savingNotes, setSavingNotes] = useState(false)
@@ -145,9 +141,9 @@ export default function GuruPenilaianPage() {
   useEffect(() => {
     fetchStatistics()
     fetchStudents()
-  }, [selectedSemester, selectedYear])
+  }, [selectedSemester])
 
-  // Reset form values when semester or year changes
+  // Reset form values when semester changes
   useEffect(() => {
     setFormValues({})
     setSharedNotes({ observation: '', anecdotalNotes: '' })
@@ -155,7 +151,7 @@ export default function GuruPenilaianPage() {
     setObservationTemplateIndex(-1)
     setAnecdotalTemplateIndex(-1)
     setUploadedPhotos([])
-  }, [selectedSemester, selectedYear])
+  }, [selectedSemester])
 
   const fetchStatistics = async () => {
     try {
@@ -376,7 +372,7 @@ export default function GuruPenilaianPage() {
           observation: formValue.notes || '',
           notes: sharedNotes.anecdotalNotes || '',
           semester: selectedSemester,
-          academicYear: selectedYear,
+          academicYear: getAcademicYearForSemester(selectedSemester as 'Ganjil' | 'Genap'),
           date: date
         })
       })
@@ -443,7 +439,7 @@ export default function GuruPenilaianPage() {
           notes: sharedNotes.anecdotalNotes || '',
           documentation: JSON.stringify(documentation),
           semester: selectedSemester,
-          academicYear: selectedYear,
+          academicYear: getAcademicYearForSemester(selectedSemester as 'Ganjil' | 'Genap'),
           date: date
         })
       })
@@ -571,50 +567,33 @@ export default function GuruPenilaianPage() {
         {/* Assessment Form */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ClipboardList className="h-5 w-5" />
-              Form Penilaian
-            </CardTitle>
-            {students.length > 0 && (
-              <CardAction>
-                <div className="flex flex-wrap gap-2">
-                  <Select
-                    value={selectedStudent?.id || ''}
-                    onValueChange={handleStudentChange}
-                  >
-                    <SelectTrigger className="w-full md:w-80">
-                      <SelectValue placeholder="Pilih Siswa" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {students.map((student) => (
-                        <SelectItem key={student.id} value={student.id}>
-                          {student.name} ({student.nis})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={selectedSemester} onValueChange={setSelectedSemester}>
-                    <SelectTrigger className="w-full md:w-48">
-                      <SelectValue placeholder="Pilih Semester" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Ganjil">Semester 1 (Ganjil)</SelectItem>
-                      <SelectItem value="Genap">Semester 2 (Genap)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select value={selectedYear} onValueChange={setSelectedYear}>
-                    <SelectTrigger className="w-full md:w-40">
-                      <SelectValue placeholder="Tahun Ajaran" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={prevYear}>{prevYear}</SelectItem>
-                      <SelectItem value={currentYear}>{currentYear}</SelectItem>
-                      <SelectItem value={nextYear}>{nextYear}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardAction>
-            )}
+            <CardTitle>Form Penilaian</CardTitle>
+            <div className="flex flex-col sm:flex-row gap-4 mt-4">
+              <Select
+                value={selectedStudent?.id || ''}
+                onValueChange={handleStudentChange}
+              >
+                <SelectTrigger className="w-full sm:w-64">
+                  <SelectValue placeholder="Pilih Siswa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {students.map((student) => (
+                    <SelectItem key={student.id} value={student.id}>
+                      {student.name} ({student.nis})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedSemester} onValueChange={setSelectedSemester}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Pilih Semester" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Ganjil">Semester 1 (Ganjil)</SelectItem>
+                  <SelectItem value="Genap">Semester 2 (Genap)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </CardHeader>
           <CardContent>
             {selectedStudent ? (
@@ -625,11 +604,11 @@ export default function GuruPenilaianPage() {
                     Siswa: {selectedStudent.name} ({selectedStudent.nis})
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Kelas {selectedStudent.className} • Periode: {getSemesterLabel(selectedSemester)} {selectedYear}
+                    Kelas {selectedStudent.className} • Periode: {getSemesterLabel(selectedSemester)}
                   </p>
                 </div>
 
-                {/* Form Sections with Cards */}
+                {/* Form Sections with Cards - Like RPP Layout */}
                 <div className="space-y-6">
                   {/* Aspect 1: Agama & Budi Pekerti */}
                   <Card className="border-l-4 border-l-emerald-500">
@@ -658,6 +637,7 @@ export default function GuruPenilaianPage() {
                             </button>
                           ))}
                         </div>
+                        {/* Progress bar */}
                         {formValues.agama_budi_pekerti?.score && (
                           <div className="mt-3">
                             <div className="w-full bg-gray-200 rounded-full h-2">
