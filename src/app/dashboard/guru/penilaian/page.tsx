@@ -570,14 +570,14 @@ export default function GuruPenilaianPage() {
 
         {/* Assessment Form */}
         <Card>
-          <CardHeader>
+          <CardHeader className="overflow-visible">
             <CardTitle>Form Penilaian</CardTitle>
-            <div className="flex flex-col sm:flex-row gap-4 mt-4">
+            <div className="flex flex-col gap-4 mt-4">
               <Select
                 value={selectedStudent?.id || ''}
                 onValueChange={handleStudentChange}
               >
-                <SelectTrigger className="w-full sm:w-80">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Pilih Siswa" />
                 </SelectTrigger>
                 <SelectContent>
@@ -588,25 +588,27 @@ export default function GuruPenilaianPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={selectedSemester} onValueChange={setSelectedSemester}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Pilih Semester" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Ganjil">Semester 1 (Ganjil)</SelectItem>
-                  <SelectItem value="Genap">Semester 2 (Genap)</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Tahun Ajaran" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={prevYear}>{prevYear}</SelectItem>
-                  <SelectItem value={currentYear}>{currentYear}</SelectItem>
-                  <SelectItem value={nextYear}>{nextYear}</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Select value={selectedSemester} onValueChange={setSelectedSemester}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Pilih Semester" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Ganjil">Semester 1 (Ganjil)</SelectItem>
+                    <SelectItem value="Genap">Semester 2 (Genap)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                  <SelectTrigger className="w-full sm:w-40">
+                    <SelectValue placeholder="Tahun Ajaran" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={prevYear}>{prevYear}</SelectItem>
+                    <SelectItem value={currentYear}>{currentYear}</SelectItem>
+                    <SelectItem value={nextYear}>{nextYear}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
