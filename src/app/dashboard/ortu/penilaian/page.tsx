@@ -56,7 +56,7 @@ const aspectConfig: Record<string, { label: string; icon: any; gradient: string;
     description: 'Dasar literasi, matematika, sains, teknologi, rekayasa, dan seni'
   },
   catatan_perkembangan: {
-    label: 'Observasi Kegiatan & Anekdot',
+    label: 'Observasi Kegiatan & Catatan Anekdot',
     icon: FileText,
     gradient: 'from-amber-500 to-orange-600',
     bgGradient: 'from-amber-500/20 to-orange-600/20 hover:from-amber-500/30 hover:to-orange-600/30',
