@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { getCurrentAcademicYear, getSemesterDateRange, getAcademicYearForSemester } from '@/lib/semester-utils'
+import { getCurrentAcademicYear, getSemesterDateRange } from '@/lib/semester-utils'
 
 interface Student {
   id: string
@@ -114,6 +114,10 @@ export default function GuruPenilaianPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [selectedSemester, setSelectedSemester] = useState('Ganjil')
+  const currentYear = getCurrentAcademicYear()
+  const prevYear = `${parseInt(currentYear.split('/')[0]) - 1}/${parseInt(currentYear.split('/')[0])}`
+  const nextYear = `${parseInt(currentYear.split('/')[1])}/${parseInt(currentYear.split('/')[1]) + 1}`
+  const [selectedYear, setSelectedYear] = useState(currentYear)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [savingNotes, setSavingNotes] = useState(false)
@@ -141,9 +145,9 @@ export default function GuruPenilaianPage() {
   useEffect(() => {
     fetchStatistics()
     fetchStudents()
-  }, [selectedSemester])
+  }, [selectedSemester, selectedYear])
 
-  // Reset form values when semester changes
+  // Reset form values when semester or year changes
   useEffect(() => {
     setFormValues({})
     setSharedNotes({ observation: '', anecdotalNotes: '' })
@@ -151,7 +155,7 @@ export default function GuruPenilaianPage() {
     setObservationTemplateIndex(-1)
     setAnecdotalTemplateIndex(-1)
     setUploadedPhotos([])
-  }, [selectedSemester])
+  }, [selectedSemester, selectedYear])
 
   const fetchStatistics = async () => {
     try {
@@ -372,7 +376,7 @@ export default function GuruPenilaianPage() {
           observation: formValue.notes || '',
           notes: sharedNotes.anecdotalNotes || '',
           semester: selectedSemester,
-          academicYear: getAcademicYearForSemester(selectedSemester as 'Ganjil' | 'Genap'),
+          academicYear: selectedYear,
           date: date
         })
       })
@@ -439,7 +443,7 @@ export default function GuruPenilaianPage() {
           notes: sharedNotes.anecdotalNotes || '',
           documentation: JSON.stringify(documentation),
           semester: selectedSemester,
-          academicYear: getAcademicYearForSemester(selectedSemester as 'Ganjil' | 'Genap'),
+          academicYear: selectedYear,
           date: date
         })
       })
@@ -573,7 +577,7 @@ export default function GuruPenilaianPage() {
                 value={selectedStudent?.id || ''}
                 onValueChange={handleStudentChange}
               >
-                <SelectTrigger className="w-full sm:w-64">
+                <SelectTrigger className="w-full sm:w-80">
                   <SelectValue placeholder="Pilih Siswa" />
                 </SelectTrigger>
                 <SelectContent>
@@ -593,6 +597,16 @@ export default function GuruPenilaianPage() {
                   <SelectItem value="Genap">Semester 2 (Genap)</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Tahun Ajaran" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={prevYear}>{prevYear}</SelectItem>
+                  <SelectItem value={currentYear}>{currentYear}</SelectItem>
+                  <SelectItem value={nextYear}>{nextYear}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardHeader>
           <CardContent>
@@ -604,11 +618,11 @@ export default function GuruPenilaianPage() {
                     Siswa: {selectedStudent.name} ({selectedStudent.nis})
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Kelas {selectedStudent.className} • Periode: {getSemesterLabel(selectedSemester)}
+                    Kelas {selectedStudent.className} • Periode: {getSemesterLabel(selectedSemester)} {selectedYear}
                   </p>
                 </div>
 
-                {/* Form Sections with Cards - Like RPP Layout */}
+                {/* Form Sections with Cards */}
                 <div className="space-y-6">
                   {/* Aspect 1: Agama & Budi Pekerti */}
                   <Card className="border-l-4 border-l-emerald-500">
@@ -637,7 +651,6 @@ export default function GuruPenilaianPage() {
                             </button>
                           ))}
                         </div>
-                        {/* Progress bar */}
                         {formValues.agama_budi_pekerti?.score && (
                           <div className="mt-3">
                             <div className="w-full bg-gray-200 rounded-full h-2">
