@@ -109,8 +109,13 @@ export default function RaportPage() {
   const parseAssessments = (): Assessment[] => {
     if (!currentReport?.assessments) return []
     try {
-      const parsed = JSON.parse(currentReport.assessments)
-      return Array.isArray(parsed) ? parsed : []
+      let parsed = JSON.parse(currentReport.assessments)
+      // Handle double-encoded JSON
+      if (typeof parsed === 'string') {
+        try { parsed = JSON.parse(parsed) } catch { return [] }
+      }
+      if (!Array.isArray(parsed)) return []
+      return parsed
     } catch {
       return []
     }
@@ -119,8 +124,12 @@ export default function RaportPage() {
   const parseActivities = (): any[] => {
     if (!currentReport?.activities) return []
     try {
-      const parsed = JSON.parse(currentReport.activities)
-      return Array.isArray(parsed) ? parsed : []
+      let parsed = JSON.parse(currentReport.activities)
+      if (typeof parsed === 'string') {
+        try { parsed = JSON.parse(parsed) } catch { return [] }
+      }
+      if (!Array.isArray(parsed)) return []
+      return parsed
     } catch {
       return []
     }
@@ -129,8 +138,12 @@ export default function RaportPage() {
   const parseSuggestions = (): string[] => {
     if (!currentReport?.parentSuggestion) return []
     try {
-      const parsed = JSON.parse(currentReport.parentSuggestion)
-      return Array.isArray(parsed) ? parsed : []
+      let parsed = JSON.parse(currentReport.parentSuggestion)
+      if (typeof parsed === 'string') {
+        try { parsed = JSON.parse(parsed) } catch { return [currentReport.parentSuggestion!] }
+      }
+      if (Array.isArray(parsed)) return parsed
+      return []
     } catch {
       return currentReport.parentSuggestion ? [currentReport.parentSuggestion] : []
     }
