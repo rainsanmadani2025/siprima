@@ -619,46 +619,57 @@ export default function GuruRaportPage() {
     try {
       setPublishingReport(true)
 
-      // Cek apakah raport sudah ada
-      const checkRes = await fetch(`/api/student-reports?studentId=${selectedStudent.id}&semester=${selectedSemester.toLowerCase()}&academicYear=2025/2026`)
+      const semester = selectedSemester.toLowerCase()
+      const academicYear = '2025/2026'
+
+      // Cek apakah raport sudah ada, jika ada hapus dulu
+      const checkRes = await fetch(`/api/student-reports?studentId=${selectedStudent.id}&semester=${semester}&academicYear=${academicYear}`)
       const checkData = await checkRes.json()
       const existingReport = checkData.reports?.find(
-        (r: any) => r.studentId === selectedStudent.id && r.semester === selectedSemester.toLowerCase() && r.academicYear === '2025/2026'
+        (r: any) => r.studentId === selectedStudent.id && r.semester.toLowerCase() === semester && r.academicYear === academicYear
       )
 
-      const assessmentsArray = [
-        { aspek: 'A. Nilai Agama dan Budi Pekerti', nilai: reportData.assessments.agama_budi_pekerti?.score || '-', icon: 'Heart' },
-        { aspek: 'B. Jati Diri', nilai: reportData.assessments.jati_diri?.score || '-', icon: 'User' },
-        { aspek: 'C. Literasi, Sains & Teknologi', nilai: reportData.assessments.literasi_sains?.score || '-', icon: 'Brain' },
-      ]
+      if (existingReport) {
+        await fetch(`/api/student-reports/${existingReport.id}`, { method: 'DELETE' })
+      }
 
+      // Catatan perkembangan dari guru
+      const catatanPerkembangan = reportData.assessments.catatan_perkembangan?.observation || ''
+
+      // Buat raport baru dengan data bersih
       const body = {
         studentId: selectedStudent.id,
-        semester: selectedSemester.toLowerCase(),
-        academicYear: '2025/2026',
-        assessments: assessmentsArray,
-        teacherNotes: educatorNotes || reportData.assessments.catatan_perkembangan?.observation || '',
-        parentSuggestion: null,
+        semester: semester,
+        academicYear: academicYear,
+        assessments: [
+          {
+            aspek: 'A. Nilai Agama dan Budi Pekerti',
+            nilai: reportData.assessments.agama_budi_pekerti?.score || '-',
+            icon: 'Heart'
+          },
+          {
+            aspek: 'B. Jati Diri',
+            nilai: reportData.assessments.jati_diri?.score || '-',
+            icon: 'User'
+          },
+          {
+            aspek: 'C. Literasi, Sains & Teknologi',
+            nilai: reportData.assessments.literasi_sains?.score || '-',
+            icon: 'Brain'
+          }
+        ],
+        teacherNotes: educatorNotes || catatanPerkembangan || '',
+        parentSuggestion: [],
         activities: [],
         status: 'published',
         generatedAt: new Date().toISOString()
       }
 
-      if (existingReport) {
-        // Update existing
-        await fetch(`/api/student-reports/${existingReport.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        })
-      } else {
-        // Create new
-        await fetch('/api/student-reports', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        })
-      }
+      await fetch('/api/student-reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
 
       setReportPublished(true)
       toast({
