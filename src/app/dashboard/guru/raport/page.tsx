@@ -891,22 +891,22 @@ export default function GuruRaportPage() {
             {reportData && (
                   <>
                     <Button onClick={handlePreviewPDF} disabled={loadingPreviewPDF} variant="outline" size="sm">
-                      {loadingPreviewPDF && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {loadingPreviewPDF && <Loader2 className="mr-2 h-4 w-4 animate-spin gap-2" />}
                       <Eye className="mr-2 h-4 w-4" />
                       Preview PDF
                     </Button>
                     <Button onClick={handleExportPDF} disabled={loadingExportPDF} variant="outline" size="sm">
-                      {loadingExportPDF && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {loadingExportPDF && <Loader2 className="mr-2 h-4 w-4 animate-spin gap-2" />}
                       <FileDown className="mr-2 h-4 w-4" />
                       Export PDF
                     </Button>
                     <Button onClick={handlePreviewWord} disabled={loadingPreviewWord} variant="outline" size="sm" title="Buka preview di tab baru">
-                      {loadingPreviewWord && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {loadingPreviewWord && <Loader2 className="mr-2 h-4 w-4 animate-spin gap-2" />}
                       <Eye className="mr-2 h-4 w-4" />
                       Preview Word
                     </Button>
                     <Button onClick={handleExportWord} disabled={loadingExportWord} variant="outline" size="sm" title="Download file Word final">
-                      {loadingExportWord && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {loadingExportWord && <Loader2 className="mr-2 h-4 w-4 animate-spin gap-2" />}
                       <Download className="mr-2 h-4 w-4" />
                       Export Word
                     </Button>
