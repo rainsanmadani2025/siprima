@@ -688,6 +688,16 @@ export default function GuruPenilaianPage() {
                       <SelectItem value="Genap">Semester 2 (Genap)</SelectItem>
                     </SelectContent>
                   </Select>
+		  <Select value={selectedYear} onValueChange={setSelectedYear}>
+                  <SelectTrigger className="w-full sm:w-40">
+                    <SelectValue placeholder="Tahun Ajaran" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={prevYear}>{prevYear}</SelectItem>
+                    <SelectItem value={currentYear}>{currentYear}</SelectItem>
+                    <SelectItem value={nextYear}>{nextYear}</SelectItem>
+                  </SelectContent>
+                </Select>
                 </div>
               )}
             </div>
