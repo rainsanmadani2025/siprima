@@ -139,7 +139,7 @@ const anecdotalNotesTemplates = [
 ]
 
 const aspects = [
-  { key: 'agama_budi_pekerti', label: 'Nilai Agama dan Budi Pekerti', shortLabel: 'agama' },
+  { key: 'agama_budi_pekerti', label: 'Agama dan Budi Pekerti', shortLabel: 'agama' },
   { key: 'jati_diri', label: 'Jati Diri', shortLabel: 'jati_diri' },
   { key: 'literasi_sains', label: 'Dasar-dasar Literasi, Matematika, Sains, Teknologi, Rekayasa, Seni', shortLabel: 'literasi_sains' }
 ]

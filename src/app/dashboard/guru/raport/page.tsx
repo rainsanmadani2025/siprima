@@ -86,8 +86,8 @@ const scoreColors: Record<string, string> = {
 const aspects = [
   {
     key: 'agama_budi_pekerti',
-    label: 'A. Nilai Agama dan Budi Pekerti',
-    shortLabel: 'Nilai Agama dan Budi Pekerti',
+    label: 'A. Agama dan Budi Pekerti',
+    shortLabel: 'Agama dan Budi Pekerti',
     icon: Heart,
     color: 'text-emerald-600'
   },
