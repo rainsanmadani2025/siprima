@@ -862,7 +862,33 @@ export default function GuruRaportPage() {
                     <SelectItem value="Genap">Semester 2 (Genap)</SelectItem>
                   </SelectContent>
                 </Select>
-                {reportData && (
+              </div>
+	      {students.length > 0 ? (
+              <Select
+                value={selectedStudent?.id || ''}
+                onValueChange={(value) => {
+                  const student = students.find(s => s.id === value)
+                  if (student) setSelectedStudent(student)
+                }}
+              >
+                <SelectTrigger className="w-full md:w-96">
+                  <SelectValue placeholder="Pilih Siswa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {students.map((student) => (
+                    <SelectItem key={student.id} value={student.id}>
+                      {student.name} ({student.nis}) - {student.className}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <p className="text-muted-foreground">Tidak ada siswa yang tersedia</p>
+            )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {reportData && (
                   <>
                     <Button onClick={handlePreviewPDF} disabled={loadingPreviewPDF} variant="outline" size="sm">
                       {loadingPreviewPDF && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -903,32 +929,6 @@ export default function GuruRaportPage() {
                     {publishingReport ? 'Memproses...' : reportPublished ? 'Sudah Dipublish' : 'Publish Raport'}
                   </Button>
                 )}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {students.length > 0 ? (
-              <Select
-                value={selectedStudent?.id || ''}
-                onValueChange={(value) => {
-                  const student = students.find(s => s.id === value)
-                  if (student) setSelectedStudent(student)
-                }}
-              >
-                <SelectTrigger className="w-full md:w-96">
-                  <SelectValue placeholder="Pilih Siswa" />
-                </SelectTrigger>
-                <SelectContent>
-                  {students.map((student) => (
-                    <SelectItem key={student.id} value={student.id}>
-                      {student.name} ({student.nis}) - {student.className}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <p className="text-muted-foreground">Tidak ada siswa yang tersedia</p>
-            )}
           </CardContent>
         </Card>
 
