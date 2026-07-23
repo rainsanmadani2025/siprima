@@ -891,9 +891,9 @@ export default function GuruRaportPage() {
 	   <div className="flex flex-wrap gap-2">
             <CardContent>
   {reportData && (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      
-      {/* Tombol Preview & Export */}
+    <div className="flex items-center justify-between">
+
+      {/* Grup kiri */}
       <div className="flex flex-wrap gap-2">
         <Button
           onClick={handlePreviewPDF}
@@ -950,7 +950,7 @@ export default function GuruRaportPage() {
         </Button>
       </div>
 
-      {/* Tombol Publish */}
+      {/* Grup kanan */}
       <Button
         onClick={handlePublishReport}
         disabled={publishingReport}
