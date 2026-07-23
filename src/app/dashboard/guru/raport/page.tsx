@@ -871,7 +871,7 @@ export default function GuruRaportPage() {
                   if (student) setSelectedStudent(student)
                 }}
               >
-                <SelectTrigger className="w-full md:w-96">
+                <SelectTrigger className="w-full md:w-48">
                   <SelectValue placeholder="Pilih Siswa" />
                 </SelectTrigger>
                 <SelectContent>
@@ -888,91 +888,50 @@ export default function GuruRaportPage() {
             </div>
           </CardHeader>
           <CardContent>
-  {reportData && (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      
-      {/* Tombol Preview & Export */}
-      <div className="flex flex-wrap gap-2">
-        <Button
-          onClick={handlePreviewPDF}
-          disabled={loadingPreviewPDF}
-          variant="outline"
-          size="sm"
-        >
-          {loadingPreviewPDF && (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          )}
-          <Eye className="mr-2 h-4 w-4" />
-          Preview PDF
-        </Button>
-
-        <Button
-          onClick={handleExportPDF}
-          disabled={loadingExportPDF}
-          variant="outline"
-          size="sm"
-        >
-          {loadingExportPDF && (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          )}
-          <FileDown className="mr-2 h-4 w-4" />
-          Export PDF
-        </Button>
-
-        <Button
-          onClick={handlePreviewWord}
-          disabled={loadingPreviewWord}
-          variant="outline"
-          size="sm"
-          title="Buka preview di tab baru"
-        >
-          {loadingPreviewWord && (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          )}
-          <Eye className="mr-2 h-4 w-4" />
-          Preview Word
-        </Button>
-
-        <Button
-          onClick={handleExportWord}
-          disabled={loadingExportWord}
-          variant="outline"
-          size="sm"
-          title="Download file Word final"
-        >
-          {loadingExportWord && (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          )}
-          <Download className="mr-2 h-4 w-4" />
-          Export Word
-        </Button>
-      </div>
-
-      {/* Tombol Publish */}
-      <Button
-        onClick={handlePublishReport}
-        disabled={publishingReport}
-        size="sm"
-        className="bg-emerald-600 hover:bg-emerald-700 text-white"
-      >
-        {publishingReport ? (
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        ) : reportPublished ? (
-          <CheckCircle2 className="mr-2 h-4 w-4" />
-        ) : (
-          <Star className="mr-2 h-4 w-4" />
-        )}
-
-        {publishingReport
-          ? "Memproses..."
-          : reportPublished
-          ? "Sudah Dipublish"
-          : "Publish Raport"}
-      </Button>
-
-    </div>
-  )}
-</CardContent>	
+	   <div className="flex flex-wrap gap-2">
+            {reportData && (
+                  <>
+                    <Button onClick={handlePreviewPDF} disabled={loadingPreviewPDF} variant="outline" size="sm">
+                      {loadingPreviewPDF && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <Eye className="mr-2 h-4 w-4" />
+                      Preview PDF
+                    </Button>
+                    <Button onClick={handleExportPDF} disabled={loadingExportPDF} variant="outline" size="sm">
+                      {loadingExportPDF && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <FileDown className="mr-2 h-4 w-4" />
+                      Export PDF
+                    </Button>
+                    <Button onClick={handlePreviewWord} disabled={loadingPreviewWord} variant="outline" size="sm" title="Buka preview di tab baru">
+                      {loadingPreviewWord && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <Eye className="mr-2 h-4 w-4" />
+                      Preview Word
+                    </Button>
+                    <Button onClick={handleExportWord} disabled={loadingExportWord} variant="outline" size="sm" title="Download file Word final">
+                      {loadingExportWord && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <Download className="mr-2 h-4 w-4" />
+                      Export Word
+                    </Button>
+                  </>
+                )}
+                {reportData && (
+                  <Button
+                    onClick={handlePublishReport}
+                    disabled={publishingReport}
+                    size="sm"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    {publishingReport ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : reportPublished ? (
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                    ) : (
+                      <Star className="mr-2 h-4 w-4" />
+                    )}
+                    {publishingReport ? 'Memproses...' : reportPublished ? 'Sudah Dipublish' : 'Publish Raport'}
+                  </Button>
+                )}
+	    </div>
+          </CardContent>
         </Card>
 
         {/* Report Display */}
