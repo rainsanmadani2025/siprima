@@ -39,6 +39,7 @@ import {
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
+import { getCurrentAcademicYear } from '@/lib/semester-utils'
 
 interface RPP {
   id: string
@@ -73,6 +74,9 @@ interface PROSEM {
 
 export default function AdminPerencanaanPage() {
   const { toast } = useToast()
+  const currentYear = getCurrentAcademicYear()
+  const prevYear = `${parseInt(currentYear.split('/')[0]) - 1}/${parseInt(currentYear.split('/')[0])}`
+  const nextYear = `${parseInt(currentYear.split('/')[1])}/${parseInt(currentYear.split('/')[1]) + 1}`
 
   // RPP State
   const [rppList, setRppList] = useState<RPP[]>([])
@@ -248,9 +252,9 @@ export default function AdminPerencanaanPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Semua Tahun</SelectItem>
-                      <SelectItem value="2024/2025">2024/2025</SelectItem>
-                      <SelectItem value="2025/2026">2025/2026</SelectItem>
-                      <SelectItem value="2026/2027">2026/2027</SelectItem>
+                      <SelectItem value={prevYear}>{prevYear}</SelectItem>
+                      <SelectItem value={currentYear}>{currentYear}</SelectItem>
+                      <SelectItem value={nextYear}>{nextYear}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -361,9 +365,9 @@ export default function AdminPerencanaanPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Semua Tahun</SelectItem>
-                      <SelectItem value="2024/2025">2024/2025</SelectItem>
-                      <SelectItem value="2025/2026">2025/2026</SelectItem>
-                      <SelectItem value="2026/2027">2026/2027</SelectItem>
+                      <SelectItem value={prevYear}>{prevYear}</SelectItem>
+                      <SelectItem value={currentYear}>{currentYear}</SelectItem>
+                      <SelectItem value={nextYear}>{nextYear}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
