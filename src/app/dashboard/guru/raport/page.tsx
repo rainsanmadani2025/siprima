@@ -636,10 +636,10 @@ export default function GuruRaportPage() {
         studentId: selectedStudent.id,
         semester: selectedSemester.toLowerCase(),
         academicYear: '2025/2026',
-        assessments: JSON.stringify(assessmentsArray),
+        assessments: assessmentsArray,
         teacherNotes: educatorNotes || reportData.assessments.catatan_perkembangan?.observation || '',
         parentSuggestion: null,
-        activities: JSON.stringify([]),
+        activities: [],
         status: 'published',
         generatedAt: new Date().toISOString()
       }
