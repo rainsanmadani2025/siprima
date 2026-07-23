@@ -247,7 +247,8 @@ export default function PenilaianPage() {
     )
   }
 
-  const aspectKeys = Object.keys(filteredAspects)
+  const ASPECT_ORDER = ['agama_budi_pekerti', 'jati_diri', 'literasi_sains', 'catatan_perkembangan']
+  const aspectKeys = ASPECT_ORDER.filter(key => key in filteredAspects)
 
   return (
     <DashboardLayout role="ortu" userName="Bapak/Ibu Orang Tua">
