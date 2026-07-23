@@ -913,7 +913,8 @@ export default function GuruRaportPage() {
                     </Button>
                   </>
                 )}
-                {reportData && (
+	    </div>
+		{reportData && (
                   <Button
                     onClick={handlePublishReport}
                     disabled={publishingReport}
@@ -930,7 +931,6 @@ export default function GuruRaportPage() {
                     {publishingReport ? 'Memproses...' : reportPublished ? 'Sudah Dipublish' : 'Publish Raport'}
                   </Button>
                 )}
-	    </div>
           </CardContent>
         </Card>
 
