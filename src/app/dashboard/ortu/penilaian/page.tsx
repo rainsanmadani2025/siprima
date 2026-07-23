@@ -399,7 +399,11 @@ export default function PenilaianPage() {
                             {config.description}
                           </TableCell>
                           <TableCell>
-                            {score !== '-' ? (
+                            {aspectKey === 'catatan_perkembangan' ? (
+                              <Badge className={`bg-gradient-to-r ${config.gradient} text-white border-0`}>
+                                Narasi
+                              </Badge>
+                            ) : score !== '-' ? (
                               <Badge className={`bg-gradient-to-r ${config.gradient} text-white border-0`}>
                                 {score}
                               </Badge>
@@ -408,7 +412,9 @@ export default function PenilaianPage() {
                             )}
                           </TableCell>
                           <TableCell>
-                            {score !== '-' ? (
+                            {aspectKey === 'catatan_perkembangan' ? (
+                              <span className="text-xs text-muted-foreground italic">Catatan tertulis</span>
+                            ) : score !== '-' ? (
                               <div className="w-full bg-gray-200 rounded-full h-3">
                                 <div
                                   className={`bg-gradient-to-r ${config.gradient} rounded-full h-full transition-all duration-500`}
@@ -516,9 +522,14 @@ export default function PenilaianPage() {
                     Total {filteredAspects[selectedAspect].totalAssessments}x penilaian
                   </p>
                 </div>
-                {filteredAspects[selectedAspect].latestScore && (
+                {selectedAspect !== 'catatan_perkembangan' && filteredAspects[selectedAspect].latestScore && (
                   <Badge className={`bg-gradient-to-r ${aspectConfig[selectedAspect]?.gradient || ''} text-white border-0 text-lg px-3 py-1`}>
                     {filteredAspects[selectedAspect].latestScore}
+                  </Badge>
+                )}
+                {selectedAspect === 'catatan_perkembangan' && (
+                  <Badge className={`bg-gradient-to-r ${aspectConfig[selectedAspect]?.gradient || ''} text-white border-0 text-lg px-3 py-1`}>
+                    Narasi
                   </Badge>
                 )}
               </div>
