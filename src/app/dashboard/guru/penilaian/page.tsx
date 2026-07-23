@@ -656,19 +656,19 @@ export default function GuruPenilaianPage() {
 
         {/* Form Penilaian per Siswa */}
         <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
+          <CardHeader className="overflow-visible">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
               <CardTitle className="flex items-center gap-2">
                 <ClipboardList className="h-5 w-5" />
                 Form Penilaian
               </CardTitle>
               {students.length > 0 && (
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Select
                     value={selectedStudent?.id || ''}
                     onValueChange={handleStudentChange}
                   >
-                    <SelectTrigger className="w-80">
+                    <SelectTrigger className="w-full sm:w-72">
                       <SelectValue placeholder="Pilih Siswa" />
                     </SelectTrigger>
                     <SelectContent>
@@ -680,7 +680,7 @@ export default function GuruPenilaianPage() {
                     </SelectContent>
                   </Select>
                   <Select value={selectedSemester} onValueChange={setSelectedSemester}>
-                    <SelectTrigger className="w-48">
+                    <SelectTrigger className="w-full sm:w-44">
                       <SelectValue placeholder="Pilih Semester" />
                     </SelectTrigger>
                     <SelectContent>
