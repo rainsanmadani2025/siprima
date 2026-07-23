@@ -170,47 +170,31 @@ export default function PenilaianPage() {
 
   // Fetch data dari API
   useEffect(() => {
-    const userId = localStorage.getItem('userId')
-    if (!userId) {
-      setLoading(false)
-      setErrorMsg('Sesi login tidak ditemukan. Silakan login kembali.')
-      return
-    }
-
-    const fetchData = async () => {
+    const fetchAssessments = async () => {
       try {
         setLoading(true)
-        setErrorMsg(null)
-
-        const params = new URLSearchParams()
-        params.set('userId', userId)
-
-        // If a period is selected, filter by it
-        const selectedPeriod = availablePeriods[selectedPeriodIdx]
-        if (selectedPeriod && availablePeriods.length > 0) {
-          params.set('semester', selectedPeriod.semester)
-          params.set('academicYear', selectedPeriod.academicYear)
+        const userId = localStorage.getItem('userId')
+        if (!userId) {
+          setLoading(false)
+          return
         }
 
-        const res = await fetch(`/api/parent/assessments?${params.toString()}`)
+        const res = await fetch(`/api/parent/assessments?userId=${encodeURIComponent(userId)}`)
         const data = await res.json()
 
         if (data.success) {
           setChildren(data.children || [])
           setAvailablePeriods(data.availablePeriods || [])
-        } else {
-          setErrorMsg(data.error || 'Gagal memuat data penilaian')
         }
       } catch (error) {
         console.error('Error fetching assessments:', error)
-        setErrorMsg('Terjadi kesalahan saat memuat data')
       } finally {
         setLoading(false)
       }
     }
 
-    fetchData()
-  }, [selectedPeriodIdx])
+    fetchAssessments()
+  }, [])
 
   // Reset child index saat children berubah
   useEffect(() => {

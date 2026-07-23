@@ -8,7 +8,6 @@ export async function GET(request: NextRequest) {
     const semester = searchParams.get('semester')
     const academicYear = searchParams.get('academicYear')
 
-    // Cari parent berdasarkan userId
     let parent
     if (userId) {
       parent = await db.parent.findUnique({
@@ -22,7 +21,6 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Fallback jika userId tidak ditemukan
     if (!parent) {
       parent = await db.parent.findFirst({
         include: {
@@ -35,11 +33,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!parent) {
-      return NextResponse.json({
-        success: true,
-        children: [],
-        availablePeriods: []
-      })
+      return NextResponse.json({ success: true, children: [], availablePeriods: [] })
     }
 
     const childIds = parent.children.map(c => c.id)
@@ -48,37 +42,27 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: true,
         children: parent.children.map(c => ({
-          id: c.id,
-          name: c.name,
-          nis: c.nis,
-          className: c.class?.name || null,
-          aspects: {}
+          id: c.id, name: c.name, nis: c.nis,
+          className: c.class?.name || null, aspects: {}
         })),
         availablePeriods: []
       })
     }
 
-    // Build where clause for assessments
-    const assessmentWhere: any = {
-      studentId: { in: childIds }
-    }
+    const assessmentWhere: any = { studentId: { in: childIds } }
     if (semester) assessmentWhere.semester = semester
     if (academicYear) assessmentWhere.academicYear = academicYear
 
-    // Fetch all assessments for this parent's children
     const assessments = await db.studentAssessment.findMany({
       where: assessmentWhere,
       include: {
         teacher: {
-          include: {
-            user: { select: { name: true } }
-          }
+          include: { user: { select: { name: true } } }
         }
       },
       orderBy: { date: 'desc' }
     })
 
-    // Get available periods (all, regardless of filter)
     const allPeriods = await db.studentAssessment.findMany({
       where: { studentId: { in: childIds } },
       select: { semester: true, academicYear: true },
@@ -93,56 +77,29 @@ export async function GET(request: NextRequest) {
       return acc
     }, [])
 
-    // Group assessments by child then by aspect
     const childrenWithAspects = parent.children.map(child => {
       const childAssessments = assessments.filter(a => a.studentId === child.id)
-
-      // Group by aspect
-      const aspectsMap: Record<string, {
-        latestScore: string
-        totalAssessments: number
-        assessments: Array<{
-          id: string
-          date: string
-          score: string
-          notes: string
-          observation: string
-          documentation: string | null
-          teacherName: string
-        }>
-      }> = {}
+      const aspectsMap: Record<string, any> = {}
 
       childAssessments.forEach(a => {
-        const aspectKey = a.aspect
-        if (!aspectsMap[aspectKey]) {
-          aspectsMap[aspectKey] = {
-            latestScore: '',
-            totalAssessments: 0,
-            assessments: []
-          }
+        if (!aspectsMap[a.aspect]) {
+          aspectsMap[a.aspect] = { latestScore: '', totalAssessments: 0, assessments: [] }
         }
-        aspectsMap[aspectKey].totalAssessments++
-        aspectsMap[aspectKey].assessments.push({
-          id: a.id,
-          date: a.date,
-          score: a.score,
-          notes: a.notes || '',
-          observation: a.observation || '',
+        aspectsMap[a.aspect].totalAssessments++
+        aspectsMap[a.aspect].assessments.push({
+          id: a.id, date: a.date, score: a.score,
+          notes: a.notes || '', observation: a.observation || '',
           documentation: a.documentation,
           teacherName: a.teacher?.user?.name || 'Guru'
         })
-        // Keep the latest score (first in desc order)
-        if (!aspectsMap[aspectKey].latestScore) {
-          aspectsMap[aspectKey].latestScore = a.score
+        if (!aspectsMap[a.aspect].latestScore) {
+          aspectsMap[a.aspect].latestScore = a.score
         }
       })
 
       return {
-        id: child.id,
-        name: child.name,
-        nis: child.nis,
-        className: child.class?.name || null,
-        aspects: aspectsMap
+        id: child.id, name: child.name, nis: child.nis,
+        className: child.class?.name || null, aspects: aspectsMap
       }
     })
 
@@ -152,10 +109,7 @@ export async function GET(request: NextRequest) {
       availablePeriods: uniquePeriods
     })
   } catch (error) {
-    console.error('Error fetching parent assessments:', error)
-    return NextResponse.json(
-      { success: false, error: 'Gagal memuat data penilaian' },
-      { status: 500 }
-    )
+    console.error('Error:', error)
+    return NextResponse.json({ success: false, error: 'Gagal memuat data' }, { status: 500 })
   }
 }
