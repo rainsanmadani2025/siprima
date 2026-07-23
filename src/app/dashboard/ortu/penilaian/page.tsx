@@ -269,76 +269,75 @@ export default function PenilaianPage() {
           </div>
         </div>
 
-        {/* Selector: Anak & Periode */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              {/* Pilih Anak */}
-              <div className="flex items-center gap-3">
-                <User className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm text-gray-600 mb-1.5">Pilih Anak</p>
-                  <Select
-                    value={String(selectedChildIdx)}
-                    onValueChange={(val) => setSelectedChildIdx(Number(val))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih anak" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {children.map((child, idx) => (
-                        <SelectItem key={child.id} value={String(idx)}>
-                          {child.name} {child.nis ? `(${child.nis})` : ''} {child.className ? `— ${child.className}` : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Pilih Periode */}
-              <div className="flex items-center gap-3">
-                <Calendar className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm text-gray-600 mb-1.5">Pilih Periode</p>
-                  <Select
-                    value={String(selectedPeriodIdx)}
-                    onValueChange={(val) => setSelectedPeriodIdx(Number(val))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih periode" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="-1">Semua Periode</SelectItem>
-                      {availablePeriods.map((period, idx) => (
-                        <SelectItem key={idx} value={String(idx)}>
-                          {formatPeriodLabel(period.semester, period.academicYear)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Info Anak */}
+        {/* Info Anak + Selector */}
         {selectedChild && (
           <Card className="bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-bold text-lg">
-                {selectedChild.name.charAt(0)}
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900">{selectedChild.name}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  {selectedChild.nis && (
-                    <Badge variant="outline">NIS: {selectedChild.nis}</Badge>
-                  )}
-                  {selectedChild.className && (
-                    <Badge variant="secondary">{selectedChild.className}</Badge>
-                  )}
+            <CardContent className="p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                {/* Info Siswa */}
+                <div className="flex items-center gap-4 flex-shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-bold text-lg">
+                    {selectedChild.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">{selectedChild.name}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      {selectedChild.nis && (
+                        <Badge variant="outline">NIS: {selectedChild.nis}</Badge>
+                      )}
+                      {selectedChild.className && (
+                        <Badge variant="secondary">{selectedChild.className}</Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Separator */}
+                <div className="hidden sm:block w-px h-12 bg-emerald-300" />
+
+                {/* Dropdowns */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <Select
+                      value={String(selectedChildIdx)}
+                      onValueChange={(val) => setSelectedChildIdx(Number(val))}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Pilih anak" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {children.map((child, idx) => (
+                          <SelectItem key={child.id} value={String(idx)}>
+                            {child.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <Select
+                      value={String(selectedPeriodIdx)}
+                      onValueChange={(val) => setSelectedPeriodIdx(Number(val))}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Pilih periode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availablePeriods.length > 0 ? (
+                          availablePeriods.map((period, idx) => (
+                            <SelectItem key={idx} value={String(idx)}>
+                              {formatPeriodLabel(period.semester, period.academicYear)}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="0">Semua Periode</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
             </CardContent>
