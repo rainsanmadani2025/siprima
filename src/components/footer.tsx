@@ -54,7 +54,7 @@ export function Footer() {
             <div className="space-y-2">
               <div className="flex items-start space-x-2 text-sm text-foreground">
                 <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
-                <span className="break-words">Jl. Pendidikan No. 123, Kota</span>
+                <span className="break-words">Jl. Apel RT.06 RW. 01 Rancakendal Kel. Cigadung Cibeunying Kaler Kota Bandung</span>
               </div>
               <div className="flex items-center space-x-2 text-sm text-foreground">
                 <Mail className="h-4 w-4 flex-shrink-0 text-primary" />
