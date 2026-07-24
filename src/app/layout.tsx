@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   keywords: ["RA Insan Madani", "Kurikulum", "Pembelajaran", "Pendidikan", "Guru", "Kepala Sekolah"],
   authors: [{ name: "Yana Mulyana, S.K.M" }],
   icons: {
-    icon: "/logo.svg",
+    icon: "/logo-ra.png",
   },
   openGraph: {
     title: "Aplikasi Kurikulum Pembelajaran RA Insan Madani",
