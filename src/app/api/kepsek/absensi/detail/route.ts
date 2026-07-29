@@ -75,16 +75,15 @@ export async function GET(request: NextRequest) {
       studentMap[s.id] = s.name
     })
 
-    // Get available months from attendance data
-    const allDates = await db.studentAttendance.findMany({
-      where: {
-        studentId: { in: targetClass.students.map(s => s.id) }
-      },
-      select: { date: true },
-      distinct: ['date'],
-      orderBy: { date: 'desc' }
-    })
-    const availableMonths = [...new Set(allDates.map(d => d.date.substring(0, 7)))].sort().reverse()
+    // Generate last 12 months
+    const availableMonths: string[] = []
+    const now = new Date()
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      availableMonths.push(`${y}-${m}`)
+    }
 
     // Format records
     const records = attendances.map(a => ({
