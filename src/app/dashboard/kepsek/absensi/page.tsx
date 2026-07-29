@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Users, GraduationCap, CheckCircle2, AlertCircle, Download, CalendarClock, Loader2 } from "lucide-react"
+import { Users, GraduationCap, CheckCircle2, AlertCircle, Download, CalendarClock, Loader2, Eye } from "lucide-react"
+import Link from "next/link"
 import { Input } from "@/components/ui/input"
 
 interface ClassAttendance {
@@ -258,6 +259,7 @@ export default function KepsekAbsensiPage() {
                           <TableHead className="text-center text-red-600">Alpha</TableHead>
                           <TableHead className="text-center">Persentase</TableHead>
                           <TableHead className="text-right">Status</TableHead>
+                          <TableHead className="text-center">Aksi</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -290,6 +292,14 @@ export default function KepsekAbsensiPage() {
                                   <span className="text-sm text-yellow-600">Belum Lengkap</span>
                                 </div>
                               )}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Link href={`/dashboard/kepsek/absensi/view?classId=${cls.classId}`}>
+                                <Button variant="ghost" size="sm">
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  Lihat
+                                </Button>
+                              </Link>
                             </TableCell>
                           </TableRow>
                         ))}
