@@ -234,7 +234,7 @@ export default function KepsekLaporanPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-4">
+                  <div className="grid gap-4 md:grid-cols-5">
                     <Card>
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium">Total Raport</CardTitle>
@@ -269,6 +269,15 @@ export default function KepsekLaporanPage() {
                       <CardContent>
                         <div className="text-2xl font-bold text-yellow-600">{siswaReport.summary.mbCount}</div>
                         <p className="text-xs text-muted-foreground mt-1">{siswaReport.summary.totalStudents > 0 ? Math.round((siswaReport.summary.mbCount / siswaReport.summary.totalStudents) * 100) : 0}% siswa</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium">Belum Berkembang (BB)</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold text-red-600">{siswaReport.summary.bbCount}</div>
+                        <p className="text-xs text-muted-foreground mt-1">{siswaReport.summary.totalStudents > 0 ? Math.round((siswaReport.summary.bbCount / siswaReport.summary.totalStudents) * 100) : 0}% siswa</p>
                       </CardContent>
                     </Card>
                   </div>

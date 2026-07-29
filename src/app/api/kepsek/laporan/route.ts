@@ -33,6 +33,25 @@ function getCurrentAcademicYear(): string {
   return `${year - 1}/${year}`
 }
 
+function extractScoresFromReportAssessments(assessmentsJson: string | null): string[] {
+  if (!assessmentsJson) return []
+  try {
+    const parsed = JSON.parse(assessmentsJson)
+    // Format: { "agama_budi_pekerti": { aspect, score, ... }, "jati_diri": { aspect, score, ... }, ... }
+    const scores: string[] = []
+    if (typeof parsed === 'object' && parsed !== null) {
+      Object.values(parsed).forEach((val: any) => {
+        if (val && val.score && SCORE_VALUES[val.score]) {
+          scores.push(val.score)
+        }
+      })
+    }
+    return scores
+  } catch {
+    return []
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -134,20 +153,10 @@ export async function GET(request: NextRequest) {
       orderBy: { student: { name: 'asc' } }
     })
 
-    const allAssessments = await db.studentAssessment.findMany({
-      where: { semester, academicYear },
-      select: { studentId: true, score: true }
-    })
-
-    const studentScores: Record<string, string[]> = {}
-    allAssessments.forEach(a => {
-      if (!studentScores[a.studentId]) studentScores[a.studentId] = []
-      if (a.score) studentScores[a.studentId].push(a.score)
-    })
-
     let bsbCount = 0, bshCount = 0, mbCount = 0, bbCount = 0
     const studentReportData = studentReports.map(sr => {
-      const scores = studentScores[sr.student.id] || []
+      // Ambil skor dari data raport (StudentReport.assessments JSON), bukan hitung ulang
+      const scores = extractScoresFromReportAssessments(sr.assessments)
       const dominant = getDominantScore(scores)
       const percent = getPercentFromScores(scores)
 
@@ -159,6 +168,7 @@ export async function GET(request: NextRequest) {
       let reportStatusLabel = 'Draft'
       let reportStatusColor = 'bg-yellow-600'
       if (sr.status === 'generated') { reportStatusLabel = 'Selesai'; reportStatusColor = 'bg-green-600' }
+      else if (sr.status === 'published') { reportStatusLabel = 'Terbit'; reportStatusColor = 'bg-green-600' }
 
       return {
         studentId: sr.student.id,
@@ -166,7 +176,7 @@ export async function GET(request: NextRequest) {
         className: sr.student.class?.name || '-',
         percent,
         dominant,
-        dominantColor: dominant === 'BSB' ? 'bg-green-600' : dominant === 'BSH' ? 'bg-blue-600' : dominant === 'MB' ? 'bg-yellow-600' : 'bg-red-600',
+        dominantColor: dominant === 'BSB' ? 'bg-green-600' : dominant === 'BSH' ? 'bg-blue-600' : dominant === 'MB' ? 'bg-yellow-600' : dominant === 'BB' ? 'bg-red-600' : 'bg-gray-500',
         reportStatusLabel,
         reportStatusColor
       }
