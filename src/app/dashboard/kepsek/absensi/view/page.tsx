@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -37,7 +37,7 @@ interface AttendanceRecord {
 
 const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
 
-export default function KepsekAbsensiViewPage() {
+function AbsensiViewContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const classId = searchParams.get('classId') || ""
@@ -125,7 +125,6 @@ export default function KepsekAbsensiViewPage() {
     }
   }
 
-  // Totals
   const allSummaries = students.map(s => getStudentSummary(s.id))
   const totalHadir = allSummaries.reduce((sum, s) => sum + s.hadir, 0)
   const totalSakit = allSummaries.reduce((sum, s) => sum + s.sakit, 0)
@@ -343,5 +342,19 @@ export default function KepsekAbsensiViewPage() {
         </Card>
       </div>
     </DashboardLayout>
+  )
+}
+
+export default function KepsekAbsensiViewPage() {
+  return (
+    <Suspense fallback={
+      <DashboardLayout role="kepsek" userName="Kepala Sekolah">
+        <div className="flex items-center justify-center min-h-96">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+      </DashboardLayout>
+    }>
+      <AbsensiViewContent />
+    </Suspense>
   )
 }
