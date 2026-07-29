@@ -93,6 +93,7 @@ const menuItems = {
       items: [
         { href: "/dashboard/guru/kelas", icon: Building2, label: "Data Kelas" },
         { href: "/dashboard/guru/siswa", icon: Users, label: "Data Siswa" },
+	{ href: "/dashboard/guru/absensi", icon: Calendar, label: "Absensi Siswa" },
       ]
     },
     {
@@ -101,7 +102,6 @@ const menuItems = {
         { href: "/dashboard/guru/perencanaan", icon: BookOpen, label: "Perencanaan Pembelajaran" },
         { href: "/dashboard/guru/penilaian", icon: ClipboardList, label: "Penilaian Perkembangan" },
         { href: "/dashboard/guru/raport", icon: FileText, label: "Raport Siswa" },
-	{ href: "/dashboard/guru/absensi", icon: Calendar, label: "Absensi Siswa" },
       ]
     },
     {
