@@ -80,6 +80,11 @@ interface DetailClass {
   studentCount: number
 }
 
+interface DetailStudent {
+  id: string
+  name: string
+}
+
 interface DetailRecord {
   id: string
   date: string
@@ -94,6 +99,7 @@ interface DetailRecord {
 
 interface DetailData {
   classes: DetailClass[]
+  students: DetailStudent[]
   selectedClass: DetailClass | null
   month: string
   records: DetailRecord[]
@@ -165,6 +171,7 @@ export default function KepsekAbsensiPage() {
   const [detailData, setDetailData] = useState<DetailData | null>(null)
   const [detailLoading, setDetailLoading] = useState(true)
   const [detailClassId, setDetailClassId] = useState<string>("")
+  const [detailStudentId, setDetailStudentId] = useState<string>("semua")
   const [detailMonth, setDetailMonth] = useState<string>("")
 
   const fetchData = async (date?: string, month?: string) => {
@@ -189,12 +196,13 @@ export default function KepsekAbsensiPage() {
     }
   }
 
-  const fetchDetailData = async (classId?: string, month?: string) => {
+  const fetchDetailData = async (classId?: string, month?: string, studentId?: string) => {
     try {
       setDetailLoading(true)
       const params = new URLSearchParams()
       if (classId) params.set('classId', classId)
       if (month) params.set('month', month)
+      if (studentId && studentId !== 'semua') params.set('studentId', studentId)
 
       const response = await fetch(`/api/kepsek/absensi/detail?${params.toString()}`)
       const result = await response.json()
@@ -225,12 +233,18 @@ export default function KepsekAbsensiPage() {
 
   const handleDetailClassChange = (value: string) => {
     setDetailClassId(value)
-    fetchDetailData(value, detailMonth)
+    setDetailStudentId('semua')
+    fetchDetailData(value, detailMonth, 'semua')
+  }
+
+  const handleDetailStudentChange = (value: string) => {
+    setDetailStudentId(value)
+    fetchDetailData(detailClassId, detailMonth, value)
   }
 
   const handleDetailMonthChange = (value: string) => {
     setDetailMonth(value)
-    fetchDetailData(detailClassId, value)
+    fetchDetailData(detailClassId, value, detailStudentId)
   }
 
   if (loading) {
@@ -253,7 +267,7 @@ export default function KepsekAbsensiPage() {
     )
   }
 
-  const { summary, classAttendance, teacherDailyData, monthlyStudentRecap, monthlyTeacherRecap, availableDates, availableMonths } = data
+  const { summary, classAttendance, teacherDailyData, monthlyStudentRecap, monthlyTeacherRecap } = data
 
   return (
     <DashboardLayout role="kepsek" userName="Kepala Sekolah">
@@ -469,7 +483,6 @@ export default function KepsekAbsensiPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {/* Rekap Siswa */}
                   <div>
                     <h3 className="font-semibold mb-3">Rekap Absensi Siswa per Kelas</h3>
                     {monthlyStudentRecap.length > 0 ? (
@@ -512,7 +525,6 @@ export default function KepsekAbsensiPage() {
                     )}
                   </div>
 
-                  {/* Rekap Guru */}
                   <div>
                     <h3 className="font-semibold mb-3">Rekap Absensi Guru</h3>
                     {monthlyTeacherRecap.length > 0 ? (
@@ -568,11 +580,11 @@ export default function KepsekAbsensiPage() {
                     <ClipboardList className="h-5 w-5" />
                     Detail Absensi Siswa
                   </CardTitle>
-                  <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full sm:w-auto">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium whitespace-nowrap">Pilih Kelas:</span>
+                      <span className="text-sm font-medium whitespace-nowrap">Kelas:</span>
                       <Select value={detailClassId} onValueChange={handleDetailClassChange}>
-                        <SelectTrigger className="w-[140px]">
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Pilih kelas..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -585,9 +597,25 @@ export default function KepsekAbsensiPage() {
                       </Select>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium whitespace-nowrap">Pilih Bulan:</span>
+                      <span className="text-sm font-medium whitespace-nowrap">Siswa:</span>
+                      <Select value={detailStudentId} onValueChange={handleDetailStudentChange}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Pilih siswa..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="semua">Semua Siswa</SelectItem>
+                          {detailData?.students.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>
+                              {s.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium whitespace-nowrap">Bulan:</span>
                       <Select value={detailMonth} onValueChange={handleDetailMonthChange}>
-                        <SelectTrigger className="w-[160px]">
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Pilih bulan..." />
                         </SelectTrigger>
                         <SelectContent>

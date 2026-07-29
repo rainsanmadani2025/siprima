@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const classId = searchParams.get('classId') || ''
     const month = searchParams.get('month') || getCurrentMonth()
+    const studentId = searchParams.get('studentId') || ''
 
     // Get all classes for the dropdown
     const classes = await db.class.findMany({
@@ -36,6 +37,7 @@ export async function GET(request: NextRequest) {
         success: true,
         data: {
           classes: classes.map(c => ({ id: c.id, name: c.name, studentCount: c.students.length })),
+          students: [],
           selectedClass: null,
           month,
           records: [],
@@ -50,10 +52,27 @@ export async function GET(request: NextRequest) {
     const lastDay = new Date(Number(yearStr), Number(monthStr), 0).getDate()
     const monthEnd = `${month}-${String(lastDay).padStart(2, '0')}`
 
-    // Fetch attendance records for all students in this class for the month
+    // Build student name map
+    const studentMap: Record<string, string> = {}
+    targetClass.students.forEach(s => {
+      studentMap[s.id] = s.name
+    })
+
+    // Build students list for dropdown
+    const studentsList = targetClass.students.map(s => ({
+      id: s.id,
+      name: s.name
+    }))
+
+    // Filter by student if specified
+    const filteredStudentIds = studentId
+      ? targetClass.students.filter(s => s.id === studentId).map(s => s.id)
+      : targetClass.students.map(s => s.id)
+
+    // Fetch attendance records
     const attendances = await db.studentAttendance.findMany({
       where: {
-        studentId: { in: targetClass.students.map(s => s.id) },
+        studentId: { in: filteredStudentIds },
         date: { gte: monthStart, lte: monthEnd }
       },
       select: {
@@ -67,12 +86,6 @@ export async function GET(request: NextRequest) {
         isHoliday: true
       },
       orderBy: [{ date: 'asc' }, { studentId: 'asc' }]
-    })
-
-    // Build student name map
-    const studentMap: Record<string, string> = {}
-    targetClass.students.forEach(s => {
-      studentMap[s.id] = s.name
     })
 
     // Generate last 12 months
@@ -102,6 +115,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         classes: classes.map(c => ({ id: c.id, name: c.name, studentCount: c.students.length })),
+        students: studentsList,
         selectedClass: {
           id: targetClass.id,
           name: targetClass.name,
