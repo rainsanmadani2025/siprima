@@ -99,9 +99,9 @@ const menuItems = {
       title: "Pembelajaran",
       items: [
         { href: "/dashboard/guru/perencanaan", icon: BookOpen, label: "Perencanaan Pembelajaran" },
-        { href: "/dashboard/guru/absensi", icon: Calendar, label: "Absensi Siswa" },
         { href: "/dashboard/guru/penilaian", icon: ClipboardList, label: "Penilaian Perkembangan" },
         { href: "/dashboard/guru/raport", icon: FileText, label: "Raport Siswa" },
+	{ href: "/dashboard/guru/absensi", icon: Calendar, label: "Absensi Siswa" },
       ]
     },
     {
