@@ -319,10 +319,10 @@ export default function AdminPerencanaanPage() {
                                   size="icon"
                                   asChild
                                 >
-                                  <Link href={`/dashboard/guru/perencanaan/buat?id=${rpp.id}`}>
-                                    <Eye className="h-4 w-4" />
-                                  </Link>
-                                </Button>
+				  <Link href={`/dashboard/guru/perencanaan/view/${rpp.id}`}>
+  					<Eye className="h-4 w-4" />
+				  </Link>                                
+				</Button>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -434,9 +434,9 @@ export default function AdminPerencanaanPage() {
                                   size="icon"
                                   asChild
                                 >
-                                  <Link href={`/dashboard/guru/perencanaan/prosem/buat?id=${prosem.id}`}>
-                                    <Eye className="h-4 w-4" />
-                                  </Link>
+                             	  <Link href={`/dashboard/guru/perencanaan/prosem/view/${prosem.id}`}>
+  				    <Eye className="h-4 w-4" />
+				  </Link>
                                 </Button>
                                 <Button
                                   variant="ghost"
