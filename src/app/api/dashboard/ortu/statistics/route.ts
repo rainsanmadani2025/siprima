@@ -82,15 +82,15 @@ export async function GET(request: NextRequest) {
       take: 3
     })
 
-    // Get student report (raport)
-    const currentSemester = 'ganjil' // This should be dynamic based on current date
-    const currentYear = '2024/2025'
-
+    
+    // Get student report (raport) - ambil yang terbaru tanpa filter semester/tahun
     const studentReport = await db.studentReport.findFirst({
       where: {
         studentId,
-        semester: currentSemester,
-        academicYear: currentYear
+        status: 'published'
+      },
+      orderBy: {
+        generatedAt: 'desc'
       }
     })
 
