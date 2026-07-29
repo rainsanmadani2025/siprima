@@ -575,7 +575,12 @@ export default function KepsekAbsensiPage() {
           <TabsContent value="detail" className="space-y-4">
             <Card>
               <CardHeader>
-		<div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <CardTitle className="flex items-center gap-2">
+                    <ClipboardList className="h-5 w-5" />
+                    Detail Absensi Siswa
+                  </CardTitle>
+		    <div className="flex items-center gap-2">
                       <span className="text-sm font-medium whitespace-nowrap">Siswa:</span>
                       <Select value={detailStudentId} onValueChange={handleDetailStudentChange}>
                         <SelectTrigger className="w-full">
@@ -590,13 +595,7 @@ export default function KepsekAbsensiPage() {
                           ))}
                         </SelectContent>
                       </Select>
-                   </div>
-
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <CardTitle className="flex items-center gap-2">
-                    <ClipboardList className="h-5 w-5" />
-                    Detail Absensi Siswa
-                  </CardTitle>
+                    </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full sm:w-auto">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium whitespace-nowrap">Kelas:</span>
