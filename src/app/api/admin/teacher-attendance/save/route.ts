@@ -1,0 +1,78 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@/lib/db'
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { month, attendances } = body
+
+    if (!month) {
+      return NextResponse.json(
+        { success: false, error: 'Parameter month diperlukan' },
+        { status: 400 }
+      )
+    }
+
+    if (!attendances || !Array.isArray(attendances)) {
+      return NextResponse.json(
+        { success: false, error: 'Data absensi tidak valid' },
+        { status: 400 }
+      )
+    }
+
+    const results = await Promise.all(
+      attendances.map(async (attendance: { teacherId: string; date: string; status: string; notes: string; checkIn: string; checkOut: string }) => {
+        const { teacherId, date, status, notes, checkIn, checkOut } = attendance
+
+        const existing = await db.teacherAttendance.findUnique({
+          where: {
+            teacherId_date: {
+              teacherId,
+              date
+            }
+          }
+        })
+
+        if (existing) {
+          return await db.teacherAttendance.update({
+            where: {
+              teacherId_date: {
+                teacherId,
+                date
+              }
+            },
+            data: {
+              status: status || null,
+              notes: notes || null,
+              checkInTime: checkIn || null,
+              checkOutTime: checkOut || null
+            }
+          })
+        } else {
+          return await db.teacherAttendance.create({
+            data: {
+              teacherId,
+              date,
+              status: status || null,
+              notes: notes || null,
+              checkInTime: checkIn || null,
+              checkOutTime: checkOut || null
+            }
+          })
+        }
+      })
+    )
+
+    return NextResponse.json({
+      success: true,
+      message: 'Data absensi guru berhasil disimpan',
+      count: results.length
+    })
+  } catch (error: any) {
+    console.error('Error saving teacher attendance:', error)
+    return NextResponse.json(
+      { success: false, error: 'Gagal menyimpan data absensi guru' },
+      { status: 500 }
+    )
+  }
+}
