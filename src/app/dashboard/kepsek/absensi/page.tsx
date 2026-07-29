@@ -343,9 +343,9 @@ export default function KepsekAbsensiPage() {
         <Tabs defaultValue="siswa" className="space-y-4">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="siswa">Absensi Siswa</TabsTrigger>
+	    <TabsTrigger value="detail">Detail Siswa</TabsTrigger>
             <TabsTrigger value="guru">Absensi Guru</TabsTrigger>
             <TabsTrigger value="rekap">Rekap Bulanan</TabsTrigger>
-            <TabsTrigger value="detail">Detail Siswa</TabsTrigger>
           </TabsList>
 
           {/* Absensi Siswa */}
@@ -575,6 +575,23 @@ export default function KepsekAbsensiPage() {
           <TabsContent value="detail" className="space-y-4">
             <Card>
               <CardHeader>
+		<div className="flex items-center gap-2">
+                      <span className="text-sm font-medium whitespace-nowrap">Siswa:</span>
+                      <Select value={detailStudentId} onValueChange={handleDetailStudentChange}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Pilih siswa..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="semua">Semua Siswa</SelectItem>
+                          {detailData?.students.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>
+                              {s.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                   </div>
+
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <CardTitle className="flex items-center gap-2">
                     <ClipboardList className="h-5 w-5" />
@@ -591,22 +608,6 @@ export default function KepsekAbsensiPage() {
                           {detailData?.classes.map((cls) => (
                             <SelectItem key={cls.id} value={cls.id}>
                               {cls.name} ({cls.studentCount} siswa)
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium whitespace-nowrap">Siswa:</span>
-                      <Select value={detailStudentId} onValueChange={handleDetailStudentChange}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Pilih siswa..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="semua">Semua Siswa</SelectItem>
-                          {detailData?.students.map((s) => (
-                            <SelectItem key={s.id} value={s.id}>
-                              {s.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
