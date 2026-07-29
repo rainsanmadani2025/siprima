@@ -2,36 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import {
   Select,
   SelectContent,
@@ -39,486 +13,305 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
-  Search,
-  Edit,
-  Trash2,
-  Loader2,
   Calendar,
+  CheckCircle2,
+  AlertCircle,
+  FileText,
+  Loader2,
+  Edit,
+  X,
+  Save,
+  RotateCcw,
+  Download,
   Users,
-  GraduationCap
+  School
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
-interface StudentAttendance {
+interface ClassItem {
   id: string
-  studentId: string
-  studentName: string
-  date: string
-  status: string
-  notes?: string
-  checkInTime?: string
-  checkOutTime?: string
+  name: string
+  teacherName: string | null
+  studentCount: number
 }
 
-interface TeacherAttendance {
+interface Student {
   id: string
-  teacherId: string
-  teacherName: string
+  name: string
+  nis: string
+  className: string
+}
+
+interface DayAttendance {
+  day: number
   date: string
-  status: string
+  checkIn?: string
+  checkOut?: string
+  status: 'hadir' | 'sakit' | 'izin' | 'alpha' | ''
   notes?: string
-  checkInTime?: string
-  checkOutTime?: string
+  isHoliday?: boolean
+  isWeekend?: boolean
 }
 
 export default function AdminAbsensiPage() {
-  const [studentAttendance, setStudentAttendance] = useState<StudentAttendance[]>([])
-  const [teacherAttendance, setTeacherAttendance] = useState<TeacherAttendance[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [dateFilter, setDateFilter] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [editingAttendance, setEditingAttendance] = useState<any>(null)
-  const [deletingAttendance, setDeletingAttendance] = useState<any>(null)
-  const [submitting, setSubmitting] = useState(false)
-  const [attendanceType, setAttendanceType] = useState<"student" | "teacher">("student")
   const { toast } = useToast()
+  const [classes, setClasses] = useState<ClassItem[]>([])
+  const [selectedClass, setSelectedClass] = useState<string>("")
+  const [students, setStudents] = useState<Student[]>([])
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
+  const now = new Date()
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear())
+  const [selectedMonthNum, setSelectedMonthNum] = useState(now.getMonth() + 1)
+  const selectedMonth = `${selectedYear}-${String(selectedMonthNum).padStart(2, '0')}`
+  const [attendanceData, setAttendanceData] = useState<DayAttendance[]>([])
+  const [originalData, setOriginalData] = useState<DayAttendance[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
-  const [formData, setFormData] = useState({
-    status: "hadir",
-    notes: "",
-    checkInTime: "",
-    checkOutTime: ""
+  const [editingDay, setEditingDay] = useState<number | null>(null)
+  const [editForm, setEditForm] = useState<{ checkIn: string; checkOut: string; status: string; notes: string; isHoliday: boolean }>({
+    checkIn: '',
+    checkOut: '',
+    status: '',
+    notes: '',
+    isHoliday: false
   })
 
-  useEffect(() => {
-    fetchAttendanceData()
-  }, [dateFilter, statusFilter, attendanceType])
+  const year = selectedYear
+  const month = selectedMonthNum
+  const daysInMonth = new Date(year, month, 0).getDate()
 
-  const fetchAttendanceData = async () => {
+  useEffect(() => {
+    fetchClasses()
+  }, [])
+
+  useEffect(() => {
+    if (selectedClass) {
+      fetchStudents()
+    }
+  }, [selectedClass])
+
+  useEffect(() => {
+    if (selectedStudent) {
+      fetchAttendanceForStudent(selectedStudent.id)
+    }
+  }, [selectedStudent, selectedMonth])
+
+  const fetchClasses = async () => {
     try {
-      setLoading(true)
-      const url = `/api/admin/attendance?type=${attendanceType}${dateFilter ? `&date=${dateFilter}` : ''}${statusFilter !== 'all' ? `&status=${statusFilter}` : ''}`
-      const response = await fetch(url)
+      const response = await fetch('/api/classes')
       const data = await response.json()
-      if (data.success) {
-        if (attendanceType === "student") {
-          setStudentAttendance(data.attendance)
-        } else {
-          setTeacherAttendance(data.attendance)
+      if (data.success && data.classes) {
+        setClasses(data.classes)
+        if (data.classes.length > 0) {
+          setSelectedClass(data.classes[0].id)
         }
       }
     } catch (error) {
-      console.error('Error fetching attendance:', error)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Gagal memuat data absensi"
-      })
+      console.error('Error fetching classes:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleEditAttendance = (attendance: StudentAttendance | TeacherAttendance) => {
-    setEditingAttendance(attendance)
-    setFormData({
-      status: attendance.status,
-      notes: attendance.notes || "",
-      checkInTime: attendance.checkInTime || "",
-      checkOutTime: attendance.checkOutTime || ""
-    })
-    setDialogOpen(true)
-  }
-
-  const handleDeleteAttendance = (attendance: StudentAttendance | TeacherAttendance) => {
-    setDeletingAttendance(attendance)
-    setDeleteDialogOpen(true)
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingAttendance) return
-
-    setSubmitting(true)
-
+  const fetchStudents = async () => {
     try {
-      const endpoint = attendanceType === "student"
-        ? `/api/admin/student-attendance/${editingAttendance.id}`
-        : `/api/admin/teacher-attendance/${editingAttendance.id}`
+      const response = await fetch(`/api/admin/students-by-class?classId=${selectedClass}`)
+      const data = await response.json()
+      if (data.success && data.students) {
+        setStudents(data.students)
+        if (data.students.length > 0) {
+          setSelectedStudent(data.students[0])
+        } else {
+          setSelectedStudent(null)
+          setAttendanceData([])
+          setOriginalData([])
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching students:', error)
+    }
+  }
 
-      const response = await fetch(endpoint, {
-        method: 'PATCH',
+  const fetchAttendanceForStudent = async (studentId: string) => {
+    try {
+      const response = await fetch(`/api/admin/attendance/month?month=${selectedMonth}&studentId=${studentId}`)
+      const data = await response.json()
+
+      const days: DayAttendance[] = []
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month - 1, day)
+        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+        const dayOfWeek = date.getDay()
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+
+        const existingRecord = data.attendance?.find((a: any) => a.date === dateStr)
+
+        days.push({
+          day,
+          date: dateStr,
+          checkIn: existingRecord?.checkIn || '',
+          checkOut: existingRecord?.checkOut || '',
+          status: existingRecord?.status || '',
+          notes: existingRecord?.notes || '',
+          isHoliday: existingRecord?.isHoliday || false,
+          isWeekend
+        })
+      }
+
+      setAttendanceData(days)
+      setOriginalData(JSON.parse(JSON.stringify(days)))
+    } catch (error) {
+      console.error('Error fetching attendance:', error)
+    }
+  }
+
+  const handleStatusChange = (day: number, status: string) => {
+    setAttendanceData(prev => prev.map(d => {
+      if (d.day !== day) return d
+      const updated = { ...d, status: status as any }
+      if (status === 'hadir') {
+        if (!updated.checkIn) updated.checkIn = '07:30'
+        if (!updated.checkOut) updated.checkOut = '13:00'
+      } else {
+        updated.checkIn = ''
+        updated.checkOut = ''
+      }
+      return updated
+    }))
+  }
+
+  const handleTimeChange = (day: number, field: 'checkIn' | 'checkOut', value: string) => {
+    setAttendanceData(prev => prev.map(d => {
+      if (d.day !== day) return d
+      if (value) {
+        return { ...d, [field]: value, status: 'hadir' as any }
+      }
+      const updated = { ...d, [field]: value }
+      if (!updated.checkIn && !updated.checkOut) {
+        updated.status = ''
+      }
+      return updated
+    }))
+  }
+
+  const handleHolidayChange = (day: number, isHoliday: boolean) => {
+    setAttendanceData(prev => prev.map(d => {
+      if (d.day !== day) return d
+      return { ...d, isHoliday, status: '' as any, checkIn: '', checkOut: '', notes: '' }
+    }))
+  }
+
+  const handleNotesChange = (day: number, notes: string) => {
+    setAttendanceData(prev => prev.map(d => {
+      if (d.day !== day) return d
+      return { ...d, notes }
+    }))
+  }
+
+  const hasUnsavedChanges = JSON.stringify(attendanceData) !== JSON.stringify(originalData)
+
+  const handleSaveAll = async () => {
+    if (!selectedStudent) return
+    setSaving(true)
+    try {
+      const recordsToSave = attendanceData
+        .filter(d => !d.isWeekend && (d.status || d.isHoliday || d.checkIn || d.checkOut))
+        .map(d => ({
+          studentId: selectedStudent.id,
+          date: d.date,
+          status: d.status || null,
+          notes: d.notes || null,
+          checkIn: d.checkIn || null,
+          checkOut: d.checkOut || null,
+          isHoliday: d.isHoliday || false
+        }))
+
+      const response = await fetch('/api/admin/attendance/save', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ month: selectedMonth, attendances: recordsToSave })
       })
 
       const data = await response.json()
 
       if (data.success) {
-        toast({
-          title: "Berhasil",
-          description: "Data absensi diperbarui"
-        })
-        setDialogOpen(false)
-        fetchAttendanceData()
+        toast({ title: "Berhasil", description: `Data absensi berhasil disimpan (${data.count} record)` })
+        fetchAttendanceForStudent(selectedStudent.id)
       } else {
-        throw new Error(data.error || 'Gagal menyimpan data')
+        throw new Error(data.error || 'Gagal menyimpan')
       }
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Gagal menyimpan data"
-      })
+      toast({ variant: "destructive", title: "Error", description: error.message || "Gagal menyimpan data absensi" })
     } finally {
-      setSubmitting(false)
+      setSaving(false)
     }
   }
 
-  const confirmDelete = async () => {
-    if (!deletingAttendance) return
+  const handleReset = () => {
+    setAttendanceData(JSON.parse(JSON.stringify(originalData)))
+  }
 
+  const handleExportPDF = async () => {
+    if (!selectedClass) return
+    setExporting(true)
     try {
-      const endpoint = attendanceType === "student"
-        ? `/api/admin/student-attendance/${deletingAttendance.id}`
-        : `/api/admin/teacher-attendance/${deletingAttendance.id}`
-
-      const response = await fetch(endpoint, {
-        method: 'DELETE'
+      const response = await fetch('/api/admin/attendance/export-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ classId: selectedClass, month: selectedMonth })
       })
 
-      const data = await response.json()
-
-      if (data.success) {
-        toast({
-          title: "Berhasil",
-          description: "Absensi berhasil dihapus"
-        })
-        setDeleteDialogOpen(false)
-        fetchAttendanceData()
-      } else {
-        throw new Error(data.error || 'Gagal menghapus absensi')
-      }
+      if (!response.ok) throw new Error('Gagal mengunduh PDF')
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `absensi-siswa-${selectedClass}-${selectedMonth}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      toast({ title: "Berhasil", description: "PDF berhasil diunduh" })
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Gagal menghapus absensi"
+      toast({ variant: "destructive", title: "Error", description: "Gagal mengunduh PDF" })
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleEditDay = (day: number) => {
+    const dayData = attendanceData.find(d => d.day === day)
+    if (dayData) {
+      setEditingDay(day)
+      setEditForm({
+        checkIn: dayData.checkIn || '',
+        checkOut: dayData.checkOut || '',
+        status: dayData.status || '',
+        notes: dayData.notes || '',
+        isHoliday: dayData.isHoliday || false
       })
     }
   }
 
-  const currentAttendance = attendanceType === "student" ? studentAttendance : teacherAttendance
-
-  const filteredAttendance = currentAttendance.filter((att: any) =>
-    att.studentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    att.teacherName?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-
-  const getStatusBadge = (status: string) => {
-    const config = {
-      hadir: { label: "Hadir", className: "bg-green-500" },
-      izin: { label: "Izin", className: "bg-blue-500" },
-      sakit: { label: "Sakit", className: "bg-yellow-500" },
-      alpha: { label: "Alpha", className: "bg-red-500" }
-    }
-    const { label, className } = config[status as keyof typeof config] || config.hadir
-    return <Badge className={className}>{label}</Badge>
+  const handleUpdateDay = () => {
+    if (editingDay === null) return
+    setAttendanceData(prev => prev.map(d => {
+      if (d.day !== editingDay) return d
+      return { ...d, ...editForm, status: editForm.status as any }
+    }))
+    setEditingDay(null)
   }
 
-  return (
-    <DashboardLayout role="admin" userName="Administrator">
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Pengaturan Absensi Sekolah</h1>
-          <p className="text-muted-foreground mt-2">
-            Kelola data absensi siswa dan guru
-          </p>
-        </div>
+  const handleCancelEdit = () => {
+    setEditingDay(null)
+  }
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Cari nama..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <Input
-                type="date"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                className="w-full sm:w-auto"
-              />
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Filter Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Status</SelectItem>
-                  <SelectItem value="hadir">Hadir</SelectItem>
-                  <SelectItem value="izin">Izin</SelectItem>
-                  <SelectItem value="sakit">Sakit</SelectItem>
-                  <SelectItem value="alpha">Alpha</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+  const effectiveDays = attendanceData.filter(d => !d.isWeekend && !d.isHoliday).length
+  const hadirCount = attendanceData.filter(d => d.status === 'hadir' && !d.isWeekend && !d.isHoliday).length
+  const sakitIzinCount = attendanceData.filter(d => (d.status === 'sakit' || d.status === 'izin') && !d.isWeekend && !d.isHoliday).length
+  const alphaCount = attendanceData.filter(d => d.status === 'alpha' && !d.isWeekend && !d.isHoliday).length
 
-        <Tabs value={attendanceType} onValueChange={(v) => setAttendanceType(v as "student" | "teacher")}>
-          <TabsList>
-            <TabsTrigger value="student" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Absensi Siswa
-            </TabsTrigger>
-            <TabsTrigger value="teacher" className="flex items-center gap-2">
-              <GraduationCap className="h-4 w-4" />
-              Absensi Guru
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="student" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Data Absensi Siswa ({filteredAttendance.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-8 h-8 animate-spin" />
-                  </div>
-                ) : filteredAttendance.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Tidak ada data absensi siswa
-                  </div>
-                ) : (
-                  <div className="rounded-md border overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Tanggal</TableHead>
-                          <TableHead>Nama Siswa</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Jam Masuk</TableHead>
-                          <TableHead>Jam Keluar</TableHead>
-                          <TableHead>Catatan</TableHead>
-                          <TableHead className="text-right">Aksi</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredAttendance.map((att: any) => (
-                          <TableRow key={att.id}>
-                            <TableCell>{att.date}</TableCell>
-                            <TableCell className="font-medium">{att.studentName}</TableCell>
-                            <TableCell>{getStatusBadge(att.status)}</TableCell>
-                            <TableCell>{att.checkInTime || "-"}</TableCell>
-                            <TableCell>{att.checkOutTime || "-"}</TableCell>
-                            <TableCell className="max-w-[200px] truncate">{att.notes || "-"}</TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleEditAttendance(att)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleDeleteAttendance(att)}
-                                >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="teacher" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <GraduationCap className="h-5 w-5" />
-                  Data Absensi Guru ({filteredAttendance.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-8 h-8 animate-spin" />
-                  </div>
-                ) : filteredAttendance.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Tidak ada data absensi guru
-                  </div>
-                ) : (
-                  <div className="rounded-md border overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Tanggal</TableHead>
-                          <TableHead>Nama Guru</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Jam Masuk</TableHead>
-                          <TableHead>Jam Keluar</TableHead>
-                          <TableHead>Catatan</TableHead>
-                          <TableHead className="text-right">Aksi</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredAttendance.map((att: any) => (
-                          <TableRow key={att.id}>
-                            <TableCell>{att.date}</TableCell>
-                            <TableCell className="font-medium">{att.teacherName}</TableCell>
-                            <TableCell>{getStatusBadge(att.status)}</TableCell>
-                            <TableCell>{att.checkInTime || "-"}</TableCell>
-                            <TableCell>{att.checkOutTime || "-"}</TableCell>
-                            <TableCell className="max-w-[200px] truncate">{att.notes || "-"}</TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleEditAttendance(att)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleDeleteAttendance(att)}
-                                >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        {/* Edit Dialog */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Edit Absensi</DialogTitle>
-              <DialogDescription>
-                Perbarui data absensi {attendanceType === "student" ? "siswa" : "guru"}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit}>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status *</Label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value) => setFormData({ ...formData, status: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hadir">Hadir</SelectItem>
-                      <SelectItem value="izin">Izin</SelectItem>
-                      <SelectItem value="sakit">Sakit</SelectItem>
-                      <SelectItem value="alpha">Alpha</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="checkInTime">Jam Masuk</Label>
-                    <Input
-                      id="checkInTime"
-                      type="time"
-                      value={formData.checkInTime}
-                      onChange={(e) => setFormData({ ...formData, checkInTime: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="checkOutTime">Jam Keluar</Label>
-                    <Input
-                      id="checkOutTime"
-                      type="time"
-                      value={formData.checkOutTime}
-                      onChange={(e) => setFormData({ ...formData, checkOutTime: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Catatan</Label>
-                  <Input
-                    id="notes"
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="Keterangan tambahan..."
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setDialogOpen(false)}
-                >
-                  Batal
-                </Button>
-                <Button type="submit" disabled={submitting}>
-                  {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Simpan
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Confirmation Dialog */}
-        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Hapus Absensi?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Apakah Anda yakin ingin menghapus data absensi ini? Tindakan ini tidak dapat dibatalkan.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Batal</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDelete}>Hapus</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-    </DashboardLayout>
-  )
-}
+  const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']

@@ -176,8 +176,14 @@ const menuItems = {
       title: "Akademik",
       items: [
         { href: "/dashboard/admin/perencanaan", icon: BookOpen, label: "Perencanaan Pembelajaran" },
-        { href: "/dashboard/admin/absensi", icon: Calendar, label: "Absensi Sekolah" },
         { href: "/dashboard/admin/pengumuman", icon: Bell, label: "Pengumuman" },
+      ]
+    },
+    {
+      title: "Absensi",
+      items: [
+        { href: "/dashboard/admin/absensi", icon: Users, label: "Absensi Siswa" },
+        { href: "/dashboard/admin/absensi-guru", icon: GraduationCap, label: "Absensi Guru" },
       ]
     },
     {
