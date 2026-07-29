@@ -580,6 +580,7 @@ export default function KepsekAbsensiPage() {
                     <ClipboardList className="h-5 w-5" />
                     Detail Absensi Siswa
                   </CardTitle>
+		  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full sm:w-auto">
 		    <div className="flex items-center gap-2">
                       <span className="text-sm font-medium whitespace-nowrap">Siswa:</span>
                       <Select value={detailStudentId} onValueChange={handleDetailStudentChange}>
@@ -596,7 +597,6 @@ export default function KepsekAbsensiPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full sm:w-auto">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium whitespace-nowrap">Kelas:</span>
                       <Select value={detailClassId} onValueChange={handleDetailClassChange}>
