@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Users, GraduationCap, CheckCircle2, AlertCircle, Download, CalendarClock, Loader2, Eye } from "lucide-react"
-import Link from "next/link"
+import { Users, GraduationCap, CheckCircle2, AlertCircle, Download, CalendarClock, Loader2, ClipboardList } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 
 interface ClassAttendance {
@@ -74,6 +74,32 @@ interface AbsensiData {
   availableMonths: string[]
 }
 
+interface DetailClass {
+  id: string
+  name: string
+  studentCount: number
+}
+
+interface DetailRecord {
+  id: string
+  date: string
+  studentName: string
+  studentId: string
+  status: string
+  checkInTime: string
+  checkOutTime: string
+  notes: string
+  isHoliday: boolean
+}
+
+interface DetailData {
+  classes: DetailClass[]
+  selectedClass: DetailClass | null
+  month: string
+  records: DetailRecord[]
+  availableMonths: string[]
+}
+
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr + 'T00:00:00')
   return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -83,6 +109,14 @@ function formatMonth(monthStr: string): string {
   const [year, month] = monthStr.split('-')
   const date = new Date(Number(year), Number(month) - 1, 1)
   return date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+}
+
+function formatDateShort(dateStr: string): string {
+  const date = new Date(dateStr + 'T00:00:00')
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const year = date.getFullYear()
+  return `${day}/${month}/${year}`
 }
 
 function getPercentColor(percent: number): string {
@@ -106,11 +140,32 @@ function getStatusIcon(status: string) {
   }
 }
 
+function getStatusBadge(status: string) {
+  switch (status) {
+    case 'hadir':
+      return <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200">Hadir</Badge>
+    case 'izin':
+      return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-blue-200">Izin</Badge>
+    case 'sakit':
+      return <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100 border-orange-200">Sakit</Badge>
+    case 'alpha':
+      return <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-red-200">Alpha</Badge>
+    default:
+      return <Badge variant="secondary">-</Badge>
+  }
+}
+
 export default function KepsekAbsensiPage() {
   const [data, setData] = useState<AbsensiData | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState("")
   const [selectedMonth, setSelectedMonth] = useState("")
+
+  // Detail tab states
+  const [detailData, setDetailData] = useState<DetailData | null>(null)
+  const [detailLoading, setDetailLoading] = useState(true)
+  const [detailClassId, setDetailClassId] = useState<string>("")
+  const [detailMonth, setDetailMonth] = useState<string>("")
 
   const fetchData = async (date?: string, month?: string) => {
     try {
@@ -134,9 +189,49 @@ export default function KepsekAbsensiPage() {
     }
   }
 
+  const fetchDetailData = async (classId?: string, month?: string) => {
+    try {
+      setDetailLoading(true)
+      const params = new URLSearchParams()
+      if (classId) params.set('classId', classId)
+      if (month) params.set('month', month)
+
+      const response = await fetch(`/api/kepsek/absensi/detail?${params.toString()}`)
+      const result = await response.json()
+
+      if (result.success) {
+        setDetailData(result.data)
+        if (result.data.selectedClass && !classId) {
+          setDetailClassId(result.data.selectedClass.id)
+        }
+        if (!month && result.data.month) {
+          setDetailMonth(result.data.month)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching detail data:', error)
+    } finally {
+      setDetailLoading(false)
+    }
+  }
+
   useEffect(() => {
     fetchData()
   }, [])
+
+  useEffect(() => {
+    fetchDetailData()
+  }, [])
+
+  const handleDetailClassChange = (value: string) => {
+    setDetailClassId(value)
+    fetchDetailData(value, detailMonth)
+  }
+
+  const handleDetailMonthChange = (value: string) => {
+    setDetailMonth(value)
+    fetchDetailData(detailClassId, value)
+  }
 
   if (loading) {
     return (
@@ -158,7 +253,7 @@ export default function KepsekAbsensiPage() {
     )
   }
 
-  const { summary, classAttendance, teacherDailyData, monthlyStudentRecap, monthlyTeacherRecap } = data
+  const { summary, classAttendance, teacherDailyData, monthlyStudentRecap, monthlyTeacherRecap, availableDates, availableMonths } = data
 
   return (
     <DashboardLayout role="kepsek" userName="Kepala Sekolah">
@@ -166,7 +261,9 @@ export default function KepsekAbsensiPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Monitoring Absensi Sekolah</h1>
-            <p className="text-muted-foreground mt-2">Pantau kehadiran siswa dan guru</p>
+            <p className="text-muted-foreground mt-2">
+              Pantau kehadiran siswa dan guru
+            </p>
           </div>
           <div className="flex gap-2">
             <Input
@@ -230,10 +327,11 @@ export default function KepsekAbsensiPage() {
         </div>
 
         <Tabs defaultValue="siswa" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="siswa">Absensi Siswa</TabsTrigger>
             <TabsTrigger value="guru">Absensi Guru</TabsTrigger>
             <TabsTrigger value="rekap">Rekap Bulanan</TabsTrigger>
+            <TabsTrigger value="detail">Detail Siswa</TabsTrigger>
           </TabsList>
 
           {/* Absensi Siswa */}
@@ -259,7 +357,6 @@ export default function KepsekAbsensiPage() {
                           <TableHead className="text-center text-red-600">Alpha</TableHead>
                           <TableHead className="text-center">Persentase</TableHead>
                           <TableHead className="text-right">Status</TableHead>
-                          <TableHead className="text-center">Aksi</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -292,14 +389,6 @@ export default function KepsekAbsensiPage() {
                                   <span className="text-sm text-yellow-600">Belum Lengkap</span>
                                 </div>
                               )}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Link href={`/dashboard/kepsek/absensi/view?classId=${cls.classId}`}>
-                                <Button variant="ghost" size="sm">
-                                  <Eye className="h-4 w-4 mr-1" />
-                                  Lihat
-                                </Button>
-                              </Link>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -380,6 +469,7 @@ export default function KepsekAbsensiPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
+                  {/* Rekap Siswa */}
                   <div>
                     <h3 className="font-semibold mb-3">Rekap Absensi Siswa per Kelas</h3>
                     {monthlyStudentRecap.length > 0 ? (
@@ -422,6 +512,7 @@ export default function KepsekAbsensiPage() {
                     )}
                   </div>
 
+                  {/* Rekap Guru */}
                   <div>
                     <h3 className="font-semibold mb-3">Rekap Absensi Guru</h3>
                     {monthlyTeacherRecap.length > 0 ? (
@@ -464,6 +555,153 @@ export default function KepsekAbsensiPage() {
                     )}
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Detail Siswa */}
+          <TabsContent value="detail" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <CardTitle className="flex items-center gap-2">
+                    <ClipboardList className="h-5 w-5" />
+                    Detail Absensi Siswa
+                  </CardTitle>
+                  <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium whitespace-nowrap">Pilih Kelas:</span>
+                      <Select value={detailClassId} onValueChange={handleDetailClassChange}>
+                        <SelectTrigger className="w-[140px]">
+                          <SelectValue placeholder="Pilih kelas..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {detailData?.classes.map((cls) => (
+                            <SelectItem key={cls.id} value={cls.id}>
+                              {cls.name} ({cls.studentCount} siswa)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium whitespace-nowrap">Pilih Bulan:</span>
+                      <Select value={detailMonth} onValueChange={handleDetailMonthChange}>
+                        <SelectTrigger className="w-[160px]">
+                          <SelectValue placeholder="Pilih bulan..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {detailData?.availableMonths.map((m) => (
+                            <SelectItem key={m} value={m}>
+                              {formatMonth(m)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {detailLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin" />
+                  </div>
+                ) : detailData && detailData.records.length > 0 ? (
+                  <>
+                    <div className="rounded-md border overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[130px]">Tanggal</TableHead>
+                            <TableHead className="min-w-[200px]">Nama Siswa</TableHead>
+                            <TableHead className="text-center w-[100px]">Status</TableHead>
+                            <TableHead className="text-center w-[110px]">Jam Masuk</TableHead>
+                            <TableHead className="text-center w-[110px]">Jam Pulang</TableHead>
+                            <TableHead className="min-w-[180px]">Keterangan</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {detailData.records.map((record) => (
+                            <TableRow key={record.id}>
+                              <TableCell className="font-mono text-sm">
+                                {formatDateShort(record.date)}
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                {record.studentName}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {getStatusBadge(record.status)}
+                              </TableCell>
+                              <TableCell className="text-center font-mono text-sm">
+                                {record.checkInTime !== '-' ? record.checkInTime : <span className="text-muted-foreground">-</span>}
+                              </TableCell>
+                              <TableCell className="text-center font-mono text-sm">
+                                {record.checkOutTime !== '-' ? record.checkOutTime : <span className="text-muted-foreground">-</span>}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {record.notes !== '-' ? record.notes : <span className="text-muted-foreground">-</span>}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* Summary stats */}
+                    <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-200">
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        <div>
+                          <div className="text-sm font-medium text-green-700">
+                            {detailData.records.filter(r => r.status === 'hadir').length}
+                          </div>
+                          <div className="text-xs text-green-600">Hadir</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 border border-blue-200">
+                        <AlertCircle className="h-4 w-4 text-blue-600" />
+                        <div>
+                          <div className="text-sm font-medium text-blue-700">
+                            {detailData.records.filter(r => r.status === 'izin').length}
+                          </div>
+                          <div className="text-xs text-blue-600">Izin</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 p-3 rounded-lg bg-orange-50 border border-orange-200">
+                        <AlertCircle className="h-4 w-4 text-orange-600" />
+                        <div>
+                          <div className="text-sm font-medium text-orange-700">
+                            {detailData.records.filter(r => r.status === 'sakit').length}
+                          </div>
+                          <div className="text-xs text-orange-600">Sakit</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200">
+                        <AlertCircle className="h-4 w-4 text-red-600" />
+                        <div>
+                          <div className="text-sm font-medium text-red-700">
+                            {detailData.records.filter(r => r.status === 'alpha').length}
+                          </div>
+                          <div className="text-xs text-red-600">Alpha</div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-16 px-6 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
+                    <div className="flex items-center justify-center w-20 h-20 rounded-full bg-white shadow-sm border border-slate-200 mb-5">
+                      <ClipboardList className="w-10 h-10 text-slate-400" />
+                    </div>
+                    <p className="text-lg font-bold text-slate-700">Belum ada data absensi</p>
+                    <p className="text-sm mt-2 text-slate-500 text-center max-w-md">
+                      {detailData?.selectedClass
+                        ? `Data absensi untuk Kelas ${detailData.selectedClass.name} bulan ${detailMonth ? formatMonth(detailMonth) : 'ini'} belum tersedia. Data akan muncul di sini setelah guru menginput absensi siswa.`
+                        : 'Pilih kelas untuk melihat detail absensi siswa.'
+                      }
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
