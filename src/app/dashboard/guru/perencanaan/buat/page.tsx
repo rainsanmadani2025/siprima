@@ -289,6 +289,59 @@ function BuatRPPContent() {
     const templateId = searchParams.get("templateId")
     if (templateId) handleTemplateChange(templateId)
   }, [searchParams])
+
+  // Auto-fill data profil guru & sekolah saat halaman dimuat
+  useEffect(() => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null
+    if (!userId) return
+
+    const loadProfileData = async () => {
+      try {
+        // 1. Ambil data sekolah (nama & alamat)
+        const schoolRes = await fetch('/api/school/profile')
+        const schoolData = await schoolRes.json()
+        if (schoolData.success && schoolData.school) {
+          setFormData(prev => ({
+            ...prev,
+            namaSekolah: schoolData.school.name || prev.namaSekolah,
+            alamatSekolah: schoolData.school.address || prev.alamatSekolah,
+          }))
+        }
+
+        // 2. Ambil nama guru
+        const teacherRes = await fetch(`/api/guru/profile?userId=${userId}`)
+        const teacherData = await teacherRes.json()
+        if (teacherData.success && teacherData.teacher) {
+          setFormData(prev => ({
+            ...prev,
+            guru: teacherData.teacher.name || prev.guru,
+          }))
+        }
+
+        // 3. Ambil kelas guru
+        const classRes = await fetch(`/api/classes/teacher?userId=${userId}`)
+        const classData = await classRes.json()
+        if (classData.success && classData.teacherClasses && classData.teacherClasses.length > 0) {
+          setFormData(prev => ({
+            ...prev,
+            kelas: classData.teacherClasses[0].name || prev.kelas,
+          }))
+        }
+
+        // 4. Set hari otomatis
+        const hariIni = new Date().toLocaleDateString("id-ID", { weekday: "long" })
+        setFormData(prev => ({
+          ...prev,
+          hari: hariIni,
+        }))
+      } catch (error) {
+        console.error('Error loading profile data:', error)
+      }
+    }
+
+    loadProfileData()
+  }, [])
+
   return (
     <DashboardLayout role="guru" userName="Ibu Guru">
       <div className="space-y-6">
