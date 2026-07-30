@@ -955,7 +955,18 @@ export default function BuatRPPPage() {
                   <Label className="font-medium">Eksplorasi</Label>
                   <Textarea
                     value={formData.langkahPembelajaran.kegiatanInti.eksplorasi}
-                    onChange={(e) => setFormData({...formData, langkahPembelajaran: {...formData.langkahPembelajaran, kegiatanInti: {...formData.langkahPembelajaran.kegiatanInti, eksplorasi: e.target.value}})}
+                    onChange={(e) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        langkahPembelajaran: {
+                          ...prev.langkahPembelajaran,
+                          kegiatanInti: {
+                            ...prev.langkahPembelajaran.kegiatanInti,
+                            eksplorasi: e.target.value
+                          }
+                        }
+                      }))
+                    }}
                     rows={4}
                     placeholder="Kegiatan eksplorasi..."
                   />
@@ -965,7 +976,18 @@ export default function BuatRPPPage() {
                   <Label className="font-medium">Bermain</Label>
                   <Textarea
                     value={formData.langkahPembelajaran.kegiatanInti.bermain}
-                    onChange={(e) => setFormData({...formData, langkahPembelajaran: {...formData.langkahPembelajaran, kegiatanInti: {...formData.langkahPembelajaran.kegiatanInti, bermain: e.target.value}})}
+                    onChange={(e) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        langkahPembelajaran: {
+                          ...prev.langkahPembelajaran,
+                          kegiatanInti: {
+                            ...prev.langkahPembelajaran.kegiatanInti,
+                            bermain: e.target.value
+                          }
+                        }
+                      }))
+                    }}
                     rows={4}
                     placeholder="Kegiatan bermain..."
                   />
@@ -975,7 +997,18 @@ export default function BuatRPPPage() {
                   <Label className="font-medium">Berkarya</Label>
                   <Textarea
                     value={formData.langkahPembelajaran.kegiatanInti.berkarya}
-                    onChange={(e) => setFormData({...formData, langkahPembelajaran: {...formData.langkahPembelajaran, kegiatanInti: {...formData.langkahPembelajaran.kegiatanInti, berkarya: e.target.value}})}
+                    onChange={(e) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        langkahPembelajaran: {
+                          ...prev.langkahPembelajaran,
+                          kegiatanInti: {
+                            ...prev.langkahPembelajaran.kegiatanInti,
+                            berkarya: e.target.value
+                          }
+                        }
+                      }))
+                    }}
                     rows={4}
                     placeholder="Kegiatan berkarya..."
                   />
@@ -985,7 +1018,18 @@ export default function BuatRPPPage() {
                   <Label className="font-medium">Refleksi</Label>
                   <Textarea
                     value={formData.langkahPembelajaran.kegiatanInti.refleksi}
-                    onChange={(e) => setFormData({...formData, langkahPembelajaran: {...formData.langkahPembelajaran, kegiatanInti: {...formData.langkahPembelajaran.kegiatanInti, refleksi: e.target.value}})}
+                    onChange={(e) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        langkahPembelajaran: {
+                          ...prev.langkahPembelajaran,
+                          kegiatanInti: {
+                            ...prev.langkahPembelajaran.kegiatanInti,
+                            refleksi: e.target.value
+                          }
+                        }
+                      }))
+                    }}
                     rows={4}
                     placeholder="Kegiatan refleksi..."
                   />
