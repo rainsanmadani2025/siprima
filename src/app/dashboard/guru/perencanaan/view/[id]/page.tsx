@@ -150,7 +150,7 @@ export default function ViewRPPPage() {
         title: "Error",
         description: error.message || "Gagal mengambil detail RPP"
       })
-      router.push('/dashboard/guru/perencanaan')
+      router.back
     } finally {
       setLoading(false)
     }

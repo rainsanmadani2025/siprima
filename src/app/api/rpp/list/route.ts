@@ -1,59 +1,52 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-export async function GET(request: Request) {
+function safeJsonParse(value: string | null | undefined, fallback: any = {}): any {
+  if (!value) return fallback
+  try {
+    return JSON.parse(value)
+  } catch {
+    return fallback
+  }
+}
+
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const semester = searchParams.get('semester')
-    const tahunAjaran = searchParams.get('tahunAjaran')
-    const search = searchParams.get('search')
+    const id = searchParams.get('id')
 
-    const where: any = {}
-
-    if (semester) {
-      where.semester = semester
-    }
-    if (tahunAjaran) {
-      where.tahunAjaran = tahunAjaran
-    }
-    if (search) {
-      where.OR = [
-        { tema: { contains: search } },
-        { subtema: { contains: search } },
-        { judulKegiatan: { contains: search } }
-      ]
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'ID RPP diperlukan' },
+        { status: 400 }
+      )
     }
 
-    const rpps = await db.rPP.findMany({
-      where,
-      select: {
-        id: true,
-        tema: true,
-        subtema: true,
-        temaProjek: true,
-        judulKegiatan: true,
-        pokokBahasan: true,
-        fase: true,
-        kelompokUsia: true,
-        semester: true,
-        tahunAjaran: true,
-        hari: true,
-        jumlahPertemuan: true,
-        kelas: true,
-        guru: true,
-        namaSekolah: true,
-        alamatSekolah: true,
-        createdAt: true,
-        updatedAt: true
-      },
-      orderBy: { createdAt: 'desc' }
+    const rpp = await db.rPP.findUnique({
+      where: { id }
     })
 
-    return NextResponse.json({ success: true, rpps })
+    if (!rpp) {
+      return NextResponse.json(
+        { success: false, error: 'RPP tidak ditemukan' },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      rpp: {
+        ...rpp,
+        tujuanProfilLulusan: safeJsonParse(rpp.tujuanProfilLulusan),
+        kerangkaPembelajaran: safeJsonParse(rpp.kerangkaPembelajaran),
+        kegiatanPembelajaran: safeJsonParse(rpp.kegiatanPembelajaran),
+        rubrikPenilaian: safeJsonParse(rpp.rubrikPenilaian)
+      }
+    })
   } catch (error: any) {
-    console.error('Error fetching RPP list:', error)
+    console.error('Error fetching RPP detail:', error)
     return NextResponse.json(
-      { success: false, error: 'Gagal mengambil daftar RPP' },
+      { success: false, error: 'Gagal mengambil detail RPP' },
       { status: 500 }
     )
   }
