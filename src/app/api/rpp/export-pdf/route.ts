@@ -325,7 +325,7 @@ export async function POST(request: NextRequest) {
       const raDims = calculateDimensions(raLogo.width, raLogo.height, 110)
       getPage().drawImage(raLogo, {
         x: pageWidth - margin.right - raDims.width,
-        y: yPos - 44,
+        y: yPos - 66,
         width: raDims.width,
         height: raDims.height
       })
@@ -352,7 +352,7 @@ export async function POST(request: NextRequest) {
     const subtitle = 'Kurikulum Berbasis Cinta (KBC)'
     const subWidth = font.widthOfTextAtSize(subtitle, 10)
     drawText(subtitle, centerX - subWidth / 2, yPos, 10, false)
-    yPos -= 20
+    yPos -= 30
 
     getPage().drawLine({
       start: { x: margin.left, y: yPos },
