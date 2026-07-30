@@ -544,32 +544,23 @@ export async function POST(request: NextRequest) {
     yPos -= 25
 
     // Signature positions
-    const guruX = margin.left
-    const kepsekX = pageWidth - margin.right - 150
+    const kepsekX = margin.left
+    const guruX = pageWidth - margin.right - 150
     const sigWidth = 150
 
-    // "Guru Pembuat" label (left)
-    const guruLabel = 'Guru,'
-    drawText(guruLabel, guruX, yPos, 9, false)
-
-    // "Kepala Sekolah" label (right)
+    // "Kepala Sekolah" label (kiri)
     drawText('Mengetahui,', kepsekX, yPos, 9, false)
     yPos -= 12
     drawText('Kepala Sekolah,', kepsekX, yPos, 9, false)
 
+    // "Guru Pembuat" label (kanan)
+    const guruLabel = 'Guru Pembuat,'
+    drawText(guruLabel, guruX, yPos, 9, false)
+
     // Space for signature (60px gap)
     yPos -= 60
 
-    // Teacher name
-    const teacherName = (rppData.guru || '................................').replace(/[^\x20-\x7E]/g, '')
-    drawText(teacherName, guruX, yPos, 9, true)
-    getPage().drawLine({
-      start: { x: guruX, y: yPos - 3 },
-      end: { x: guruX + sigWidth, y: yPos - 3 },
-      thickness: 0.5, color: rgb(0, 0, 0)
-    })
-
-    // Principal name
+    // Principal name (kiri)
     const cleanKepsek = kepsekName.replace(/[^\x20-\x7E]/g, '')
     drawText(cleanKepsek, kepsekX, yPos, 9, true)
     getPage().drawLine({
@@ -578,8 +569,32 @@ export async function POST(request: NextRequest) {
       thickness: 0.5, color: rgb(0, 0, 0)
     })
 
+    // Teacher name (kanan)
+    const teacherName = (rppData.guru || '................................').replace(/[^\x20-\x7E]/g, '')
+    drawText(teacherName, guruX, yPos, 9, true)
+    getPage().drawLine({
+      start: { x: guruX, y: yPos - 3 },
+      end: { x: guruX + sigWidth, y: yPos - 3 },
+      thickness: 0.5, color: rgb(0, 0, 0)
+    })
+
     // NUPTK below names
     yPos -= 13
     if (kepsekNuptk) {
       drawText(`NUPTK: ${kepsekNuptk}`, kepsekX, yPos, 7, false)
     }
+
+    const pdfBytes = await pdfDoc.save()
+
+    return new NextResponse(Buffer.from(pdfBytes), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="RPP-KBC-${(rppData.tema || 'Baru').replace(/[^a-zA-Z0-9]/g, '_')}-${new Date().toISOString().split('T')[0]}.pdf"`
+      }
+    })
+  } catch (error: any) {
+    console.error('Error exporting RPP KBC to PDF:', error)
+    return NextResponse.json({ success: false, error: 'Gagal mengekspor PDF: ' + (error.message || 'Unknown error') }, { status: 500 })
+  }
+}
