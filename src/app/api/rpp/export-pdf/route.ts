@@ -66,6 +66,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Fetch Kepala Sekolah info
+    let kepsekName = 'Kepala Sekolah'
+    let kepsekNuptk = ''
+    try {
+      const kepsekUser = await db.user.findFirst({
+        where: { role: 'KEPSEK', isActive: true },
+        include: { teacherProfile: { select: { nuptk: true } } }
+      })
+      if (kepsekUser) {
+        kepsekName = kepsekUser.name || 'Kepala Sekolah'
+        kepsekNuptk = kepsekUser.teacherProfile?.nuptk || ''
+      }
+    } catch (e) {
+      console.warn('[RPP-PDF] Could not fetch kepsek:', e)
+    }
+
     // Parse JSON fields (form sends stringified JSON)
     const parseJSON = (field: any): any => {
       if (!field) return {}
@@ -508,29 +524,62 @@ export async function POST(request: NextRequest) {
     drawParagraph(rppData.refleksiGuru || '-')
 
     // ============================================================
-    // FOOTER
+    // FOOTER WITH SIGNATURES
     // ============================================================
     yPos -= 10
-    if (!ensureSpace(40)) {
-      yPos -= 20
-    }
-    drawText('-'.repeat(70), margin.left, yPos, 8, false)
-    yPos -= 15
-    drawText('Rencana Pelaksanaan Pembelajaran Kurikulum Berbasis Cinta (KBC)', margin.left, yPos, 8, true)
-    yPos -= 12
-    drawText(`${rppData.namaSekolah || 'RA INSAN MADANI'} - ${rppData.tema || ''} : ${rppData.subtema || ''} - ${rppData.semester || 'Ganjil'} ${rppData.tahunAjaran || getCurrentAcademicYear()}`, margin.left, yPos, 8, true)
+    ensureSpace(120)
 
-    const pdfBytes = await pdfDoc.save()
-
-    return new NextResponse(Buffer.from(pdfBytes), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="RPP-KBC-${(rppData.tema || 'Baru').replace(/[^a-zA-Z0-9]/g, '_')}-${new Date().toISOString().split('T')[0]}.pdf"`
-      }
+    // Thin separator line
+    getPage().drawLine({
+      start: { x: margin.left, y: yPos },
+      end: { x: pageWidth - margin.right, y: yPos },
+      thickness: 0.5, color: rgb(0.5, 0.5, 0.5)
     })
-  } catch (error: any) {
-    console.error('Error exporting RPP KBC to PDF:', error)
-    return NextResponse.json({ success: false, error: 'Gagal mengekspor PDF: ' + (error.message || 'Unknown error') }, { status: 500 })
-  }
-}
+    yPos -= 8
+
+    // Footer info text
+    const footerInfo = `RPP KBC - ${rppData.namaSekolah || 'RA INSAN MADANI'} - ${rppData.tema || ''} : ${rppData.subtema || ''} - ${rppData.semester || 'Ganjil'} ${rppData.tahunAjaran || getCurrentAcademicYear()}`
+    const cleanFooter = footerInfo.replace(/[^\x20-\x7E]/g, '')
+    drawText(cleanFooter, margin.left, yPos, 7, false)
+    yPos -= 25
+
+    // Signature positions
+    const guruX = margin.left
+    const kepsekX = pageWidth - margin.right - 150
+    const sigWidth = 150
+
+    // "Guru Pembuat" label (left)
+    const guruLabel = 'Guru,'
+    drawText(guruLabel, guruX, yPos, 9, false)
+
+    // "Kepala Sekolah" label (right)
+    drawText('Mengetahui,', kepsekX, yPos, 9, false)
+    yPos -= 12
+    drawText('Kepala Sekolah,', kepsekX, yPos, 9, false)
+
+    // Space for signature (60px gap)
+    yPos -= 60
+
+    // Teacher name
+    const teacherName = (rppData.guru || '................................').replace(/[^\x20-\x7E]/g, '')
+    drawText(teacherName, guruX, yPos, 9, true)
+    getPage().drawLine({
+      start: { x: guruX, y: yPos - 3 },
+      end: { x: guruX + sigWidth, y: yPos - 3 },
+      thickness: 0.5, color: rgb(0, 0, 0)
+    })
+
+    // Principal name
+    const cleanKepsek = kepsekName.replace(/[^\x20-\x7E]/g, '')
+    drawText(cleanKepsek, kepsekX, yPos, 9, true)
+    getPage().drawLine({
+      start: { x: kepsekX, y: yPos - 3 },
+      end: { x: kepsekX + sigWidth, y: yPos - 3 },
+      thickness: 0.5, color: rgb(0, 0, 0)
+    })
+
+    // NUPTK below names
+    yPos -= 13
+    if (kepsekNuptk) {
+      drawText(`NUPTK: ${kepsekNuptk}`, kepsekX, yPos, 7, false)
+    }
