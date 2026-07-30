@@ -459,6 +459,7 @@ export async function POST(request: NextRequest) {
       media: 'Media Pembelajaran',
       bahan: 'Bahan Pembelajaran',
     }
+    yPos -= 5
     drawJsonItems(saranaMediaBahan, SARANA_LABELS)
 
     // ============================================================
