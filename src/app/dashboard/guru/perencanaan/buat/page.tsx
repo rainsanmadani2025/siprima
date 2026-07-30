@@ -92,6 +92,7 @@ function BuatRPPContent() {
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateKBC | null>(null)
   const [saving, setSaving] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("")
 
   const [formData, setFormData] = useState({
     namaSekolah: "RA INSAN MADANI",
@@ -166,7 +167,8 @@ function BuatRPPContent() {
   }
 
   const handleTemplateChange = async (templateId: string) => {
-    if (!templateId) return
+    if (!templateId || templateId === "empty") return
+    setSelectedTemplateId(templateId)
     try {
       const res = await fetch(`/api/template-kbc/detail?id=${templateId}`)
       const data = await res.json()
@@ -375,7 +377,7 @@ function BuatRPPContent() {
           <CardContent className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="w-full sm:w-48">
-                <Select value={kelompokUsiaFilter} onValueChange={setKelompokUsiaFilter}>
+                <Select value={kelompokUsiaFilter} onValueChange={(v) => {setKelompokUsiaFilter(v)setSelectedTemplateId("")}}>
                   <SelectTrigger><SelectValue placeholder="Kelompok Usia" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Kelompok</SelectItem>
@@ -385,7 +387,7 @@ function BuatRPPContent() {
                 </Select>
               </div>
               <div className="flex-1">
-                <Select onValueChange={handleTemplateChange}>
+                <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
                   <SelectTrigger><SelectValue placeholder="Pilih Template..." /></SelectTrigger>
                   <SelectContent>
                     {templates.length === 0 && <SelectItem value="empty" disabled>Belum ada template</SelectItem>}
