@@ -6,16 +6,40 @@ import { mapDbToKBC } from '@/lib/rpp-mapping'
 import fs from 'fs/promises'
 import path from 'path'
 
-async function loadLogo(pdfDoc: PDFDocument, filename: string) {
-  try {
-    const logoPath = path.join(process.cwd(), 'upload', filename)
-    const logoImageBytes = await fs.readFile(logoPath)
-    const logoImage = await pdfDoc.embedPng(logoImageBytes)
-    return logoImage
-  } catch (error) {
-    console.warn(`Failed to load ${filename}:`, error)
-    return null
+async function loadLogo(pdfDoc: PDFDocument, filename: string, altFilenames?: string[]) {
+  const candidates: string[] = [
+    path.join(process.cwd(), 'upload', filename),
+    path.join(process.cwd(), 'public', filename.toLowerCase().replace(/\s+/g, '-')),
+  ]
+  if (altFilenames) {
+    for (const alt of altFilenames) {
+      candidates.push(path.join(process.cwd(), 'upload', alt))
+      candidates.push(path.join(process.cwd(), 'public', alt.toLowerCase().replace(/\s+/g, '-')))
+    }
   }
+
+  for (const filePath of candidates) {
+    try {
+      const bytes = await fs.readFile(filePath)
+      try {
+        const img = await pdfDoc.embedPng(bytes)
+        console.log(`[RPP-PDF] Logo loaded (PNG): ${filePath}`)
+        return img
+      } catch {
+        try {
+          const img = await pdfDoc.embedJpg(bytes)
+          console.log(`[RPP-PDF] Logo loaded (JPG): ${filePath}`)
+          return img
+        } catch {
+          console.warn(`[RPP-PDF] File exists but not valid image: ${filePath}`)
+        }
+      }
+    } catch {
+      // File not found at this path, try next candidate
+    }
+  }
+  console.error(`[RPP-PDF] All logo load attempts failed for: ${filename}`)
+  return null
 }
 
 function calculateDimensions(originalWidth: number, originalHeight: number, targetSize: number) {
@@ -61,8 +85,8 @@ export async function POST(request: NextRequest) {
     // ============================================================
     const pdfDoc = await PDFDocument.create()
     // Load logos
-    const kemenagLogo = await loadLogo(pdfDoc, 'Logo Kemenag.png')
-    const raLogo = await loadLogo(pdfDoc, 'LOGO RA.png')
+    const kemenagLogo = await loadLogo(pdfDoc, 'Logo Kemenag.png', ['logo-kemenag.png'])
+    const raLogo = await loadLogo(pdfDoc, 'LOGO RA.png', ['logo-ra.png'])
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
 
