@@ -3,6 +3,29 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import { getCurrentAcademicYear } from '@/lib/semester-utils'
 import { db } from '@/lib/db'
 import { mapDbToKBC } from '@/lib/rpp-mapping'
+import fs from 'fs/promises'
+import path from 'path'
+
+async function loadLogo(pdfDoc: PDFDocument, filename: string) {
+  try {
+    const logoPath = path.join(process.cwd(), 'upload', filename)
+    const logoImageBytes = await fs.readFile(logoPath)
+    const logoImage = await pdfDoc.embedPng(logoImageBytes)
+    return logoImage
+  } catch (error) {
+    console.warn(`Failed to load ${filename}:`, error)
+    return null
+  }
+}
+
+function calculateDimensions(originalWidth: number, originalHeight: number, targetSize: number) {
+  const aspectRatio = originalWidth / originalHeight
+  if (aspectRatio > 1) {
+    return { width: targetSize, height: targetSize / aspectRatio }
+  } else {
+    return { width: targetSize * aspectRatio, height: targetSize }
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,6 +60,9 @@ export async function POST(request: NextRequest) {
     // PDF SETUP
     // ============================================================
     const pdfDoc = await PDFDocument.create()
+    // Load logos
+    const kemenagLogo = await loadLogo(pdfDoc, 'Logo Kemenag.png')
+    const raLogo = await loadLogo(pdfDoc, 'LOGO RA.png')
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
 
@@ -255,28 +281,53 @@ export async function POST(request: NextRequest) {
     }
 
     // ============================================================
-    // HEADER
+    // HEADER WITH LOGOS
     // ============================================================
+    const centerX = pageWidth / 2
+
+    // Draw Kemenag logo (left)
+    if (kemenagLogo) {
+      const kemenagDims = calculateDimensions(kemenagLogo.width, kemenagLogo.height, 65)
+      getPage().drawImage(kemenagLogo, {
+        x: margin.left,
+        y: yPos - 20,
+        width: kemenagDims.width,
+        height: kemenagDims.height
+      })
+    }
+
+    // Draw RA logo (right)
+    if (raLogo) {
+      const raDims = calculateDimensions(raLogo.width, raLogo.height, 110)
+      getPage().drawImage(raLogo, {
+        x: pageWidth - margin.right - raDims.width,
+        y: yPos - 44,
+        width: raDims.width,
+        height: raDims.height
+      })
+    }
+
+    // Draw school name (center)
     const schoolName = (rppData.namaSekolah || 'RA INSAN MADANI').replace(/[^\x20-\x7E]/g, '')
     const nameWidth = fontBold.widthOfTextAtSize(schoolName, 14)
-    drawText(schoolName, (pageWidth - nameWidth) / 2, yPos, 14, true)
+    drawText(schoolName, centerX - nameWidth / 2, yPos, 14, true)
     yPos -= 20
 
     if (rppData.alamatSekolah) {
       const addr = rppData.alamatSekolah.replace(/[^\x20-\x7E]/g, '')
       const addrWidth = font.widthOfTextAtSize(addr, 8)
-      drawText(addr, (pageWidth - addrWidth) / 2, yPos, 8, false)
+      drawText(addr, centerX - addrWidth / 2, yPos, 8, false)
       yPos -= 15
     }
 
     const title = 'Rencana Pelaksanaan Pembelajaran'
     const titleWidth = fontBold.widthOfTextAtSize(title, 11)
-    drawText(title, (pageWidth - titleWidth) / 2, yPos, 11, true)
+    drawText(title, centerX - titleWidth / 2, yPos, 11, true)
     yPos -= 15
 
     const subtitle = 'Kurikulum Berbasis Cinta (KBC)'
     const subWidth = font.widthOfTextAtSize(subtitle, 10)
-    drawText(subtitle, (pageWidth - subWidth) / 2, yPos, 10, false)
+    drawText(subtitle, centerX - subWidth / 2, yPos, 10, false)
     yPos -= 20
 
     getPage().drawLine({
