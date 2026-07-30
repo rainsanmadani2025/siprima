@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Search, Eye, Trash2, BookOpen, RefreshCw, Loader2 } from "lucide-react"
+import { ArrowLeft, Search, Eye, Trash2, FileText, RefreshCw, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 
@@ -607,7 +607,7 @@ export default function BankTemplateKBCPage() {
         ) : templates.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
-              <BookOpen className="h-16 w-16 mx-auto text-muted-foreground/40" />
+              <FileText className="h-16 w-16 mx-auto text-muted-foreground/40" />
               <p className="text-muted-foreground mt-4 text-lg font-medium">
                 Belum ada template
               </p>
@@ -657,7 +657,7 @@ export default function BankTemplateKBCPage() {
                       className="flex-1"
                       onClick={() => handleGunakan(template.id)}
                     >
-                      <BookOpen className="h-4 w-4 mr-1" />
+                      <FileText className="h-4 w-4 mr-1" />
                       Gunakan
                     </Button>
                     <Button
@@ -683,7 +683,7 @@ export default function BankTemplateKBCPage() {
         <DialogContent className="max-w-3xl max-h-[90vh] p-0">
           <DialogHeader className="p-6 pb-0">
             <DialogTitle className="flex items-center gap-2 text-lg">
-              <BookOpen className="h-5 w-5 text-primary" />
+              <FileText className="h-5 w-5 text-primary" />
               Detail Template KBC
             </DialogTitle>
             <DialogDescription>
