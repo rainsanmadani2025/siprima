@@ -377,7 +377,11 @@ function BuatRPPContent() {
           <CardContent className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="w-full sm:w-48">
-                <Select value={kelompokUsiaFilter} onValueChange={(v) => {setKelompokUsiaFilter(v)setSelectedTemplateId("")}}>
+                <Select value={kelompokUsiaFilter} 
+		onValueChange={(v) => {
+		  setKelompokUsiaFilter(v)
+		  setSelectedTemplateId("")
+		}}>
                   <SelectTrigger><SelectValue placeholder="Kelompok Usia" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Kelompok</SelectItem>
