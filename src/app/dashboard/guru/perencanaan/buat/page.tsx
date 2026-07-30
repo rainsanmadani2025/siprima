@@ -96,7 +96,7 @@ function BuatRPPContent() {
 
   const [formData, setFormData] = useState({
     namaSekolah: "RA INSAN MADANI",
-    alamatSekolah: "",
+    alamatSekolah: "Jl. Apel RT.06 RW. 01 Rancakendal Kel. Cigadung Cibeunying Kaler Kota Bandung",
     kelompokUsia: "Kelompok A (4-5 Tahun)",
     semester: getCurrentSemester(),
     tahunAjaran: getCurrentAcademicYear(),
@@ -313,7 +313,6 @@ function BuatRPPContent() {
         // Update semua field sekali gus
         setFormData(prev => ({
           ...prev,
-          namaSekolah: schoolData.success ? (schoolData.school.name || prev.namaSekolah) : prev.namaSekolah,
           alamatSekolah: schoolData.success ? (schoolData.school.address || prev.alamatSekolah) : prev.alamatSekolah,
           guru: teacherData.success ? (teacherData.teacher.name || prev.guru) : prev.guru,
           kelas: classData.success && classData.teacherClasses && classData.teacherClasses.length > 0
@@ -334,7 +333,7 @@ function BuatRPPContent() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} className="shrink-0">
+          <Button variant="ghost" size="icon" onClick={() => router.push("/dashboard/guru/perencanaan")} className="shrink-0">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
