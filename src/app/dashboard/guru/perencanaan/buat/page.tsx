@@ -297,42 +297,29 @@ function BuatRPPContent() {
 
     const loadProfileData = async () => {
       try {
-        // 1. Ambil data sekolah (nama & alamat)
-        const schoolRes = await fetch('/api/school/profile')
-        const schoolData = await schoolRes.json()
-        if (schoolData.success && schoolData.school) {
-          setFormData(prev => ({
-            ...prev,
-            namaSekolah: schoolData.school.name || prev.namaSekolah,
-            alamatSekolah: schoolData.school.address || prev.alamatSekolah,
-          }))
-        }
+        // Panggil semua API secara paralel
+        const [schoolRes, teacherRes, classRes] = await Promise.all([
+          fetch('/api/school/profile'),
+          fetch(`/api/guru/profile?userId=${userId}`),
+          fetch(`/api/classes/teacher?userId=${userId}`),
+        ])
 
-        // 2. Ambil nama guru
-        const teacherRes = await fetch(`/api/guru/profile?userId=${userId}`)
-        const teacherData = await teacherRes.json()
-        if (teacherData.success && teacherData.teacher) {
-          setFormData(prev => ({
-            ...prev,
-            guru: teacherData.teacher.name || prev.guru,
-          }))
-        }
+        const [schoolData, teacherData, classData] = await Promise.all([
+          schoolRes.json(),
+          teacherRes.json(),
+          classRes.json(),
+        ])
 
-        // 3. Ambil kelas guru
-        const classRes = await fetch(`/api/classes/teacher?userId=${userId}`)
-        const classData = await classRes.json()
-        if (classData.success && classData.teacherClasses && classData.teacherClasses.length > 0) {
-          setFormData(prev => ({
-            ...prev,
-            kelas: classData.teacherClasses[0].name || prev.kelas,
-          }))
-        }
-
-        // 4. Set hari otomatis
-        const hariIni = new Date().toLocaleDateString("id-ID", { weekday: "long" })
+        // Update semua field sekali gus
         setFormData(prev => ({
           ...prev,
-          hari: hariIni,
+          namaSekolah: schoolData.success ? (schoolData.school.name || prev.namaSekolah) : prev.namaSekolah,
+          alamatSekolah: schoolData.success ? (schoolData.school.address || prev.alamatSekolah) : prev.alamatSekolah,
+          guru: teacherData.success ? (teacherData.teacher.name || prev.guru) : prev.guru,
+          kelas: classData.success && classData.teacherClasses && classData.teacherClasses.length > 0
+            ? (classData.teacherClasses[0].name || prev.kelas)
+            : prev.kelas,
+          hari: new Date().toLocaleDateString("id-ID", { weekday: "long" }),
         }))
       } catch (error) {
         console.error('Error loading profile data:', error)
