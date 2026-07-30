@@ -9,34 +9,14 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    // Extract new frontend field names
     const {
-      tema,
-      subtema,
-      capaianPembelajaran,
-      refleksiGuru,
-      tindakLanjut,
-      fase,
-      kelompokUsia,
-      semester,
-      tahunAjaran,
-      hari,
-      jumlahPertemuan,
-      kelas,
-      guru,
-      nilaiCinta,
-      dimensiKelulusan,
-      pemahamanBermakna,
-      pertanyaanPemantik,
-      tujuanPembelajaran,
-      saranaMediaBahan,
-      langkahPembelajaran,
-      asesmen,
-      namaSekolah,
-      alamatSekolah
+      tema, subtema, capaianPembelajaran, refleksiGuru, tindakLanjut,
+      fase, kelompokUsia, semester, tahunAjaran, hari, jumlahPertemuan,
+      kelas, guru, nilaiCinta, dimensiKelulusan, pemahamanBermakna,
+      pertanyaanPemantik, tujuanPembelajaran, saranaMediaBahan,
+      langkahPembelajaran, asesmen, namaSekolah, alamatSekolah
     } = body
 
-    // Validate required fields
     if (!tema || !subtema) {
       return NextResponse.json(
         { success: false, error: 'Field wajib harus diisi: Tema dan Subtema' },
@@ -44,17 +24,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Map new frontend fields to existing database columns
-    // capaianPembelajaran → temaProjek column
-    // refleksiGuru → judulKegiatan column
-    // tindakLanjut → pokokBahasan column
-    // nilaiCinta → tujuanKBC column (JSON string)
-    // dimensiKelulusan → tujuanProfilLulusan column (JSON string)
-    // pemahamanBermakna → tujuanPembelajaranMendalam column
-    // pertanyaanPemantik → materiIntegrasiKBC column
-    // saranaMediaBahan → kerangkaPembelajaran column (JSON string)
-    // langkahPembelajaran → kegiatanPembelajaran column (JSON string)
-    // asesmen → rubrikPenilaian column (JSON string)
+    // Field mapping (KBC frontend → existing DB columns):
+    // capaianPembelajaran → temaProjek
+    // refleksiGuru → judulKegiatan
+    // tindakLanjut → pokokBahasan
+    // nilaiCinta → tujuanKBC (JSON)
+    // dimensiKelulusan → tujuanProfilLulusan (JSON)
+    // pemahamanBermakna → tujuanPembelajaranMendalam
+    // pertanyaanPemantik → materiIntegrasiKBC
+    // saranaMediaBahan → kerangkaPembelajaran (JSON)
+    // langkahPembelajaran → kegiatanPembelajaran (JSON)
+    // asesmen → rubrikPenilaian (JSON)
 
     const tujuanKBCJson = typeof nilaiCinta === 'string'
       ? nilaiCinta
@@ -76,7 +56,6 @@ export async function POST(request: NextRequest) {
       ? asesmen
       : JSON.stringify({ asesmen: asesmen || '' })
 
-    // Check if RPP with same tema, semester, and tahunAjaran already exists
     const existingRPP = await db.rPP.findFirst({
       where: {
         tema,
@@ -113,14 +92,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (existingRPP) {
-      // Update existing RPP
       const updatedRPP = await db.rPP.update({
         where: { id: existingRPP.id },
         data: rppData
       })
       rppId = updatedRPP.id
     } else {
-      // Create new RPP
       const newRPP = await db.rPP.create({
         data: {
           tema,
