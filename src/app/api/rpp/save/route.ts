@@ -1,65 +1,109 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { getCurrentAcademicYear } from '@/lib/semester-utils'
+
+// RPP Save API - Using Prisma ORM
+// Maps new KBC frontend field names to existing database columns
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
+    // Extract new frontend field names
     const {
-      tema, subtema, temaProjek, judulKegiatan, pokokBahasan,
-      fase, kelompokUsia, semester, tahunAjaran, hari, jumlahPertemuan,
-      kelas, guru, topikKBC, profilLulusan, tujuanKBC, tujuanProfilLulusan,
-      tujuanPembelajaranMendalam, materiIntegrasiKBC, tujuanPembelajaran,
-      kerangkaPembelajaran, kegiatanPembelajaran, rubrikPenilaian,
-      namaSekolah, alamatSekolah, teacherId
+      tema,
+      subtema,
+      capaianPembelajaran,
+      refleksiGuru,
+      tindakLanjut,
+      fase,
+      kelompokUsia,
+      semester,
+      tahunAjaran,
+      hari,
+      jumlahPertemuan,
+      kelas,
+      guru,
+      nilaiCinta,
+      dimensiKelulusan,
+      pemahamanBermakna,
+      pertanyaanPemantik,
+      tujuanPembelajaran,
+      saranaMediaBahan,
+      langkahPembelajaran,
+      asesmen,
+      namaSekolah,
+      alamatSekolah
     } = body
 
-    if (!tema || !subtema || !temaProjek || !judulKegiatan) {
+    // Validate required fields
+    if (!tema || !subtema) {
       return NextResponse.json(
-        { success: false, error: 'Field wajib harus diisi: Tema, Subtema, Tema Projek, Judul Kegiatan' },
+        { success: false, error: 'Field wajib harus diisi: Tema dan Subtema' },
         { status: 400 }
       )
     }
 
-    const tujuanProfilLulusanJson = typeof tujuanProfilLulusan === 'string' 
-      ? tujuanProfilLulusan 
-      : JSON.stringify(tujuanProfilLulusan || {})
-    const kerangkaPembelajaranJson = typeof kerangkaPembelajaran === 'string'
-      ? kerangkaPembelajaran
-      : JSON.stringify(kerangkaPembelajaran || {})
-    const kegiatanPembelajaranJson = typeof kegiatanPembelajaran === 'string'
-      ? kegiatanPembelajaran
-      : JSON.stringify(kegiatanPembelajaran || {})
-    const rubrikPenilaianJson = typeof rubrikPenilaian === 'string'
-      ? rubrikPenilaian
-      : JSON.stringify(rubrikPenilaian || {})
+    // Map new frontend fields to existing database columns
+    // capaianPembelajaran → temaProjek column
+    // refleksiGuru → judulKegiatan column
+    // tindakLanjut → pokokBahasan column
+    // nilaiCinta → tujuanKBC column (JSON string)
+    // dimensiKelulusan → tujuanProfilLulusan column (JSON string)
+    // pemahamanBermakna → tujuanPembelajaranMendalam column
+    // pertanyaanPemantik → materiIntegrasiKBC column
+    // saranaMediaBahan → kerangkaPembelajaran column (JSON string)
+    // langkahPembelajaran → kegiatanPembelajaran column (JSON string)
+    // asesmen → rubrikPenilaian column (JSON string)
 
-    const whereClause: any = {
-      tema,
-      semester: semester || 'Ganjil',
-      tahunAjaran: tahunAjaran || '2025/2026'
-    }
-    if (teacherId) {
-      whereClause.teacherId = teacherId
-    }
+    const tujuanKBCJson = typeof nilaiCinta === 'string'
+      ? nilaiCinta
+      : JSON.stringify(nilaiCinta || {})
 
-    const existingRPP = await db.rPP.findFirst({ where: whereClause })
+    const tujuanProfilLulusanJson = typeof dimensiKelulusan === 'string'
+      ? dimensiKelulusan
+      : JSON.stringify(dimensiKelulusan || {})
 
-    const rppData: any = {
-      subtema, temaProjek, judulKegiatan,
-      pokokBahasan: pokokBahasan || '',
+    const kerangkaPembelajaranJson = typeof saranaMediaBahan === 'string'
+      ? saranaMediaBahan
+      : JSON.stringify(saranaMediaBahan || {})
+
+    const kegiatanPembelajaranJson = typeof langkahPembelajaran === 'string'
+      ? langkahPembelajaran
+      : JSON.stringify(langkahPembelajaran || {})
+
+    const rubrikPenilaianJson = typeof asesmen === 'string'
+      ? asesmen
+      : JSON.stringify({ asesmen: asesmen || '' })
+
+    // Check if RPP with same tema, semester, and tahunAjaran already exists
+    const existingRPP = await db.rPP.findFirst({
+      where: {
+        tema,
+        semester: semester || 'Ganjil',
+        tahunAjaran: tahunAjaran || getCurrentAcademicYear()
+      }
+    })
+
+    let rppId: string
+
+    const rppData = {
+      subtema: subtema || '',
+      temaProjek: capaianPembelajaran || '',
+      judulKegiatan: refleksiGuru || '',
+      pokokBahasan: tindakLanjut || '',
       fase: fase || 'Fase Fondasi',
       kelompokUsia: kelompokUsia || 'Kelompok A (4-5 Tahun)',
       hari: hari || '',
       jumlahPertemuan: jumlahPertemuan || '8 JP',
       kelas: kelas || '',
       guru: guru || '',
-      topikKBC: topikKBC || '',
-      profilLulusan: profilLulusan || '',
-      tujuanKBC: tujuanKBC || '',
+      topikKBC: '',
+      profilLulusan: '',
+      tujuanKBC: tujuanKBCJson,
       tujuanProfilLulusan: tujuanProfilLulusanJson,
-      tujuanPembelajaranMendalam: tujuanPembelajaranMendalam || '',
-      materiIntegrasiKBC: materiIntegrasiKBC || '',
+      tujuanPembelajaranMendalam: pemahamanBermakna || '',
+      materiIntegrasiKBC: pertanyaanPemantik || '',
       tujuanPembelajaran: tujuanPembelajaran || '',
       kerangkaPembelajaran: kerangkaPembelajaranJson,
       kegiatanPembelajaran: kegiatanPembelajaranJson,
@@ -67,23 +111,24 @@ export async function POST(request: NextRequest) {
       namaSekolah: namaSekolah || 'RA INSAN MADANI',
       alamatSekolah: alamatSekolah || ''
     }
-    if (teacherId) {
-      rppData.teacherId = teacherId
-    }
-
-    let rppId: string
 
     if (existingRPP) {
+      // Update existing RPP
       const updatedRPP = await db.rPP.update({
         where: { id: existingRPP.id },
         data: rppData
       })
       rppId = updatedRPP.id
     } else {
-      rppData.tema = tema
-      rppData.semester = semester || 'Ganjil'
-      rppData.tahunAjaran = tahunAjaran || '2025/2026'
-      const newRPP = await db.rPP.create({ data: rppData })
+      // Create new RPP
+      const newRPP = await db.rPP.create({
+        data: {
+          tema,
+          semester: semester || 'Ganjil',
+          tahunAjaran: tahunAjaran || getCurrentAcademicYear(),
+          ...rppData
+        }
+      })
       rppId = newRPP.id
     }
 

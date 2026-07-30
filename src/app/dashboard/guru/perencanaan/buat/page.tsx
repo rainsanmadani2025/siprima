@@ -1,7 +1,8 @@
 "use client"
-// Auto-fill guru field from localStorage - Updated for teacher name feature
+// RPP KBC - New 12-section layout (A-L) for Kurikulum Berbasis Cinta
 
 import { useState, useEffect } from "react"
+import { getCurrentSemester, getCurrentAcademicYear } from '@/lib/semester-utils'
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,7 +25,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Download, ArrowLeft, Loader2, Plus, RefreshCw, Eye, Sparkles, FileDown, Save, Printer } from "lucide-react"
+import { Download, ArrowLeft, Loader2, Plus, RefreshCw, Eye, Sparkles, FileDown, Save } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 
@@ -69,81 +70,66 @@ export default function BuatRPPPage() {
     // A. Identitas Pembelajaran
     fase: "Fase Fondasi",
     kelompokUsia: "Kelompok A (4-5 Tahun)",
-    semester: "Ganjil",
-    tahunAjaran: "2025/2026",
+    semester: getCurrentSemester(),
+    tahunAjaran: getCurrentAcademicYear(),
     hari: "",
     jumlahPertemuan: "8 JP",
     kelas: "",
     guru: "",
-    // B. Tema Projek
+    // B. Capaian Pembelajaran
     tema: "",
     subtema: "",
-    temaProjek: "",
-    judulKegiatan: "",
-    pokokBahasan: "",
-    // C. Topik KBC
-    topikKBC: "Cinta Diri dan Sesama",
-    // D. Profil Lulusan
-    profilLulusan: "",
-    // E. Tujuan KBC
-    tujuanKBC: "",
-    // F. Tujuan Profil Lulusan
-    tujuanProfilLulusan: {
-      Kesehatan: "",
-      Kemandirian: "",
-      BernalarKritis: "",
-      Kreatif: "",
-      Berkarakter: "",
-      Beriman: "",
-      Bertakwa: ""
-    },
-    // G. Tujuan Pembelajaran Mendalam
-    tujuanPembelajaranMendalam: "",
-    // H. Materi Integrasi KBC
-    materiIntegrasiKBC: "",
-    // I. Tujuan Pembelajaran
+    capaianPembelajaran: "",
+    // C. Tujuan Pembelajaran
     tujuanPembelajaran: "",
-    // J. Kerangka Pembelajaran
-    kerangkaPembelajaran: {
-      praktekPedagogik: "",
-      lingkunganPembelajaran: {
-        fisik: "",
-        sosial: "",
-        psikologis: "",
-        akademik: ""
-      },
-      kemitraanPembelajaran: "",
-      pemanfaatanDigital: ""
+    // D. 6 Nilai Cinta KBC
+    nilaiCinta: {
+      cintaAllah: "",
+      cintaRasulullah: "",
+      cintaDiriSendiri: "",
+      cintaSesama: "",
+      cintaLingkungan: "",
+      cintaBangsaNegara: ""
     },
-    // K. Kegiatan Pembelajaran
-    kegiatanPembelajaran: {
-      persiapan: {
-        pemahamanKonsep: "",
-        penyiapanAlat: "",
-        alatBahan: ""
-      },
-      pelaksanaan: {
-        orientasi: "",
+    // E. 8 Dimensi Kelulusan KBC Kemenag
+    dimensiKelulusan: {
+      keimananKetakwaan: "",
+      kewargaan: "",
+      penalaranKritis: "",
+      kreativitas: "",
+      kolaborasi: "",
+      kemandirian: "",
+      kesehatan: "",
+      komunikasi: ""
+    },
+    // F. Pemahaman Bermakna
+    pemahamanBermakna: "",
+    // G. Pertanyaan Pemantik
+    pertanyaanPemantik: "",
+    // H. Sarana, Media, Bahan
+    saranaMediaBahan: {
+      sarana: "",
+      media: "",
+      bahan: ""
+    },
+    // I. Langkah Pembelajaran
+    langkahPembelajaran: {
+      penyambutan: "",
+      pembukaan: "",
+      kegiatanInti: {
         eksplorasi: "",
-        diskusi: "",
-        kolaborasi: "",
+        bermain: "",
+        berkarya: "",
         refleksi: ""
       },
-      pembuatanKarya: {
-        proses: "",
-        hasil: ""
-      },
-      presentasi: {
-        persiapan: "",
-        pelaksanaan: ""
-      },
-      refleksiAkhir: {
-        refleksiGuru: "",
-        refleksiAnak: ""
-      }
+      penutup: ""
     },
-    // L. Rubrik Penilaian
-    rubrikPenilaian: {}
+    // J. Asesmen
+    asesmen: "",
+    // K. Tindak Lanjut
+    tindakLanjut: "",
+    // L. Refleksi Guru
+    refleksiGuru: ""
   })
 
   // Fetch school profile, user data, and templates on mount
@@ -156,24 +142,17 @@ export default function BuatRPPPage() {
   const fetchUserAndClasses = async () => {
     try {
       const localName = localStorage.getItem('userName')
-      const userId = localStorage.getItem('userId')
       if (localName) {
         setFormData(prev => ({
           ...prev,
           guru: localName
         }))
       }
-      if (userId) {
-        const res = await fetch(`/api/guru/profile?userId=${userId}`)
-        const data = await res.json()
-        if (data.success && data.teacher?.id) {
-          setTeacherId(data.teacher.id)
-        }
-      }
     } catch (error) {
       console.error('Error fetching user data from localStorage:', error)
     }
   }
+
   const fetchSchoolProfile = async () => {
     try {
       const response = await fetch('/api/school/profile')
@@ -200,7 +179,6 @@ export default function BuatRPPPage() {
       setFetchingTemplates(false)
     }
   }
-
   const handleGenerateTemplate = async () => {
     if (!newTema.trim()) {
       toast({
@@ -228,7 +206,7 @@ export default function BuatRPPPage() {
         body: JSON.stringify({
           tema: newTema.trim(),
           kelompokUsia: formData.kelompokUsia,
-          topikKBC: formData.topikKBC
+          topikKBC: ""
         }),
         signal: controller.signal
       })
@@ -236,7 +214,6 @@ export default function BuatRPPPage() {
       clearTimeout(timeoutId)
       isRequestActive = false
 
-      // Check if response is OK before parsing
       if (!response.ok) {
         if (response.status === 401) {
           throw new Error('401: API Key belum dikonfigurasi. Fitur AI tidak tersedia.')
@@ -291,7 +268,6 @@ export default function BuatRPPPage() {
           description: "Server tidak merespon dalam waktu 65 detik. AI sedang sibuk atau tema terlalu kompleks. Silakan coba lagi dengan tema yang lebih sederhana."
         })
       } else if (error.message && error.message.includes('401')) {
-        // Khusus untuk error API key belum dikonfigurasi
         toast({
           variant: "destructive",
           title: "Fitur AI Tidak Tersedia",
@@ -330,100 +306,69 @@ export default function BuatRPPPage() {
         const template = data.template
         setSelectedTemplate(template)
 
-        // Parse rubrikPenilaian if it exists
-        let rubrikPenilaian = {}
-        if (template.rubrikPenilaian) {
-          try {
-            rubrikPenilaian = typeof template.rubrikPenilaian === 'string'
-              ? JSON.parse(template.rubrikPenilaian)
-              : template.rubrikPenilaian
-          } catch (e) {
-            console.error('Error parsing rubrikPenilaian:', e)
-          }
-        }
-
-        // Helper function to merge with defaults
-        const mergeWithDefaults = (templateValue: any, defaultValue: any) => {
-          if (!templateValue) return defaultValue
-          // Check if templateValue has the required structure
-          if (typeof templateValue === 'string') {
-            return defaultValue
-          }
-          // Merge object with defaults
-          return { ...defaultValue, ...templateValue }
-        }
-
-        // Default values for kerangkaPembelajaran
-        const defaultKerangka = {
-          praktekPedagogik: "",
-          lingkunganPembelajaran: {
-            fisik: "",
-            sosial: "",
-            psikologis: "",
-            akademik: ""
-          },
-          kemitraanPembelajaran: "",
-          pemanfaatanDigital: ""
-        }
-
-        // Default values for kegiatanPembelajaran
-        const defaultKegiatan = {
-          persiapan: {
-            pemahamanKonsep: "",
-            penyiapanAlat: "",
-            alatBahan: ""
-          },
-          pelaksanaan: {
-            orientasi: "",
-            eksplorasi: "",
-            diskusi: "",
-            kolaborasi: "",
-            refleksi: ""
-          },
-          pembuatanKarya: {
-            proses: "",
-            hasil: ""
-          },
-          presentasi: {
-            persiapan: "",
-            pelaksanaan: ""
-          },
-          refleksiAkhir: {
-            refleksiGuru: "",
-            refleksiAnak: ""
-          }
-        }
-
-        // Generate subtema, temaProjek, judulKegiatan, and pokokBahasan automatically based on tema
-        const tema = template.tema || ""
-        const generatedSubtema = generateSubtema(tema)
-        const generatedTemaProjek = generateTemaProjek(tema)
-        const generatedJudulKegiatan = generateJudulKegiatan(tema)
-        const generatedPokokBahasan = generatePokokBahasan(tema)
-
-        // Auto-fill all fields based on template
+        // Auto-fill only sections that can be mapped from old template structure
+        // Sections D, E, H, I, J are left empty (teacher fills manually)
         setFormData(prev => ({
           ...prev,
-          tema: tema,
-          subtema: generatedSubtema,
-          temaProjek: generatedTemaProjek,
-          judulKegiatan: generatedJudulKegiatan,
-          pokokBahasan: generatedPokokBahasan,
-          topikKBC: template.topikKBC || prev.topikKBC,
-          profilLulusan: template.profilLulusan || prev.profilLulusan,
-          tujuanKBC: template.tujuanKBC || prev.tujuanKBC,
-          tujuanProfilLulusan: template.tujuanProfilLulusan || prev.tujuanProfilLulusan,
-          tujuanPembelajaranMendalam: template.tujuanPembelajaranMendalam || prev.tujuanPembelajaranMendalam,
-          materiIntegrasiKBC: template.materiIntegrasiKBC || prev.materiIntegrasiKBC,
-          tujuanPembelajaran: template.tujuanPembelajaran || prev.tujuanPembelajaran,
-          kerangkaPembelajaran: mergeWithDefaults(template.kerangkaPembelajaran, defaultKerangka),
-          kegiatanPembelajaran: mergeWithDefaults(template.kegiatanPembelajaran, defaultKegiatan),
-          rubrikPenilaian: rubrikPenilaian || prev.rubrikPenilaian
+          // B. Capaian Pembelajaran - can auto-fill tema and subtema
+          tema: template.tema || "",
+          subtema: prev.subtema, // subtema not in old template, keep current
+          capaianPembelajaran: template.profilLulusan || "", // use profilLulusan as capaianPembelajaran
+          // C. Tujuan Pembelajaran - can auto-fill
+          tujuanPembelajaran: template.tujuanPembelajaran || "",
+          // F. Pemahaman Bermakna - mapped from tujuanPembelajaranMendalam
+          pemahamanBermakna: template.tujuanPembelajaranMendalam || "",
+          // G. Pertanyaan Pemantik - mapped from materiIntegrasiKBC
+          pertanyaanPemantik: template.materiIntegrasiKBC || "",
+          // D. 6 Nilai Cinta - NEW concept, leave empty
+          nilaiCinta: {
+            cintaAllah: "",
+            cintaRasulullah: "",
+            cintaDiriSendiri: "",
+            cintaSesama: "",
+            cintaLingkungan: "",
+            cintaBangsaNegara: ""
+          },
+          // E. 8 Dimensi Kelulusan - different structure from old, leave empty
+          dimensiKelulusan: {
+            keimananKetakwaan: "",
+            kewargaan: "",
+            penalaranKritis: "",
+            kreativitas: "",
+            kolaborasi: "",
+            kemandirian: "",
+            kesehatan: "",
+            komunikasi: ""
+          },
+          // H. Sarana, Media, Bahan - completely different structure, leave empty
+          saranaMediaBahan: {
+            sarana: "",
+            media: "",
+            bahan: ""
+          },
+          // I. Langkah Pembelajaran - completely different structure, leave empty
+          langkahPembelajaran: {
+            penyambutan: "",
+            pembukaan: "",
+            kegiatanInti: {
+              eksplorasi: "",
+              bermain: "",
+              berkarya: "",
+              refleksi: ""
+            },
+            penutup: ""
+          },
+          // J. Asesmen - different structure, leave empty
+          asesmen: "",
+          // K. Tindak Lanjut - always manual
+          tindakLanjut: "",
+          // L. Refleksi Guru - always manual
+          refleksiGuru: ""
         }))
 
         toast({
           title: "Template dimuat",
-          description: `Template "${template.tema}" berhasil dimuat dengan isi otomatis.`
+          description: `Template "${template.tema}" berhasil dimuat. Beberapa bagian perlu diisi manual karena format baru.`
         })
       }
     } catch (error) {
@@ -433,153 +378,6 @@ export default function BuatRPPPage() {
         title: "Error",
         description: "Gagal memuat template"
       })
-    }
-  }
-
-  // Helper functions to generate content based on tema
-  const generateSubtema = (tema: string): string => {
-    const temaLower = tema.toLowerCase()
-    
-    // Pattern matching for common subtemas
-    if (temaLower.includes("alam") || temaLower.includes("lingkungan")) {
-      return "Menjaga dan merawat lingkungan sekitar"
-    } else if (temaLower.includes("diri") || temaLower.includes("tubuh")) {
-      return "Mengenal bagian-bagian tubuh dan fungsinya"
-    } else if (temaLower.includes("pahlawan") || temaLower.includes("tokoh")) {
-      return "Mengenal tokoh pahlawan nasional dan keberaniannya"
-    } else if (temaLower.includes("tanaman") || temaLower.includes("tumbuhan")) {
-      return "Jenis-jenis tanaman dan cara merawatnya"
-    } else if (temaLower.includes("hewan") || temaLower.includes("binatang")) {
-      return "Jenis-jenis hewan dan habitatnya"
-    } else if (temaLower.includes("kebersihan") || temaLower.includes("bersih")) {
-      return "Menjaga kebersihan diri dan lingkungan"
-    } else if (temaLower.includes("keluarga")) {
-      return "Anggota keluarga dan peran mereka"
-    } else if (temaLower.includes("pekerjaan") || temaLower.includes("profesi")) {
-      return "Jenis-jenis pekerjaan di masyarakat"
-    } else if (temaLower.includes("transportasi") || temaLower.includes("kendaraan")) {
-      return "Jenis-jenis alat transportasi"
-    } else if (temaLower.includes("makanan") || temaLower.includes("minuman")) {
-      return "Makanan sehat dan bergizi"
-    } else if (temaLower.includes("agama") || temaLower.includes("ibadah")) {
-      return "Mengenal tempat ibadah dan kegiatan keagamaan"
-    } else if (temaLower.includes("warna") || temaLower.includes("bentuk")) {
-      return "Mengenal warna-warna dan bentuk-bentuk dasar"
-    } else if (temaLower.includes("angka") || temaLower.includes("hitung")) {
-      return "Berhitung dengan benda-benda sekitar"
-    } else if (temaLower.includes("huruf") || temaLower.includes("baca")) {
-      return "Mengenal huruf dan membaca sederhana"
-    } else {
-      // Default: generate based on tema
-      return `Kegiatan pembelajaran tentang ${tema}`
-    }
-  }
-
-  const generateTemaProjek = (tema: string): string => {
-    const temaLower = tema.toLowerCase()
-    
-    if (temaLower.includes("alam") || temaLower.includes("lingkungan")) {
-      return `Menjaga dan mencintai lingkungan alam sekitar`
-    } else if (temaLower.includes("diri") || temaLower.includes("tubuh")) {
-      return `Mengenal dan merawat tubuh dengan baik`
-    } else if (temaLower.includes("pahlawan") || temaLower.includes("tokoh")) {
-      return `Meneladani kepahlawanan dan keberanian para pahlawan`
-    } else if (temaLower.includes("tanaman") || temaLower.includes("tumbuhan")) {
-      return `Menanam dan merawat tanaman dengan cinta`
-    } else if (temaLower.includes("hewan") || temaLower.includes("binatang")) {
-      return `Menyayangi dan merawat hewan dengan baik`
-    } else if (temaLower.includes("kebersihan") || temaLower.includes("bersih")) {
-      return `Membiasakan hidup bersih dan sehat`
-    } else if (temaLower.includes("keluarga")) {
-      return `Menghargai dan menyayangi keluarga`
-    } else if (temaLower.includes("pekerjaan") || temaLower.includes("profesi")) {
-      return `Menghargai pekerjaan dan tenaga kerja`
-    } else if (temaLower.includes("transportasi") || temaLower.includes("kendaraan")) {
-      return `Mengenal dan menggunakan transportasi dengan bijak`
-    } else if (temaLower.includes("makanan") || temaLower.includes("minuman")) {
-      return `Menerapkan pola makan sehat dan bergizi`
-    } else if (temaLower.includes("agama") || temaLower.includes("ibadah")) {
-      return `Membiasakan beribadah dengan ikhlas dan teratur`
-    } else if (temaLower.includes("warna") || temaLower.includes("bentuk")) {
-      return `Mengenal dan bereksplorasi warna dan bentuk`
-    } else if (temaLower.includes("angka") || temaLower.includes("hitung")) {
-      return `Belajar berhitung melalui permainan edukatif`
-    } else if (temaLower.includes("huruf") || temaLower.includes("baca")) {
-      return `Belajar membaca dan mengenal huruf melalui permainan`
-    } else {
-      return `Pembelajaran tematik tentang ${tema} dengan pendekatan bermain`
-    }
-  }
-
-  const generateJudulKegiatan = (tema: string): string => {
-    const temaLower = tema.toLowerCase()
-    
-    if (temaLower.includes("alam") || temaLower.includes("lingkungan")) {
-      return `Bermain sambil belajar di lingkungan alam sekitar`
-    } else if (temaLower.includes("diri") || temaLower.includes("tubuh")) {
-      return `Eksplorasi bagian tubuh melalui permainan dan lagu`
-    } else if (temaLower.includes("pahlawan") || temaLower.includes("tokoh")) {
-      return `Dongeng tentang pahlawan dan permainan keberanian`
-    } else if (temaLower.includes("tanaman") || temaLower.includes("tumbuhan")) {
-      return `Menanam dan merawat tanaman di kebun sekolah`
-    } else if (temaLower.includes("hewan") || temaLower.includes("binatang")) {
-      return `Mengamati hewan dan habitatnya melalui kunjungan`
-    } else if (temaLower.includes("kebersihan") || temaLower.includes("bersih")) {
-      return `Praktik kebersihan diri dan lingkungan kelas`
-    } else if (temaLower.includes("keluarga")) {
-      return `Bercerita tentang keluarga dan peran anggota keluarga`
-    } else if (temaLower.includes("pekerjaan") || temaLower.includes("profesi")) {
-      return `Role play berbagai jenis pekerjaan di masyarakat`
-    } else if (temaLower.includes("transportasi") || temaLower.includes("kendaraan")) {
-      return `Permainan transportasi dan simulasi lalu lintas`
-    } else if (temaLower.includes("makanan") || temaLower.includes("minuman")) {
-      return `Membuat dan mencicipi makanan sehat bersama`
-    } else if (temaLower.includes("agama") || temaLower.includes("ibadah")) {
-      return `Kunjungan ke tempat ibadah dan praktik ibadah`
-    } else if (temaLower.includes("warna") || temaLower.includes("bentuk")) {
-      return `Eksplorasi warna dan bentuk dengan karya seni`
-    } else if (temaLower.includes("angka") || temaLower.includes("hitung")) {
-      return `Permainan berhitung dengan benda sehari-hari`
-    } else if (temaLower.includes("huruf") || temaLower.includes("baca")) {
-      return `Permainan mengenal huruf dan membaca sederhana`
-    } else {
-      return `Kegiatan bermain dan belajar tentang ${tema}`
-    }
-  }
-
-  const generatePokokBahasan = (tema: string): string => {
-    const temaLower = tema.toLowerCase()
-    
-    if (temaLower.includes("alam") || temaLower.includes("lingkungan")) {
-      return `Jenis-jenis lingkungan, cara menjaga, dan manfaatnya`
-    } else if (temaLower.includes("diri") || temaLower.includes("tubuh")) {
-      return `Bagian-bagian tubuh dan fungsi masing-masing`
-    } else if (temaLower.includes("pahlawan") || temaLower.includes("tokoh")) {
-      return `Tokoh pahlawan nasional, perjuangan, dan sifat keberanian`
-    } else if (temaLower.includes("tanaman") || temaLower.includes("tumbuhan")) {
-      return `Jenis tanaman, cara menanam, dan merawat tanaman`
-    } else if (temaLower.includes("hewan") || temaLower.includes("binatang")) {
-      return `Jenis hewan, ciri-ciri, habitat, dan cara merawat`
-    } else if (temaLower.includes("kebersihan") || temaLower.includes("bersih")) {
-      return `Pentingnya kebersihan, cara menjaga, dan dampaknya`
-    } else if (temaLower.includes("keluarga")) {
-      return `Struktur keluarga, peran anggota, dan nilai kekeluargaan`
-    } else if (temaLower.includes("pekerjaan") || temaLower.includes("profesi")) {
-      return `Jenis pekerjaan, alat kerja, dan peran dalam masyarakat`
-    } else if (temaLower.includes("transportasi") || temaLower.includes("kendaraan")) {
-      return `Jenis alat transportasi, fungsi, dan keselamatan`
-    } else if (temaLower.includes("makanan") || temaLower.includes("minuman")) {
-      return `Jenis makanan, gizi, dan menu makan sehat`
-    } else if (temaLower.includes("agama") || temaLower.includes("ibadah")) {
-      return `Jenis ibadah, tata cara, dan makna ibadah`
-    } else if (temaLower.includes("warna") || temaLower.includes("bentuk")) {
-      return `Jenis warna, pencampuran warna, dan bentuk geometri dasar`
-    } else if (temaLower.includes("angka") || temaLower.includes("hitung")) {
-      return `Konsep bilangan, berhitung, dan operasi dasar`
-    } else if (temaLower.includes("huruf") || temaLower.includes("baca")) {
-      return `Huruf abjad, mengenal huruf, dan membaca sederhana`
-    } else {
-      return `Konsep dasar ${tema} dan penerapannya dalam kehidupan sehari-hari`
     }
   }
 
@@ -605,7 +403,7 @@ export default function BuatRPPPage() {
         body: JSON.stringify({
           tema: tema,
           kelompokUsia: formData.kelompokUsia,
-          topikKBC: formData.topikKBC
+          topikKBC: ""
         }),
         signal: controller.signal
       })
@@ -614,13 +412,11 @@ export default function BuatRPPPage() {
       isRequestActive = false
 
       if (!response.ok) {
-        // For non-OK responses, try to parse error from backend
         try {
           const responseText = await response.text()
           const errorData = JSON.parse(responseText)
           throw new Error(errorData.error || `Gagal membuat variasi template. Server error: ${response.status}`)
         } catch (parseError) {
-          // If parsing fails, use status code
           if (response.status === 503) {
             throw new Error('Fitur AI tidak tersedia. Konfigurasi AI belum lengkap. Silakan gunakan template yang sudah tersedia.')
           } else if (response.status === 429) {
@@ -665,20 +461,16 @@ export default function BuatRPPPage() {
           description: "Server tidak merespon dalam waktu 90 detik. AI sedang sibuk atau tema terlalu kompleks. Silakan coba lagi dengan tema yang lebih sederhana."
         })
       } else if (error.message && error.message.includes('Fitur AI tidak tersedia')) {
-        // Khusus untuk error fitur AI belum tersedia (503)
         toast({
           variant: "destructive",
           title: "Fitur AI Tidak Tersedia",
-          description: "Fitur generate variasi template memerlukan konfigurasi API AI. Silakan gunakan 15 template yang sudah tersedia atau hubungi administrator untuk mengonfigurasi fitur AI."
+          description: "Fitur generate variasi template memerlukan konfigurasi API AI. Silakan gunakan template yang sudah tersedia atau hubungi administrator untuk mengonfigurasi fitur AI."
         })
       } else if (error.name !== 'AbortError') {
         let errorMessage = error.message || "Gagal membuat variasi template"
-
-        // Clean up HTML-like error messages
         if (errorMessage.includes('<') && errorMessage.includes('>')) {
           errorMessage = "Gagal membuat variasi template. Server error. Silakan coba lagi."
         }
-
         toast({
           variant: "destructive",
           title: "Error",
@@ -691,6 +483,32 @@ export default function BuatRPPPage() {
     }
   }
 
+  // Build the body for API calls (save, export)
+  const buildApiBody = () => ({
+    tema: formData.tema,
+    subtema: formData.subtema,
+    capaianPembelajaran: formData.capaianPembelajaran,
+    refleksiGuru: formData.refleksiGuru,
+    tindakLanjut: formData.tindakLanjut,
+    fase: formData.fase,
+    kelompokUsia: formData.kelompokUsia,
+    semester: formData.semester,
+    tahunAjaran: formData.tahunAjaran,
+    hari: formData.hari,
+    jumlahPertemuan: formData.jumlahPertemuan,
+    kelas: formData.kelas,
+    guru: formData.guru,
+    nilaiCinta: formData.nilaiCinta,
+    dimensiKelulusan: formData.dimensiKelulusan,
+    pemahamanBermakna: formData.pemahamanBermakna,
+    pertanyaanPemantik: formData.pertanyaanPemantik,
+    tujuanPembelajaran: formData.tujuanPembelajaran,
+    saranaMediaBahan: formData.saranaMediaBahan,
+    langkahPembelajaran: formData.langkahPembelajaran,
+    asesmen: formData.asesmen,
+    namaSekolah: schoolProfile?.name || "RA INSAN MADANI",
+    alamatSekolah: schoolProfile?.address || ""
+  })
   const handleExport = async () => {
     try {
       setLoading(true)
@@ -698,12 +516,7 @@ export default function BuatRPPPage() {
       const response = await fetch('/api/rpp/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          namaSekolah: schoolProfile?.name || "RA INSAN MADANI",
-          alamatSekolah: schoolProfile?.address || "",
-          teacherId: teacherId || undefined
-        })
+        body: JSON.stringify(buildApiBody()),
       })
 
       if (!response.ok) {
@@ -735,7 +548,6 @@ export default function BuatRPPPage() {
     }
   }
 
-  
   const handlePreviewPDF = async () => {
     try {
       setLoadingPDF(true)
@@ -743,11 +555,7 @@ export default function BuatRPPPage() {
       const response = await fetch('/api/rpp/export-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          namaSekolah: schoolProfile?.name || "RA INSAN MADANI",
-          alamatSekolah: schoolProfile?.address || ""
-        }),
+        body: JSON.stringify(buildApiBody()),
       })
 
       if (!response.ok) {
@@ -756,8 +564,6 @@ export default function BuatRPPPage() {
 
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
-
-      // Open PDF in new tab using browser's native PDF viewer
       window.open(url, '_blank')
 
       toast({
@@ -781,11 +587,7 @@ export default function BuatRPPPage() {
       const response = await fetch('/api/rpp/export-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          namaSekolah: schoolProfile?.name || "RA INSAN MADANI",
-          alamatSekolah: schoolProfile?.address || ""
-        }),
+        body: JSON.stringify(buildApiBody()),
       })
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
@@ -812,12 +614,11 @@ export default function BuatRPPPage() {
   }
 
   const handleSave = async () => {
-    // Validate required fields
-    if (!formData.tema || !formData.subtema || !formData.temaProjek || !formData.judulKegiatan) {
+    if (!formData.tema || !formData.subtema) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Mohon lengkapi field yang diperlukan: Tema, Subtema, Tema Projek, Judul Kegiatan"
+        description: "Mohon lengkapi field yang diperlukan: Tema dan Subtema"
       })
       return
     }
@@ -825,15 +626,10 @@ export default function BuatRPPPage() {
     try {
       setSaving(true)
       
-      // Simpan RPP ke database
       const response = await fetch('/api/rpp/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          namaSekolah: schoolProfile?.name || "RA INSAN MADANI",
-          alamatSekolah: schoolProfile?.address || ""
-        })
+        body: JSON.stringify(buildApiBody())
       })
 
       const data = await response.json()
@@ -896,10 +692,9 @@ export default function BuatRPPPage() {
                 </svg>
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-yellow-900 dark:text-yellow-100">Fitur AI Sementara Tidak Tersedia</h3>
+                <h3 className="font-semibold text-yellow-900 dark:text-yellow-100">Format RPP KBC Baru (12 Bagian A-L)</h3>
                 <p className="text-sm text-yellow-800 dark:text-yellow-200 mt-1">
-                  Fitur "Generate Variasi Baru" dan "Buat Template Baru" memerlukan konfigurasi API Key yang belum tersedia.
-                  Silakan gunakan 15 template yang sudah tersedia (semua telah lengkap dengan narasi detail).
+                  RPP ini menggunakan format baru KBC Kemenag dengan 12 bagian (A-L). Template lama akan mengisi bagian B, C, F, dan G secara otomatis. Bagian D, E, H, I, J perlu diisi manual oleh guru.
                 </p>
               </div>
             </div>
@@ -1017,19 +812,12 @@ export default function BuatRPPPage() {
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setGenerateDialogOpen(false)}
-                disabled={generatingTemplate}
-              >
+              <Button variant="outline" onClick={() => setGenerateDialogOpen(false)} disabled={generatingTemplate}>
                 Batal
               </Button>
               <Button onClick={handleGenerateTemplate} disabled={generatingTemplate}>
                 {generatingTemplate ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Memproses (AI bekerja...)
-                  </>
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memproses (AI bekerja...)</>
                 ) : (
                   "Buat Template"
                 )}
@@ -1043,301 +831,51 @@ export default function BuatRPPPage() {
           <DialogContent className="max-w-4xl max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>Preview Template: {selectedTemplate?.tema}</DialogTitle>
-              <DialogDescription>
-                Lihat isi template sebelum mengisi form RPP
-              </DialogDescription>
+              <DialogDescription>Lihat isi template sebelum mengisi form RPP</DialogDescription>
             </DialogHeader>
             <ScrollArea className="h-[70vh] pr-4">
               <div className="space-y-6">
-                {/* Topik & Profil Lulusan */}
                 <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-primary">Topik & Profil Lulusan</h3>
-                  <Card>
-                    <CardContent className="pt-4 space-y-3">
-                      <div>
-                        <Label className="font-medium">Topik KBC</Label>
-                        <p className="text-sm text-muted-foreground mt-1">{selectedTemplate?.topikKBC || '-'}</p>
-                      </div>
-                      <div>
-                        <Label className="font-medium">Profil Lulusan</Label>
-                        <p className="text-sm text-muted-foreground mt-1">{selectedTemplate?.profilLulusan || '-'}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <h3 className="text-lg font-semibold text-primary">B. Capaian Pembelajaran</h3>
+                  <Card><CardContent className="pt-4 space-y-3">
+                    <div><Label className="font-medium">Tema</Label><p className="text-sm text-muted-foreground mt-1">{selectedTemplate?.tema || '-'}</p></div>
+                    <div><Label className="font-medium">Profil Lulusan / Capaian Pembelajaran</Label><p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">{formatPreviewText(selectedTemplate?.profilLulusan || '')}</p></div>
+                  </CardContent></Card>
                 </div>
-
-                {/* Tujuan KBC & Tujuan Pembelajaran */}
                 <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-primary">Tujuan Pembelajaran (KBC & Umum)</h3>
-                  <Card>
-                    <CardContent className="pt-4 space-y-3">
-                      <div>
-                        <Label className="font-medium">Tujuan KBC</Label>
-                        <div className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                          {formatPreviewText(selectedTemplate?.tujuanKBC || '')}
-                        </div>
-                      </div>
-                      <div>
-                        <Label className="font-medium">Tujuan Pembelajaran</Label>
-                        <div className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                          {formatPreviewText(selectedTemplate?.tujuanPembelajaran || '')}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <h3 className="text-lg font-semibold text-primary">C. Tujuan Pembelajaran</h3>
+                  <Card><CardContent className="pt-4"><div className="text-sm text-muted-foreground whitespace-pre-line">{formatPreviewText(selectedTemplate?.tujuanPembelajaran || '')}</div></CardContent></Card>
                 </div>
-
-                {/* Tujuan Profil Lulusan per Kategori */}
                 <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-primary">Tujuan Profil Lulusan per Kategori</h3>
-                  <Card>
-                    <CardContent className="pt-4 space-y-3">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                          <Label className="font-medium">Kesehatan</Label>
-                          <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                            {selectedTemplate?.tujuanProfilLulusan?.Kesehatan || '-'}
-                          </p>
-                        </div>
-                        <div>
-                          <Label className="font-medium">Kemandirian</Label>
-                          <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                            {selectedTemplate?.tujuanProfilLulusan?.Kemandirian || '-'}
-                          </p>
-                        </div>
-                        <div>
-                          <Label className="font-medium">Bernalar Kritis</Label>
-                          <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                            {selectedTemplate?.tujuanProfilLulusan?.BernalarKritis || '-'}
-                          </p>
-                        </div>
-                        <div>
-                          <Label className="font-medium">Kreatif</Label>
-                          <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                            {selectedTemplate?.tujuanProfilLulusan?.Kreatif || '-'}
-                          </p>
-                        </div>
-                        <div>
-                          <Label className="font-medium">Berkarakter</Label>
-                          <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                            {selectedTemplate?.tujuanProfilLulusan?.Berkarakter || '-'}
-                          </p>
-                        </div>
-                        <div>
-                          <Label className="font-medium">Beriman</Label>
-                          <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                            {selectedTemplate?.tujuanProfilLulusan?.Beriman || '-'}
-                          </p>
-                        </div>
-                        <div className="md:col-span-2">
-                          <Label className="font-medium">Bertakwa</Label>
-                          <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                            {selectedTemplate?.tujuanProfilLulusan?.Bertakwa || '-'}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <h3 className="text-lg font-semibold text-primary">D. Nilai Kurikulum Berbasis Cinta</h3>
+                  <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground italic">Belum tersedia dari template. Nilai Cinta KBC merupakan konsep baru yang perlu diisi manual.</p></CardContent></Card>
                 </div>
-
-                {/* Tujuan Pembelajaran Mendalam */}
                 <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-primary">Tujuan Pembelajaran Mendalam (KD)</h3>
-                  <Card>
-                    <CardContent className="pt-4">
-                      <div className="text-sm text-muted-foreground whitespace-pre-line">
-                        {formatPreviewText(selectedTemplate?.tujuanPembelajaranMendalam || '')}
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <h3 className="text-lg font-semibold text-primary">E. Dimensi Kelulusan KBC Kemenag</h3>
+                  <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground italic">Belum tersedia dari template. Dimensi Kelulusan KBC merupakan format baru yang perlu diisi manual.</p></CardContent></Card>
                 </div>
-
-                {/* Kerangka Pembelajaran */}
                 <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-primary">Kerangka Pembelajaran</h3>
-                  <Card>
-                    <CardContent className="pt-4 space-y-3">
-                      <div>
-                        <Label className="font-medium">Praktek Pedagogik</Label>
-                        <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                          {selectedTemplate?.kerangkaPembelajaran?.praktekPedagogik || '-'}
-                        </p>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                          <Label className="font-medium">Lingkungan Fisik</Label>
-                          <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                            {selectedTemplate?.kerangkaPembelajaran?.lingkunganPembelajaran?.fisik || '-'}
-                          </p>
-                        </div>
-                        <div>
-                          <Label className="font-medium">Lingkungan Sosial</Label>
-                          <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                            {selectedTemplate?.kerangkaPembelajaran?.lingkunganPembelajaran?.sosial || '-'}
-                          </p>
-                        </div>
-                        <div>
-                          <Label className="font-medium">Lingkungan Psikologis</Label>
-                          <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                            {selectedTemplate?.kerangkaPembelajaran?.lingkunganPembelajaran?.psikologis || '-'}
-                          </p>
-                        </div>
-                        <div>
-                          <Label className="font-medium">Lingkungan Akademik</Label>
-                          <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                            {selectedTemplate?.kerangkaPembelajaran?.lingkunganPembelajaran?.akademik || '-'}
-                          </p>
-                        </div>
-                      </div>
-                      <div>
-                        <Label className="font-medium">Kemitraan Pembelajaran</Label>
-                        <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                          {selectedTemplate?.kerangkaPembelajaran?.kemitraanPembelajaran || '-'}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="font-medium">Pemanfaatan Digital</Label>
-                        <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                          {selectedTemplate?.kerangkaPembelajaran?.pemanfaatanDigital || '-'}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <h3 className="text-lg font-semibold text-primary">F. Pemahaman Bermakna</h3>
+                  <Card><CardContent className="pt-4"><div className="text-sm text-muted-foreground whitespace-pre-line">{formatPreviewText(selectedTemplate?.tujuanPembelajaranMendalam || '')}</div></CardContent></Card>
                 </div>
-
-                {/* Kegiatan Pembelajaran */}
                 <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-primary">Kegiatan Pembelajaran</h3>
-                  <Card>
-                    <CardContent className="pt-4 space-y-4">
-                      {/* Tahap Persiapan */}
-                      <div className="space-y-2">
-                        <Label className="font-semibold">1. Tahap Persiapan</Label>
-                        <div className="pl-4 space-y-2">
-                          <div>
-                            <Label className="text-sm">Pemahaman Konsep</Label>
-                            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                              {selectedTemplate?.kegiatanPembelajaran?.persiapan?.pemahamanKonsep || '-'}
-                            </p>
-                          </div>
-                          <div>
-                            <Label className="text-sm">Penyiapan Alat</Label>
-                            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                              {selectedTemplate?.kegiatanPembelajaran?.persiapan?.penyiapanAlat || '-'}
-                            </p>
-                          </div>
-                          <div>
-                            <Label className="text-sm">Alat & Bahan</Label>
-                            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                              {selectedTemplate?.kegiatanPembelajaran?.persiapan?.alatBahan || '-'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tahap Pelaksanaan */}
-                      <div className="space-y-2">
-                        <Label className="font-semibold">2. Tahap Pelaksanaan</Label>
-                        <div className="pl-4 space-y-2">
-                          <div>
-                            <Label className="text-sm">Orientasi</Label>
-                            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                              {selectedTemplate?.kegiatanPembelajaran?.pelaksanaan?.orientasi || '-'}
-                            </p>
-                          </div>
-                          <div>
-                            <Label className="text-sm">Eksplorasi</Label>
-                            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                              {selectedTemplate?.kegiatanPembelajaran?.pelaksanaan?.eksplorasi || '-'}
-                            </p>
-                          </div>
-                          <div>
-                            <Label className="text-sm">Diskusi</Label>
-                            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                              {selectedTemplate?.kegiatanPembelajaran?.pelaksanaan?.diskusi || '-'}
-                            </p>
-                          </div>
-                          <div>
-                            <Label className="text-sm">Kolaborasi</Label>
-                            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                              {selectedTemplate?.kegiatanPembelajaran?.pelaksanaan?.kolaborasi || '-'}
-                            </p>
-                          </div>
-                          <div>
-                            <Label className="text-sm">Refleksi</Label>
-                            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                              {selectedTemplate?.kegiatanPembelajaran?.pelaksanaan?.refleksi || '-'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tahap Pembuatan Karya */}
-                      <div className="space-y-2">
-                        <Label className="font-semibold">3. Tahap Pembuatan Karya</Label>
-                        <div className="pl-4 space-y-2">
-                          <div>
-                            <Label className="text-sm">Proses</Label>
-                            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                              {selectedTemplate?.kegiatanPembelajaran?.pembuatanKarya?.proses || '-'}
-                            </p>
-                          </div>
-                          <div>
-                            <Label className="text-sm">Hasil</Label>
-                            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                              {selectedTemplate?.kegiatanPembelajaran?.pembuatanKarya?.hasil || '-'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tahap Presentasi */}
-                      <div className="space-y-2">
-                        <Label className="font-semibold">4. Tahap Presentasi</Label>
-                        <div className="pl-4 space-y-2">
-                          <div>
-                            <Label className="text-sm">Persiapan</Label>
-                            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                              {selectedTemplate?.kegiatanPembelajaran?.presentasi?.persiapan || '-'}
-                            </p>
-                          </div>
-                          <div>
-                            <Label className="text-sm">Pelaksanaan</Label>
-                            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                              {selectedTemplate?.kegiatanPembelajaran?.presentasi?.pelaksanaan || '-'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tahap Refleksi Akhir */}
-                      <div className="space-y-2">
-                        <Label className="font-semibold">5. Tahap Refleksi Akhir</Label>
-                        <div className="pl-4 space-y-2">
-                          <div>
-                            <Label className="text-sm">Refleksi Guru</Label>
-                            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                              {selectedTemplate?.kegiatanPembelajaran?.refleksiAkhir?.refleksiGuru || '-'}
-                            </p>
-                          </div>
-                          <div>
-                            <Label className="text-sm">Refleksi Anak</Label>
-                            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                              {selectedTemplate?.kegiatanPembelajaran?.refleksiAkhir?.refleksiAnak || '-'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <h3 className="text-lg font-semibold text-primary">G. Pertanyaan Pemantik</h3>
+                  <Card><CardContent className="pt-4"><div className="text-sm text-muted-foreground whitespace-pre-line">{formatPreviewText(selectedTemplate?.materiIntegrasiKBC || '')}</div></CardContent></Card>
                 </div>
+                {["H. Sarana, Media, dan Bahan Pembelajaran", "I. Langkah Pembelajaran", "J. Asesmen", "K & L. Tindak Lanjut & Refleksi Guru"].map((title) => (
+                  <div key={title} className="space-y-3">
+                    <h3 className="text-lg font-semibold text-primary">{title}</h3>
+                    <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground italic">Belum tersedia dari template. Perlu diisi manual oleh guru.</p></CardContent></Card>
+                  </div>
+                ))}
               </div>
             </ScrollArea>
           </DialogContent>
         </Dialog>
 
-        {/* Form Sections */}
+        {/* Form Sections A-L */}
         <div className="space-y-6">
+
           {/* A. Identitas Pembelajaran */}
           <Card>
             <CardHeader>
@@ -1352,9 +890,7 @@ export default function BuatRPPPage() {
                   <Label>Fase</Label>
                   <Select value={formData.fase} onValueChange={(v) => setFormData({...formData, fase: v})}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Fase Fondasi">Fase Fondasi</SelectItem>
-                    </SelectContent>
+                    <SelectContent><SelectItem value="Fase Fondasi">Fase Fondasi</SelectItem></SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
@@ -1401,16 +937,17 @@ export default function BuatRPPPage() {
             </CardContent>
           </Card>
 
-          {/* B. Tema Projek */}
+          {/* B. Capaian Pembelajaran */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <span className="bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center text-sm">B</span>
-                Tema Projek
+                Capaian Pembelajaran
               </CardTitle>
+              <CardDescription>Tema dan Capaian Pembelajaran</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Tema *</Label>
                   <Input value={formData.tema} onChange={(e) => setFormData({...formData, tema: e.target.value})} placeholder="Contoh: Lingkungan Sekitarku" />
@@ -1421,393 +958,273 @@ export default function BuatRPPPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Tema Projek *</Label>
-                <Input value={formData.temaProjek} onChange={(e) => setFormData({...formData, temaProjek: e.target.value})} placeholder="Contoh: Mengenal tempat ibadah umat Islam" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Judul Kegiatan *</Label>
-                  <Input value={formData.judulKegiatan} onChange={(e) => setFormData({...formData, judulKegiatan: e.target.value})} placeholder="Contoh: Bermain dan belajar di lingkungan mesjid" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Pokok Bahasan</Label>
-                  <Input value={formData.pokokBahasan} onChange={(e) => setFormData({...formData, pokokBahasan: e.target.value})} />
-                </div>
+                <Label>Capaian Pembelajaran</Label>
+                <Textarea value={formData.capaianPembelajaran} onChange={(e) => setFormData({...formData, capaianPembelajaran: e.target.value})} rows={4} placeholder="Tuliskan capaian pembelajaran yang diharapkan..." />
               </div>
             </CardContent>
           </Card>
 
-          {/* C - I. Auto-filled from Template */}
+          {/* C. Tujuan Pembelajaran */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <span className="bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center text-sm">C-I</span>
-                Isi Otomatis dari Template
+                <span className="bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center text-sm">C</span>
+                Tujuan Pembelajaran
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Topik KBC</Label>
-                  <Input value={formData.topikKBC} onChange={(e) => setFormData({...formData, topikKBC: e.target.value})} disabled />
-                </div>
-                <div className="space-y-2">
-                  <Label>Profil Lulusan</Label>
-                  <Input value={formData.profilLulusan} onChange={(e) => setFormData({...formData, profilLulusan: e.target.value})} disabled />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Tujuan KBC</Label>
-                <Textarea
-                  value={formData.tujuanKBC}
-                  onChange={(e) => setFormData({...formData, tujuanKBC: e.target.value})}
-                  rows={6}
-                  disabled
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Tujuan Profil Lulusan (Kesehatan)</Label>
-                  <Textarea
-                    value={formData.tujuanProfilLulusan.Kesehatan}
-                    onChange={(e) => setFormData({...formData, tujuanProfilLulusan: {...formData.tujuanProfilLulusan, Kesehatan: e.target.value}})}
-                    rows={4}
-                    disabled
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Tujuan Profil Lulusan (Kemandirian)</Label>
-                  <Textarea
-                    value={formData.tujuanProfilLulusan.Kemandirian}
-                    onChange={(e) => setFormData({...formData, tujuanProfilLulusan: {...formData.tujuanProfilLulusan, Kemandirian: e.target.value}})}
-                    rows={4}
-                    disabled
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Tujuan Profil Lulusan (Bernalar Kritis)</Label>
-                  <Textarea
-                    value={formData.tujuanProfilLulusan.BernalarKritis}
-                    onChange={(e) => setFormData({...formData, tujuanProfilLulusan: {...formData.tujuanProfilLulusan, BernalarKritis: e.target.value}})}
-                    rows={4}
-                    disabled
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Tujuan Profil Lulusan (Kreatif)</Label>
-                  <Textarea
-                    value={formData.tujuanProfilLulusan.Kreatif}
-                    onChange={(e) => setFormData({...formData, tujuanProfilLulusan: {...formData.tujuanProfilLulusan, Kreatif: e.target.value}})}
-                    rows={4}
-                    disabled
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Tujuan Profil Lulusan (Berkarakter)</Label>
-                  <Textarea
-                    value={formData.tujuanProfilLulusan.Berkarakter}
-                    onChange={(e) => setFormData({...formData, tujuanProfilLulusan: {...formData.tujuanProfilLulusan, Berkarakter: e.target.value}})}
-                    rows={4}
-                    disabled
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Tujuan Profil Lulusan (Beriman)</Label>
-                  <Textarea
-                    value={formData.tujuanProfilLulusan.Beriman}
-                    onChange={(e) => setFormData({...formData, tujuanProfilLulusan: {...formData.tujuanProfilLulusan, Beriman: e.target.value}})}
-                    rows={4}
-                    disabled
-                  />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Tujuan Profil Lulusan (Bertakwa)</Label>
-                  <Textarea
-                    value={formData.tujuanProfilLulusan.Bertakwa}
-                    onChange={(e) => setFormData({...formData, tujuanProfilLulusan: {...formData.tujuanProfilLulusan, Bertakwa: e.target.value}})}
-                    rows={4}
-                    disabled
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Tujuan Pembelajaran Mendalam (KD)</Label>
-                <Textarea
-                  value={formData.tujuanPembelajaranMendalam}
-                  onChange={(e) => setFormData({...formData, tujuanPembelajaranMendalam: e.target.value})}
-                  rows={8}
-                  disabled
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Materi Integrasi KBC</Label>
-                <Textarea
-                  value={formData.materiIntegrasiKBC}
-                  onChange={(e) => setFormData({...formData, materiIntegrasiKBC: e.target.value})}
-                  rows={6}
-                  disabled
-                />
-              </div>
-
+            <CardContent>
               <div className="space-y-2">
                 <Label>Tujuan Pembelajaran</Label>
-                <Textarea
-                  value={formData.tujuanPembelajaran}
-                  onChange={(e) => setFormData({...formData, tujuanPembelajaran: e.target.value})}
-                  rows={6}
-                  disabled
-                />
+                <Textarea value={formData.tujuanPembelajaran} onChange={(e) => setFormData({...formData, tujuanPembelajaran: e.target.value})} rows={6} placeholder="Tuliskan tujuan pembelajaran yang ingin dicapai..." />
+              </div>
+            </CardContent>
+          </Card>
+          {/* D. Nilai Kurikulum Berbasis Cinta (6 Nilai Cinta) */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center text-sm">D</span>
+                Nilai Kurikulum Berbasis Cinta
+              </CardTitle>
+              <CardDescription>6 Nilai Cinta dalam Pembelajaran</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Cinta kepada Allah SWT</Label>
+                  <Textarea value={formData.nilaiCinta.cintaAllah} onChange={(e) => setFormData({...formData, nilaiCinta: {...formData.nilaiCinta, cintaAllah: e.target.value}})} rows={3} placeholder="Nilai cinta kepada Allah SWT..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Cinta kepada Rasulullah SAW</Label>
+                  <Textarea value={formData.nilaiCinta.cintaRasulullah} onChange={(e) => setFormData({...formData, nilaiCinta: {...formData.nilaiCinta, cintaRasulullah: e.target.value}})} rows={3} placeholder="Nilai cinta kepada Rasulullah SAW..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Cinta kepada Diri Sendiri</Label>
+                  <Textarea value={formData.nilaiCinta.cintaDiriSendiri} onChange={(e) => setFormData({...formData, nilaiCinta: {...formData.nilaiCinta, cintaDiriSendiri: e.target.value}})} rows={3} placeholder="Nilai cinta kepada diri sendiri..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Cinta kepada Sesama</Label>
+                  <Textarea value={formData.nilaiCinta.cintaSesama} onChange={(e) => setFormData({...formData, nilaiCinta: {...formData.nilaiCinta, cintaSesama: e.target.value}})} rows={3} placeholder="Nilai cinta kepada sesama..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Cinta kepada Lingkungan</Label>
+                  <Textarea value={formData.nilaiCinta.cintaLingkungan} onChange={(e) => setFormData({...formData, nilaiCinta: {...formData.nilaiCinta, cintaLingkungan: e.target.value}})} rows={3} placeholder="Nilai cinta kepada lingkungan..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Cinta kepada Bangsa & Negara</Label>
+                  <Textarea value={formData.nilaiCinta.cintaBangsaNegara} onChange={(e) => setFormData({...formData, nilaiCinta: {...formData.nilaiCinta, cintaBangsaNegara: e.target.value}})} rows={3} placeholder="Nilai cinta kepada bangsa & negara..." />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* J - Kerangka Pembelajaran */}
+          {/* E. Dimensi Kelulusan KBC Kemenag (8 Dimensi) */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center text-sm">E</span>
+                Dimensi Kelulusan KBC Kemenag
+              </CardTitle>
+              <CardDescription>8 Dimensi Kelulusan Kurikulum Berbasis Cinta</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Keimanan & Ketakwaan</Label>
+                  <Textarea value={formData.dimensiKelulusan.keimananKetakwaan} onChange={(e) => setFormData({...formData, dimensiKelulusan: {...formData.dimensiKelulusan, keimananKetakwaan: e.target.value}})} rows={3} placeholder="Dimensi keimanan & ketakwaan..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Kewargaan</Label>
+                  <Textarea value={formData.dimensiKelulusan.kewargaan} onChange={(e) => setFormData({...formData, dimensiKelulusan: {...formData.dimensiKelulusan, kewargaan: e.target.value}})} rows={3} placeholder="Dimensi kewargaan..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Penalaran Kritis</Label>
+                  <Textarea value={formData.dimensiKelulusan.penalaranKritis} onChange={(e) => setFormData({...formData, dimensiKelulusan: {...formData.dimensiKelulusan, penalaranKritis: e.target.value}})} rows={3} placeholder="Dimensi penalaran kritis..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Kreativitas</Label>
+                  <Textarea value={formData.dimensiKelulusan.kreativitas} onChange={(e) => setFormData({...formData, dimensiKelulusan: {...formData.dimensiKelulusan, kreativitas: e.target.value}})} rows={3} placeholder="Dimensi kreativitas..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Kolaborasi</Label>
+                  <Textarea value={formData.dimensiKelulusan.kolaborasi} onChange={(e) => setFormData({...formData, dimensiKelulusan: {...formData.dimensiKelulusan, kolaborasi: e.target.value}})} rows={3} placeholder="Dimensi kolaborasi..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Kemandirian</Label>
+                  <Textarea value={formData.dimensiKelulusan.kemandirian} onChange={(e) => setFormData({...formData, dimensiKelulusan: {...formData.dimensiKelulusan, kemandirian: e.target.value}})} rows={3} placeholder="Dimensi kemandirian..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Kesehatan</Label>
+                  <Textarea value={formData.dimensiKelulusan.kesehatan} onChange={(e) => setFormData({...formData, dimensiKelulusan: {...formData.dimensiKelulusan, kesehatan: e.target.value}})} rows={3} placeholder="Dimensi kesehatan..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Komunikasi</Label>
+                  <Textarea value={formData.dimensiKelulusan.komunikasi} onChange={(e) => setFormData({...formData, dimensiKelulusan: {...formData.dimensiKelulusan, komunikasi: e.target.value}})} rows={3} placeholder="Dimensi komunikasi..." />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* F. Pemahaman Bermakna */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center text-sm">F</span>
+                Pemahaman Bermakna
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label>Pemahaman Bermakna</Label>
+                <Textarea value={formData.pemahamanBermakna} onChange={(e) => setFormData({...formData, pemahamanBermakna: e.target.value})} rows={6} placeholder="Tuliskan pemahaman bermakna yang ingin dicapai..." />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* G. Pertanyaan Pemantik */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center text-sm">G</span>
+                Pertanyaan Pemantik
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label>Pertanyaan Pemantik</Label>
+                <Textarea value={formData.pertanyaanPemantik} onChange={(e) => setFormData({...formData, pertanyaanPemantik: e.target.value})} rows={6} placeholder="Tuliskan pertanyaan pemantik untuk memulai pembelajaran..." />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* H. Sarana, Media, dan Bahan Pembelajaran */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center text-sm">H</span>
+                Sarana, Media, dan Bahan Pembelajaran
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Sarana</Label>
+                <Textarea value={formData.saranaMediaBahan.sarana} onChange={(e) => setFormData({...formData, saranaMediaBahan: {...formData.saranaMediaBahan, sarana: e.target.value}})} rows={3} placeholder="Tuliskan sarana yang digunakan..." />
+              </div>
+              <div className="space-y-2">
+                <Label>Media Pembelajaran</Label>
+                <Textarea value={formData.saranaMediaBahan.media} onChange={(e) => setFormData({...formData, saranaMediaBahan: {...formData.saranaMediaBahan, media: e.target.value}})} rows={3} placeholder="Tuliskan media pembelajaran yang digunakan..." />
+              </div>
+              <div className="space-y-2">
+                <Label>Bahan Pembelajaran</Label>
+                <Textarea value={formData.saranaMediaBahan.bahan} onChange={(e) => setFormData({...formData, saranaMediaBahan: {...formData.saranaMediaBahan, bahan: e.target.value}})} rows={3} placeholder="Tuliskan bahan pembelajaran yang digunakan..." />
+              </div>
+            </CardContent>
+          </Card>
+          {/* I. Langkah Pembelajaran */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center text-sm">I</span>
+                Langkah Pembelajaran
+              </CardTitle>
+              <CardDescription>Tahapan kegiatan pembelajaran</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Penyambutan */}
+              <div className="space-y-3 border p-4 rounded-lg bg-muted/50">
+                <h4 className="font-semibold">Penyambutan</h4>
+                <div className="space-y-2">
+                  <Textarea value={formData.langkahPembelajaran.penyambutan} onChange={(e) => setFormData({...formData, langkahPembelajaran: {...formData.langkahPembelajaran, penyambutan: e.target.value}})} rows={4} placeholder="Kegiatan penyambutan anak..." />
+                </div>
+              </div>
+
+              {/* Pembukaan */}
+              <div className="space-y-3 border p-4 rounded-lg bg-muted/50">
+                <h4 className="font-semibold">Pembukaan</h4>
+                <div className="space-y-2">
+                  <Textarea value={formData.langkahPembelajaran.pembukaan} onChange={(e) => setFormData({...formData, langkahPembelajaran: {...formData.langkahPembelajaran, pembukaan: e.target.value}})} rows={4} placeholder="Kegiatan pembukaan..." />
+                </div>
+              </div>
+
+              {/* Kegiatan Inti */}
+              <div className="space-y-4 border p-4 rounded-lg bg-muted/50">
+                <h4 className="font-semibold">Kegiatan Inti</h4>
+                
+                <div className="space-y-2 pl-4">
+                  <Label className="font-medium">Eksplorasi</Label>
+                  <Textarea value={formData.langkahPembelajaran.kegiatanInti.eksplorasi} onChange={(e) => setFormData({...formData, langkahPembelajaran: {...formData.langkahPembelajaran, kegiatanInti: {...formData.langkahPembelajaran.kegiatanInti, eksplorasi: e.target.value}})}} rows={4} placeholder="Kegiatan eksplorasi..." />
+                </div>
+
+                <div className="space-y-2 pl-4">
+                  <Label className="font-medium">Bermain</Label>
+                  <Textarea value={formData.langkahPembelajaran.kegiatanInti.bermain} onChange={(e) => setFormData({...formData, langkahPembelajaran: {...formData.langkahPembelajaran, kegiatanInti: {...formData.langkahPembelajaran.kegiatanInti, bermain: e.target.value}})}} rows={4} placeholder="Kegiatan bermain..." />
+                </div>
+
+                <div className="space-y-2 pl-4">
+                  <Label className="font-medium">Berkarya</Label>
+                  <Textarea value={formData.langkahPembelajaran.kegiatanInti.berkarya} onChange={(e) => setFormData({...formData, langkahPembelajaran: {...formData.langkahPembelajaran, kegiatanInti: {...formData.langkahPembelajaran.kegiatanInti, berkarya: e.target.value}})}} rows={4} placeholder="Kegiatan berkarya..." />
+                </div>
+
+                <div className="space-y-2 pl-4">
+                  <Label className="font-medium">Refleksi</Label>
+                  <Textarea value={formData.langkahPembelajaran.kegiatanInti.refleksi} onChange={(e) => setFormData({...formData, langkahPembelajaran: {...formData.langkahPembelajaran, kegiatanInti: {...formData.langkahPembelajaran.kegiatanInti, refleksi: e.target.value}})}} rows={4} placeholder="Kegiatan refleksi..." />
+                </div>
+              </div>
+
+              {/* Penutup */}
+              <div className="space-y-3 border p-4 rounded-lg bg-muted/50">
+                <h4 className="font-semibold">Penutup</h4>
+                <div className="space-y-2">
+                  <Textarea value={formData.langkahPembelajaran.penutup} onChange={(e) => setFormData({...formData, langkahPembelajaran: {...formData.langkahPembelajaran, penutup: e.target.value}})} rows={4} placeholder="Kegiatan penutup..." />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* J. Asesmen */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <span className="bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center text-sm">J</span>
-                Kerangka Pembelajaran
+                Asesmen
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent>
               <div className="space-y-2">
-                <Label>Praktek Pedagogik</Label>
-                <Textarea
-                  value={formData.kerangkaPembelajaran.praktekPedagogik}
-                  onChange={(e) => setFormData({...formData, kerangkaPembelajaran: {...formData.kerangkaPembelajaran, praktekPedagogik: e.target.value}})}
-                  rows={6}
-                  disabled
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Lingkungan Fisik</Label>
-                  <Textarea
-                    value={formData.kerangkaPembelajaran.lingkunganPembelajaran.fisik}
-                    onChange={(e) => setFormData({...formData, kerangkaPembelajaran: {...formData.kerangkaPembelajaran, lingkunganPembelajaran: {...formData.kerangkaPembelajaran.lingkunganPembelajaran, fisik: e.target.value}}})}
-                    rows={4}
-                    disabled
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Lingkungan Sosial</Label>
-                  <Textarea
-                    value={formData.kerangkaPembelajaran.lingkunganPembelajaran.sosial}
-                    onChange={(e) => setFormData({...formData, kerangkaPembelajaran: {...formData.kerangkaPembelajaran, lingkunganPembelajaran: {...formData.kerangkaPembelajaran.lingkunganPembelajaran, sosial: e.target.value}}})}
-                    rows={4}
-                    disabled
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Lingkungan Psikologis</Label>
-                  <Textarea
-                    value={formData.kerangkaPembelajaran.lingkunganPembelajaran.psikologis}
-                    onChange={(e) => setFormData({...formData, kerangkaPembelajaran: {...formData.kerangkaPembelajaran, lingkunganPembelajaran: {...formData.kerangkaPembelajaran.lingkunganPembelajaran, psikologis: e.target.value}}})}
-                    rows={4}
-                    disabled
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Lingkungan Akademik</Label>
-                  <Textarea
-                    value={formData.kerangkaPembelajaran.lingkunganPembelajaran.akademik}
-                    onChange={(e) => setFormData({...formData, kerangkaPembelajaran: {...formData.kerangkaPembelajaran, lingkunganPembelajaran: {...formData.kerangkaPembelajaran.lingkunganPembelajaran, akademik: e.target.value}}})}
-                    rows={4}
-                    disabled
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Kemitraan Pembelajaran</Label>
-                <Textarea
-                  value={formData.kerangkaPembelajaran.kemitraanPembelajaran}
-                  onChange={(e) => setFormData({...formData, kerangkaPembelajaran: {...formData.kerangkaPembelajaran, kemitraanPembelajaran: e.target.value}})}
-                  rows={4}
-                  disabled
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Pemanfaatan Digital</Label>
-                <Textarea
-                  value={formData.kerangkaPembelajaran.pemanfaatanDigital}
-                  onChange={(e) => setFormData({...formData, kerangkaPembelajaran: {...formData.kerangkaPembelajaran, pemanfaatanDigital: e.target.value}})}
-                  rows={4}
-                  disabled
-                />
+                <Label>Asesmen</Label>
+                <Textarea value={formData.asesmen} onChange={(e) => setFormData({...formData, asesmen: e.target.value})} rows={6} placeholder="Tuliskan instrumen dan teknik asesmen..." />
               </div>
             </CardContent>
           </Card>
 
-          {/* K - Kegiatan Pembelajaran */}
+          {/* K. Tindak Lanjut */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <span className="bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center text-sm">K</span>
-                Kegiatan Pembelajaran (5 Tahap)
+                Tindak Lanjut
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Tahap Persiapan */}
-              <div className="space-y-3 border p-4 rounded-lg bg-muted/50">
-                <h4 className="font-semibold">1. Tahap Persiapan</h4>
-                <div className="space-y-2">
-                  <Label>Pemahaman Konsep</Label>
-                  <Textarea
-                    value={formData.kegiatanPembelajaran.persiapan.pemahamanKonsep}
-                    onChange={(e) => setFormData({...formData, kegiatanPembelajaran: {...formData.kegiatanPembelajaran, persiapan: {...formData.kegiatanPembelajaran.persiapan, pemahamanKonsep: e.target.value}}})}
-                    rows={4}
-                    disabled
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Penyiapan Alat</Label>
-                  <Textarea
-                    value={formData.kegiatanPembelajaran.persiapan.penyiapanAlat}
-                    onChange={(e) => setFormData({...formData, kegiatanPembelajaran: {...formData.kegiatanPembelajaran, persiapan: {...formData.kegiatanPembelajaran.persiapan, penyiapanAlat: e.target.value}}})}
-                    rows={4}
-                    disabled
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Alat & Bahan</Label>
-                  <Textarea
-                    value={formData.kegiatanPembelajaran.persiapan.alatBahan}
-                    onChange={(e) => setFormData({...formData, kegiatanPembelajaran: {...formData.kegiatanPembelajaran, persiapan: {...formData.kegiatanPembelajaran.persiapan, alatBahan: e.target.value}}})}
-                    rows={4}
-                    disabled
-                  />
-                </div>
+            <CardContent>
+              <div className="space-y-2">
+                <Label>Tindak Lanjut</Label>
+                <Textarea value={formData.tindakLanjut} onChange={(e) => setFormData({...formData, tindakLanjut: e.target.value})} rows={4} placeholder="Tuliskan tindak lanjut pembelajaran..." />
               </div>
+            </CardContent>
+          </Card>
 
-              {/* Tahap Pelaksanaan */}
-              <div className="space-y-3 border p-4 rounded-lg bg-muted/50">
-                <h4 className="font-semibold">2. Tahap Pelaksanaan</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Orientasi</Label>
-                    <Textarea
-                      value={formData.kegiatanPembelajaran.pelaksanaan.orientasi}
-                      onChange={(e) => setFormData({...formData, kegiatanPembelajaran: {...formData.kegiatanPembelajaran, pelaksanaan: {...formData.kegiatanPembelajaran.pelaksanaan, orientasi: e.target.value}}})}
-                      rows={4}
-                      disabled
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Eksplorasi</Label>
-                    <Textarea
-                      value={formData.kegiatanPembelajaran.pelaksanaan.eksplorasi}
-                      onChange={(e) => setFormData({...formData, kegiatanPembelajaran: {...formData.kegiatanPembelajaran, pelaksanaan: {...formData.kegiatanPembelajaran.pelaksanaan, eksplorasi: e.target.value}}})}
-                      rows={4}
-                      disabled
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Diskusi</Label>
-                    <Textarea
-                      value={formData.kegiatanPembelajaran.pelaksanaan.diskusi}
-                      onChange={(e) => setFormData({...formData, kegiatanPembelajaran: {...formData.kegiatanPembelajaran, pelaksanaan: {...formData.kegiatanPembelajaran.pelaksanaan, diskusi: e.target.value}}})}
-                      rows={4}
-                      disabled
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Kolaborasi</Label>
-                    <Textarea
-                      value={formData.kegiatanPembelajaran.pelaksanaan.kolaborasi}
-                      onChange={(e) => setFormData({...formData, kegiatanPembelajaran: {...formData.kegiatanPembelajaran, pelaksanaan: {...formData.kegiatanPembelajaran.pelaksanaan, kolaborasi: e.target.value}}})}
-                      rows={4}
-                      disabled
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Refleksi</Label>
-                  <Textarea
-                    value={formData.kegiatanPembelajaran.pelaksanaan.refleksi}
-                    onChange={(e) => setFormData({...formData, kegiatanPembelajaran: {...formData.kegiatanPembelajaran, pelaksanaan: {...formData.kegiatanPembelajaran.pelaksanaan, refleksi: e.target.value}}})}
-                    rows={4}
-                    disabled
-                  />
-                </div>
-              </div>
-
-              {/* Tahap Pembuatan Karya */}
-              <div className="space-y-3 border p-4 rounded-lg bg-muted/50">
-                <h4 className="font-semibold">3. Tahap Pembuatan Karya</h4>
-                <div className="space-y-2">
-                  <Label>Proses</Label>
-                  <Textarea
-                    value={formData.kegiatanPembelajaran.pembuatanKarya.proses}
-                    onChange={(e) => setFormData({...formData, kegiatanPembelajaran: {...formData.kegiatanPembelajaran, pembuatanKarya: {...formData.kegiatanPembelajaran.pembuatanKarya, proses: e.target.value}}})}
-                    rows={4}
-                    disabled
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Hasil</Label>
-                  <Textarea
-                    value={formData.kegiatanPembelajaran.pembuatanKarya.hasil}
-                    onChange={(e) => setFormData({...formData, kegiatanPembelajaran: {...formData.kegiatanPembelajaran, pembuatanKarya: {...formData.kegiatanPembelajaran.pembuatanKarya, hasil: e.target.value}}})}
-                    rows={4}
-                    disabled
-                  />
-                </div>
-              </div>
-
-              {/* Tahap Presentasi */}
-              <div className="space-y-3 border p-4 rounded-lg bg-muted/50">
-                <h4 className="font-semibold">4. Tahap Presentasi</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Persiapan</Label>
-                    <Textarea
-                      value={formData.kegiatanPembelajaran.presentasi.persiapan}
-                      onChange={(e) => setFormData({...formData, kegiatanPembelajaran: {...formData.kegiatanPembelajaran, presentasi: {...formData.kegiatanPembelajaran.presentasi, persiapan: e.target.value}}})}
-                      rows={4}
-                      disabled
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Pelaksanaan</Label>
-                    <Textarea
-                      value={formData.kegiatanPembelajaran.presentasi.pelaksanaan}
-                      onChange={(e) => setFormData({...formData, kegiatanPembelajaran: {...formData.kegiatanPembelajaran, presentasi: {...formData.kegiatanPembelajaran.presentasi, pelaksanaan: e.target.value}}})}
-                      rows={4}
-                      disabled
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Tahap Refleksi Akhir */}
-              <div className="space-y-3 border p-4 rounded-lg bg-muted/50">
-                <h4 className="font-semibold">5. Tahap Refleksi Akhir</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Refleksi Guru</Label>
-                    <Textarea
-                      value={formData.kegiatanPembelajaran.refleksiAkhir.refleksiGuru}
-                      onChange={(e) => setFormData({...formData, kegiatanPembelajaran: {...formData.kegiatanPembelajaran, refleksiAkhir: {...formData.kegiatanPembelajaran.refleksiAkhir, refleksiGuru: e.target.value}}})}
-                      rows={4}
-                      disabled
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Refleksi Anak</Label>
-                    <Textarea
-                      value={formData.kegiatanPembelajaran.refleksiAkhir.refleksiAnak}
-                      onChange={(e) => setFormData({...formData, kegiatanPembelajaran: {...formData.kegiatanPembelajaran, refleksiAkhir: {...formData.kegiatanPembelajaran.refleksiAkhir, refleksiAnak: e.target.value}}})}
-                      rows={4}
-                      disabled
-                    />
-                  </div>
-                </div>
+          {/* L. Refleksi Guru */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center text-sm">L</span>
+                Refleksi Guru
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label>Refleksi Guru</Label>
+                <Textarea value={formData.refleksiGuru} onChange={(e) => setFormData({...formData, refleksiGuru: e.target.value})} rows={4} placeholder="Tuliskan refleksi guru setelah pembelajaran..." />
               </div>
             </CardContent>
           </Card>
