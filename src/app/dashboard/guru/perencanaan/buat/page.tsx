@@ -492,6 +492,7 @@ function BuatRPPContent() {
     		   <SelectItem value="Sabtu">Sabtu</SelectItem>
   		  </SelectContent>
 		</Select>
+	      </div>	
               <div className="space-y-2"><Label>Jumlah Pertemuan</Label><Input value={formData.jumlahPertemuan} onChange={(e) => setFormData(prev => ({...prev, jumlahPertemuan: e.target.value}))} placeholder="Contoh: 8 JP" /></div>
               <div className="space-y-2"><Label>Kelas</Label><Input value={formData.kelas} onChange={(e) => setFormData(prev => ({...prev, kelas: e.target.value}))} placeholder="Contoh: A1" /></div>
               <div className="space-y-2"><Label>Guru / Pengajar</Label><Input value={formData.guru} onChange={(e) => setFormData(prev => ({...prev, guru: e.target.value}))} placeholder="Nama guru" /></div>
