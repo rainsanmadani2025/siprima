@@ -314,7 +314,7 @@ export async function POST(request: NextRequest) {
       const kemenagDims = calculateDimensions(kemenagLogo.width, kemenagLogo.height, 65)
       getPage().drawImage(kemenagLogo, {
         x: margin.left,
-        y: yPos - 20,
+        y: yPos - 44,
         width: kemenagDims.width,
         height: kemenagDims.height
       })
