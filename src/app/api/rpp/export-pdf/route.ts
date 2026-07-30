@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     const pageWidth = 595.28
     const pageHeight = 841.89
-    const margin = { left: 50, right: 50, top: 50, bottom: 50 }
+    const margin = { left: 50, right: 50, top: 75, bottom: 50 }
     const contentWidth = pageWidth - margin.left - margin.right
 
     let pages = [pdfDoc.addPage([pageWidth, pageHeight])]
@@ -335,13 +335,13 @@ export async function POST(request: NextRequest) {
     const schoolName = (rppData.namaSekolah || 'RA INSAN MADANI').replace(/[^\x20-\x7E]/g, '')
     const nameWidth = fontBold.widthOfTextAtSize(schoolName, 14)
     drawText(schoolName, centerX - nameWidth / 2, yPos, 14, true)
-    yPos -= 20
+    yPos -= 15
 
     if (rppData.alamatSekolah) {
       const addr = rppData.alamatSekolah.replace(/[^\x20-\x7E]/g, '')
       const addrWidth = font.widthOfTextAtSize(addr, 8)
       drawText(addr, centerX - addrWidth / 2, yPos, 8, false)
-      yPos -= 15
+      yPos -= 25
     }
 
     const title = 'Rencana Pelaksanaan Pembelajaran'
