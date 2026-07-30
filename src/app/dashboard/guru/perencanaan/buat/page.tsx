@@ -478,7 +478,20 @@ function BuatRPPContent() {
                 </Select>
               </div>
               <div className="space-y-2"><Label>Tahun Ajaran</Label><Input value={formData.tahunAjaran} onChange={(e) => setFormData(prev => ({...prev, tahunAjaran: e.target.value}))} /></div>
-              <div className="space-y-2"><Label>Hari</Label><Input value={formData.hari} onChange={(e) => setFormData(prev => ({...prev, hari: e.target.value}))} placeholder="Contoh: Selasa" /></div>
+              <div className="space-y-2"><Label>Hari</Label>
+		<Select value={formData.hari} onValueChange={(value) => setFormData(prev => ({...prev, hari: value}))}>
+  		  <SelectTrigger>
+    		   <SelectValue placeholder="Pilih hari" />
+  		  </SelectTrigger>
+  		  <SelectContent>
+    		   <SelectItem value="Senin">Senin</SelectItem>
+    		   <SelectItem value="Selasa">Selasa</SelectItem>
+    		   <SelectItem value="Rabu">Rabu</SelectItem>
+    		   <SelectItem value="Kamis">Kamis</SelectItem>
+    		   <SelectItem value="Jumat">Jumat</SelectItem>
+    		   <SelectItem value="Sabtu">Sabtu</SelectItem>
+  		  </SelectContent>
+		</Select>
               <div className="space-y-2"><Label>Jumlah Pertemuan</Label><Input value={formData.jumlahPertemuan} onChange={(e) => setFormData(prev => ({...prev, jumlahPertemuan: e.target.value}))} placeholder="Contoh: 8 JP" /></div>
               <div className="space-y-2"><Label>Kelas</Label><Input value={formData.kelas} onChange={(e) => setFormData(prev => ({...prev, kelas: e.target.value}))} placeholder="Contoh: A1" /></div>
               <div className="space-y-2"><Label>Guru / Pengajar</Label><Input value={formData.guru} onChange={(e) => setFormData(prev => ({...prev, guru: e.target.value}))} placeholder="Nama guru" /></div>
