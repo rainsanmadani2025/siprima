@@ -121,12 +121,6 @@ function formatDateIndo(dateString: string): string {
   })
 }
 
-function formatKelompokUsia(value: string): string {
-  if (value.includes("A")) return "Kelompok A"
-  if (value.includes("B")) return "Kelompok B"
-  return value
-}
-
 // ============================================================
 // Component
 // ============================================================
@@ -193,7 +187,7 @@ export default function BankTemplateKBCPage() {
   }, [fetchTemplates])
 
   // ============================================================
-  // Handlers
+  // Handlers (separate named functions, NO inline nested spreads)
   // ============================================================
 
   const handleTemaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -450,10 +444,14 @@ export default function BankTemplateKBCPage() {
             <p className="text-sm font-medium">{t.kelompokUsia}</p>
           </div>
           <div className="bg-muted/50 p-3 rounded-lg">
+            <p className="text-xs text-muted-foreground">Fase</p>
+            <p className="text-sm font-medium">{t.fase}</p>
+          </div>
+          <div className="bg-muted/50 p-3 rounded-lg">
             <p className="text-xs text-muted-foreground">Semester</p>
             <p className="text-sm font-medium">{t.semester}</p>
           </div>
-          <div className="bg-muted/50 p-3 rounded-lg">
+          <div className="bg-muted/50 p-3 rounded-lg col-span-2">
             <p className="text-xs text-muted-foreground">Status</p>
             <div className="mt-1">{renderStatusBadge(t.status)}</div>
           </div>
@@ -678,7 +676,9 @@ export default function BankTemplateKBCPage() {
         )}
       </div>
 
+      {/* ============================================================ */}
       {/* Detail Dialog */}
+      {/* ============================================================ */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] p-0">
           <DialogHeader className="p-6 pb-0">
@@ -696,7 +696,9 @@ export default function BankTemplateKBCPage() {
         </DialogContent>
       </Dialog>
 
+      {/* ============================================================ */}
       {/* Delete Confirmation Dialog */}
+      {/* ============================================================ */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
