@@ -574,7 +574,19 @@ export default function EditRPPPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Hari</Label>
-                  <Input value={formData.hari} onChange={(e) => setFormData(prev => ({...prev, hari: e.target.value}))} placeholder="Contoh: Selasa" />
+                  <Select value={formData.hari} onValueChange={(value) => setFormData(prev => ({...prev, hari: value}))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih hari" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Senin">Senin</SelectItem>
+                      <SelectItem value="Selasa">Selasa</SelectItem>
+                      <SelectItem value="Rabu">Rabu</SelectItem>
+                      <SelectItem value="Kamis">Kamis</SelectItem>
+                      <SelectItem value="Jumat">Jumat</SelectItem>
+                      <SelectItem value="Sabtu">Sabtu</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Jumlah Pertemuan</Label>
