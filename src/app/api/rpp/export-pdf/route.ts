@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     const pageWidth = 595.28
     const pageHeight = 841.89
-    const margin = { left: 50, right: 50, top: 75, bottom: 50 }
+    const margin = { left: 50, right: 50, top: 50, bottom: 50 }
     const contentWidth = pageWidth - margin.left - margin.right
 
     let pages = [pdfDoc.addPage([pageWidth, pageHeight])]
