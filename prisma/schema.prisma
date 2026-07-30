@@ -428,3 +428,53 @@ model Prosem {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
+
+// RPP Template KBC (Bank Template - 12 Section A-L)
+model RPPTemplateKBC {
+  id                   String   @id @default(cuid())
+  nama                 String
+  tema                 String
+  subtema              String
+  kelompokUsia         String   @default("Kelompok A (4-5 Tahun)")
+  status               String   @default("published")
+
+  // Section A: Identitas
+  fase                 String   @default("Fase Fondasi")
+  semester             String   @default("Ganjil")
+
+  // Section B: Capaian Pembelajaran
+  capaianPembelajaran  String
+
+  // Section C: Tujuan Pembelajaran
+  tujuanPembelajaran   String
+
+  // Section D: 6 Nilai Cinta (JSON)
+  nilaiCinta           String
+
+  // Section E: 8 Dimensi Kelulusan KBC Kemenag (JSON)
+  dimensiKelulusan     String
+
+  // Section F: Pemahaman Bermakna
+  pemahamanBermakna    String
+
+  // Section G: Pertanyaan Pemantik
+  pertanyaanPemantik   String
+
+  // Section H: Sarana, Media, Bahan (JSON)
+  saranaMediaBahan     String
+
+  // Section I: Langkah Pembelajaran (JSON)
+  langkahPembelajaran  String
+
+  // Section J: Asesmen
+  asesmen              String
+
+  // Section K: Tindak Lanjut
+  tindakLanjut         String
+
+  // Section L: Refleksi Guru
+  refleksiGuru         String
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}

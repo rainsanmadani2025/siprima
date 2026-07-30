@@ -1,5 +1,6 @@
 "use client"
-// RPP KBC - New 12-section layout (A-L) for Kurikulum Berbasis Cinta
+
+// === BAGIAN 4.1: Import, Interface, dan State ===
 
 import { useState, useEffect } from "react"
 import { getCurrentSemester, getCurrentAcademicYear } from '@/lib/semester-utils'
@@ -25,49 +26,61 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Download, ArrowLeft, Loader2, Plus, RefreshCw, Eye, Sparkles, FileDown, Save } from "lucide-react"
+import { Download, ArrowLeft, Loader2, Plus, RefreshCw, Eye, FileDown, Save } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 
-interface Template {
+interface TemplateKBC {
   id: string
+  nama: string
   tema: string
-  topikKBC?: string
-  profilLulusan?: string
-  tujuanKBC?: string
-  tujuanProfilLulusan?: any
-  tujuanPembelajaranMendalam?: string
-  materiIntegrasiKBC?: string
-  tujuanPembelajaran?: string
-  kerangkaPembelajaran?: any
-  kegiatanPembelajaran?: any
-  rubrikPenilaian?: any
+  subtema: string
+  kelompokUsia: string
+  status: string
+  fase: string
+  semester: string
+  capaianPembelajaran: string
+  tujuanPembelajaran: string
+  nilaiCinta: any
+  dimensiKelulusan: any
+  pemahamanBermakna: string
+  pertanyaanPemantik: string
+  saranaMediaBahan: any
+  langkahPembelajaran: any
+  asesmen: string
+  tindakLanjut: string
+  refleksiGuru: string
 }
 
 interface SchoolProfile {
   name: string
   address: string
+  phone?: string
+  email?: string
+  npsn?: string
 }
 
 export default function BuatRPPPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const urlTemplateId = searchParams.get('templateId')
+
   const [loading, setLoading] = useState(false)
   const [loadingPDF, setLoadingPDF] = useState(false)
   const [saving, setSaving] = useState(false)
   const [fetchingTemplates, setFetchingTemplates] = useState(true)
-  const [generatingTemplate, setGeneratingTemplate] = useState(false)
-  const [generateDialogOpen, setGenerateDialogOpen] = useState(false)
+
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false)
-  const [newTema, setNewTema] = useState("")
+
   const { toast } = useToast()
 
   const [schoolProfile, setSchoolProfile] = useState<SchoolProfile | null>(null)
-  const [templates, setTemplates] = useState<Template[]>([])
+  const [templates, setTemplates] = useState<TemplateKBC[]>([])
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("")
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateKBC | null>(null)
+  const [kelompokUsiaFilter, setKelompokUsiaFilter] = useState("Kelompok A (4-5 Tahun)")
 
   const [formData, setFormData] = useState({
-    fase: "Fase Fondasi",
     kelompokUsia: "Kelompok A (4-5 Tahun)",
     semester: getCurrentSemester(),
     tahunAjaran: getCurrentAcademicYear(),
@@ -80,57 +93,36 @@ export default function BuatRPPPage() {
     capaianPembelajaran: "",
     tujuanPembelajaran: "",
     nilaiCinta: {
-      cintaAllah: "",
-      cintaRasulullah: "",
-      cintaDiriSendiri: "",
-      cintaSesama: "",
-      cintaLingkungan: "",
-      cintaBangsaNegara: ""
+      cintaAllah: "", cintaRasulullah: "", cintaDiriSendiri: "",
+      cintaSesama: "", cintaLingkungan: "", cintaBangsaNegara: ""
     },
     dimensiKelulusan: {
-      keimananKetakwaan: "",
-      kewargaan: "",
-      penalaranKritis: "",
-      kreativitas: "",
-      kolaborasi: "",
-      kemandirian: "",
-      kesehatan: "",
-      komunikasi: ""
+      keimananKetakwaan: "", kewargaan: "", penalaranKritis: "",
+      kreativitas: "", kolaborasi: "", kemandirian: "", kesehatan: "", komunikasi: ""
     },
     pemahamanBermakna: "",
     pertanyaanPemantik: "",
-    saranaMediaBahan: {
-      sarana: "",
-      media: "",
-      bahan: ""
-    },
+    saranaMediaBahan: { sarana: "", media: "", bahan: "" },
     langkahPembelajaran: {
-      penyambutan: "",
-      pembukaan: "",
-      kegiatanInti: {
-        eksplorasi: "",
-        bermain: "",
-        berkarya: "",
-        refleksi: ""
-      },
+      penyambutan: "", pembukaan: "",
+      kegiatanInti: { eksplorasi: "", bermain: "", berkarya: "", refleksi: "" },
       penutup: ""
     },
     asesmen: "",
     tindakLanjut: "",
-    refleksiGuru: ""
+    refleksiGuru: "",
   })
 
-  useEffect(() => {
-    fetchSchoolProfile()
-    fetchUserAndClasses()
-    fetchTemplates()
-  }, [])
+    // === BAGIAN 4.2: Functions ===
 
   const fetchUserAndClasses = async () => {
     try {
       const localName = localStorage.getItem('userName')
       if (localName) {
-        setFormData(prev => ({ ...prev, guru: localName }))
+        setFormData(prev => ({
+          ...prev,
+          guru: localName
+        }))
       }
     } catch (error) {
       console.error('Error fetching user data from localStorage:', error)
@@ -149,10 +141,11 @@ export default function BuatRPPPage() {
     }
   }
 
-  const fetchTemplates = async () => {
+  const fetchTemplates = async (overrideKu?: string) => {
     try {
       setFetchingTemplates(true)
-      const response = await fetch('/api/rpp-template-list')
+      const ku = overrideKu || kelompokUsiaFilter
+      const response = await fetch(`/api/template-kbc/list?kelompokUsia=${encodeURIComponent(ku)}&status=published`)
       const data = await response.json()
       if (data.success) {
         setTemplates(data.templates)
@@ -164,303 +157,388 @@ export default function BuatRPPPage() {
     }
   }
 
-  const handleGenerateTemplate = async () => {
-    if (!newTema.trim()) {
-      toast({ variant: "destructive", title: "Error", description: "Tema harus diisi" })
-      return
-    }
-    let isRequestActive = true
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => { if (isRequestActive) controller.abort() }, 65000)
-    try {
-      setGeneratingTemplate(true)
-      const response = await fetch('/api/rpp/generate-template', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tema: newTema.trim(), kelompokUsia: formData.kelompokUsia, topikKBC: "" }),
-        signal: controller.signal
-      })
-      clearTimeout(timeoutId)
-      isRequestActive = false
-      if (!response.ok) {
-        if (response.status === 401) throw new Error('401: API Key belum dikonfigurasi. Fitur AI tidak tersedia.')
-        throw new Error(`Gagal membuat template. Server error: ${response.status}`)
-      }
-      try {
-        const responseText = await response.text()
-        if (!responseText.trim()) throw new Error('Response kosong dari server')
-        const data = JSON.parse(responseText)
-        if (data.success) {
-          const message = data.updated ? `Template "${newTema}" berhasil diperbarui` : `Template "${newTema}" berhasil dibuat dan tersedia untuk dipilih`
-          toast({ title: data.updated ? "Template Diperbarui" : "Template Berhasil Dibuat", description: message })
-          setNewTema("")
-          setGenerateDialogOpen(false)
-          await fetchTemplates()
-        } else {
-          throw new Error(data.error || 'Gagal membuat template')
-        }
-      } catch (parseError) {
-        console.error('[Generate Template] Parse error:', parseError)
-        throw new Error(`Gagal membuat template. Server error: ${response.status}`)
-      }
-    } catch (error: any) {
-      const isTimeout = error.name === 'AbortError' && isRequestActive
-      isRequestActive = false
-      console.error('Error generating template:', error)
-      if (error.message.includes('502')) {
-        toast({ variant: "destructive", title: "Server Sibuk", description: "Server sedang sibuk memproses permintaan. Silakan coba lagi." })
-      } else if (isTimeout) {
-        toast({ variant: "destructive", title: "Timeout", description: "Server tidak merespon dalam waktu 65 detik." })
-      } else if (error.message && error.message.includes('401')) {
-        toast({ variant: "destructive", title: "Fitur AI Tidak Tersedia", description: "Fitur generate template memerlukan konfigurasi API Key." })
-      } else if (error.name !== 'AbortError') {
-        let errorMessage = error.message || "Gagal membuat template"
-        if (errorMessage.includes('<') && errorMessage.includes('>')) errorMessage = "Gagal membuat template. Silakan coba lagi."
-        toast({ variant: "destructive", title: "Error", description: errorMessage })
-      }
-    } finally {
-      clearTimeout(timeoutId)
-      setGeneratingTemplate(false)
-    }
-  }
-
   const handleTemplateChange = async (templateId: string) => {
     setSelectedTemplateId(templateId)
-    if (!templateId) { setSelectedTemplate(null); return }
+
+    if (!templateId) {
+      setSelectedTemplate(null)
+      return
+    }
+
     try {
-      const response = await fetch(`/api/rpp-template-detail?id=${templateId}`)
+      const response = await fetch(`/api/template-kbc/detail?id=${templateId}`)
       const data = await response.json()
+
       if (data.success && data.template) {
-        const template = data.template
-        setSelectedTemplate(template)
+        const t = data.template
+        setSelectedTemplate(t)
+
+        const nilaiCinta = t.nilaiCinta || {
+          cintaAllah: "", cintaRasulullah: "", cintaDiriSendiri: "",
+          cintaSesama: "", cintaLingkungan: "", cintaBangsaNegara: ""
+        }
+        const dimensiKelulusan = t.dimensiKelulusan || {
+          keimananKetakwaan: "", kewargaan: "", penalaranKritis: "",
+          kreativitas: "", kolaborasi: "", kemandirian: "", kesehatan: "", komunikasi: ""
+        }
+        const saranaMediaBahan = t.saranaMediaBahan || {
+          sarana: "", media: "", bahan: ""
+        }
+        const langkahPembelajaran = t.langkahPembelajaran || {
+          penyambutan: "", pembukaan: "",
+          kegiatanInti: { eksplorasi: "", bermain: "", berkarya: "", refleksi: "" },
+          penutup: ""
+        }
+
         setFormData(prev => ({
           ...prev,
-          tema: template.tema || "",
-          subtema: prev.subtema,
-          capaianPembelajaran: template.profilLulusan || "",
-          tujuanPembelajaran: template.tujuanPembelajaran || "",
-          pemahamanBermakna: template.tujuanPembelajaranMendalam || "",
-          pertanyaanPemantik: template.materiIntegrasiKBC || "",
-          nilaiCinta: { cintaAllah: "", cintaRasulullah: "", cintaDiriSendiri: "", cintaSesama: "", cintaLingkungan: "", cintaBangsaNegara: "" },
-          dimensiKelulusan: { keimananKetakwaan: "", kewargaan: "", penalaranKritis: "", kreativitas: "", kolaborasi: "", kemandirian: "", kesehatan: "", komunikasi: "" },
-          saranaMediaBahan: { sarana: "", media: "", bahan: "" },
-          langkahPembelajaran: { penyambutan: "", pembukaan: "", kegiatanInti: { eksplorasi: "", bermain: "", berkarya: "", refleksi: "" }, penutup: "" },
-          asesmen: "",
-          tindakLanjut: "",
-          refleksiGuru: ""
+          kelompokUsia: t.kelompokUsia || prev.kelompokUsia,
+          semester: t.semester || prev.semester,
+          tema: t.tema || "",
+          subtema: t.subtema || "",
+          capaianPembelajaran: t.capaianPembelajaran || "",
+          tujuanPembelajaran: t.tujuanPembelajaran || "",
+          nilaiCinta,
+          dimensiKelulusan,
+          pemahamanBermakna: t.pemahamanBermakna || "",
+          pertanyaanPemantik: t.pertanyaanPemantik || "",
+          saranaMediaBahan,
+          langkahPembelajaran,
+          asesmen: t.asesmen || "",
+          tindakLanjut: t.tindakLanjut || "",
+          refleksiGuru: t.refleksiGuru || "",
         }))
-        toast({ title: "Template dimuat", description: `Template "${template.tema}" berhasil dimuat. Beberapa bagian perlu diisi manual karena format baru.` })
+
+        toast({ title: "Template dimuat", description: `Template "${t.nama}" berhasil diisi ke form` })
       }
     } catch (error) {
-      console.error('Error fetching template:', error)
+      console.error('Error loading template:', error)
       toast({ variant: "destructive", title: "Error", description: "Gagal memuat template" })
     }
   }
 
-  const handleGenerateVariation = async () => {
-    if (!selectedTemplate) return
-    const tema = selectedTemplate.tema
-    let isRequestActive = true
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => { if (isRequestActive) controller.abort() }, 65000)
+  const buildApiBody = () => ({
+    tema: formData.tema,
+    subtema: formData.subtema,
+    capaianPembelajaran: formData.capaianPembelajaran,
+    refleksiGuru: formData.refleksiGuru,
+    tindakLanjut: formData.tindakLanjut,
+    fase: "Fase Fondasi",
+    kelompokUsia: formData.kelompokUsia,
+    semester: formData.semester,
+    tahunAjaran: formData.tahunAjaran,
+    hari: formData.hari,
+    jumlahPertemuan: formData.jumlahPertemuan,
+    kelas: formData.kelas,
+    guru: formData.guru,
+    nilaiCinta: formData.nilaiCinta,
+    dimensiKelulusan: formData.dimensiKelulusan,
+    pemahamanBermakna: formData.pemahamanBermakna,
+    pertanyaanPemantik: formData.pertanyaanPemantik,
+    tujuanPembelajaran: formData.tujuanPembelajaran,
+    saranaMediaBahan: formData.saranaMediaBahan,
+    langkahPembelajaran: formData.langkahPembelajaran,
+    asesmen: formData.asesmen,
+    namaSekolah: schoolProfile?.name || "RA INSAN MADANI",
+    alamatSekolah: schoolProfile?.address || ""
+  })
+
+  const handleSave = async () => {
     try {
-      setGeneratingTemplate(true)
-      const response = await fetch('/api/rpp/generate-template', {
+      setSaving(true)
+      const response = await fetch('/api/rpp/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tema, kelompokUsia: formData.kelompokUsia, topikKBC: "" }),
-        signal: controller.signal
+        body: JSON.stringify(buildApiBody()),
       })
-      clearTimeout(timeoutId)
-      isRequestActive = false
-      if (!response.ok) {
-        try {
-          const responseText = await response.text()
-          const errorData = JSON.parse(responseText)
-          throw new Error(errorData.error || `Gagal membuat variasi template. Server error: ${response.status}`)
-        } catch (parseError) {
-          if (response.status === 503) throw new Error('Fitur AI tidak tersedia.')
-          else if (response.status === 429) throw new Error('Rate limit tercapai.')
-          throw new Error(`Gagal membuat variasi template. Server error: ${response.status}`)
-        }
-      }
-      let data
-      try { data = JSON.parse(await response.text()) } catch { throw new Error('Gagal membuat variasi template.') }
-      if (data.success) {
-        toast({ title: "Variasi template berhasil dibuat", description: `Variasi baru untuk tema "${tema}" telah dibuat.` })
-        await fetchTemplates()
-        const newTemplates = await (await fetch('/api/rpp-template-list')).json()
-        if (newTemplates.success && newTemplates.templates.length > 0) {
-          handleTemplateChange(newTemplates.templates[newTemplates.templates.length - 1].id)
-        }
-      } else { throw new Error(data.error || 'Gagal membuat variasi template') }
+      if (!response.ok) throw new Error('Gagal menyimpan RPP')
+      toast({ title: "Berhasil", description: "RPP berhasil disimpan" })
     } catch (error: any) {
-      const isTimeout = error.name === 'AbortError' && isRequestActive
-      isRequestActive = false
-      console.error('Error generating variation:', error)
-      if (isTimeout) {
-        toast({ variant: "destructive", title: "Timeout", description: "Server tidak merespon dalam waktu 65 detik." })
-      } else if (error.name !== 'AbortError') {
-        let errorMessage = error.message || "Gagal membuat variasi template"
-        if (errorMessage.includes('<') && errorMessage.includes('>')) errorMessage = "Gagal membuat variasi template. Server error."
-        toast({ variant: "destructive", title: "Error", description: errorMessage })
-      }
+      toast({ variant: "destructive", title: "Error", description: error.message || "Gagal menyimpan RPP" })
     } finally {
-      clearTimeout(timeoutId)
-      setGeneratingTemplate(false)
+      setSaving(false)
     }
   }
-
-  const buildApiBody = () => ({
-    tema: formData.tema, subtema: formData.subtema, capaianPembelajaran: formData.capaianPembelajaran,
-    refleksiGuru: formData.refleksiGuru, tindakLanjut: formData.tindakLanjut, fase: formData.fase,
-    kelompokUsia: formData.kelompokUsia, semester: formData.semester, tahunAjaran: formData.tahunAjaran,
-    hari: formData.hari, jumlahPertemuan: formData.jumlahPertemuan, kelas: formData.kelas, guru: formData.guru,
-    nilaiCinta: formData.nilaiCinta, dimensiKelulusan: formData.dimensiKelulusan,
-    pemahamanBermakna: formData.pemahamanBermakna, pertanyaanPemantik: formData.pertanyaanPemantik,
-    tujuanPembelajaran: formData.tujuanPembelajaran, saranaMediaBahan: formData.saranaMediaBahan,
-    langkahPembelajaran: formData.langkahPembelajaran, asesmen: formData.asesmen,
-    namaSekolah: schoolProfile?.name || "RA INSAN MADANI", alamatSekolah: schoolProfile?.address || ""
-  })
 
   const handleExport = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/rpp/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(buildApiBody()) })
+      const response = await fetch('/api/rpp/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildApiBody()),
+      })
       if (!response.ok) throw new Error('Gagal mengekspor RPP')
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
       a.download = `RPP-KBC-${formData.tema || 'Baru'}-${new Date().toISOString().split('T')[0]}.docx`
-      document.body.appendChild(a); a.click(); document.body.removeChild(a); window.URL.revokeObjectURL(url)
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
       toast({ title: "Berhasil", description: "RPP berhasil diekspor ke Word" })
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message || "Gagal mengekspor RPP" })
-    } finally { setLoading(false) }
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handlePreviewPDF = async () => {
     try {
       setLoadingPDF(true)
-      const response = await fetch('/api/rpp/export-pdf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(buildApiBody()) })
+      const response = await fetch('/api/rpp/export-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildApiBody()),
+      })
       if (!response.ok) throw new Error('Gagal membuat preview PDF')
       const blob = await response.blob()
-      window.open(window.URL.createObjectURL(blob), '_blank')
+      const url = window.URL.createObjectURL(blob)
+      window.open(url, '_blank')
       toast({ title: "Berhasil", description: "PDF dibuka di tab baru" })
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message || "Gagal membuat preview PDF" })
-    } finally { setLoadingPDF(false) }
+    } finally {
+      setLoadingPDF(false)
+    }
   }
 
   const handleExportPDF = async () => {
     try {
       setLoadingPDF(true)
-      const response = await fetch('/api/rpp/export-pdf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(buildApiBody()) })
+      const response = await fetch('/api/rpp/export-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildApiBody()),
+      })
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
       a.download = `RPP-KBC-${formData.tema || 'Baru'}-${new Date().toISOString().split('T')[0]}.pdf`
-      document.body.appendChild(a); a.click(); document.body.removeChild(a); window.URL.revokeObjectURL(url)
-      toast({ title: "Berhasil", description: "RPP berhasil diekspor ke PDF" })
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      toast({ title: "Berhasil", description: "PDF berhasil diunduh" })
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message || "Gagal mengekspor RPP ke PDF" })
-    } finally { setLoadingPDF(false) }
+      toast({ variant: "destructive", title: "Error", description: error.message || "Gagal mengekspor PDF" })
+    } finally {
+      setLoadingPDF(false)
+    }
   }
 
-  const handleSave = async () => {
-    if (!formData.tema || !formData.subtema) {
-      toast({ variant: "destructive", title: "Error", description: "Mohon lengkapi: Tema dan Subtema" }); return
+  // === BAGIAN 4.3: useEffects ===
+
+  useEffect(() => {
+    fetchSchoolProfile()
+    fetchUserAndClasses()
+    fetchTemplates()
+  }, [])
+
+  useEffect(() => {
+    if (!urlTemplateId) return
+    let cancelled = false
+    const loadFromUrl = async () => {
+      try {
+        const res = await fetch(`/api/template-kbc/detail?id=${urlTemplateId}`)
+        const data = await res.json()
+        if (cancelled || !data.success || !data.template) return
+        setKelompokUsiaFilter(data.template.kelompokUsia)
+        const ku = data.template.kelompokUsia
+        const listRes = await fetch(`/api/template-kbc/list?kelompokUsia=${encodeURIComponent(ku)}&status=published`)
+        const listData = await listRes.json()
+        if (cancelled || !listData.success) return
+        setTemplates(listData.templates)
+        setSelectedTemplateId(urlTemplateId)
+        handleTemplateChange(urlTemplateId)
+      } catch (error) {
+        console.error('Error auto-loading template from URL:', error)
+      }
     }
-    try {
-      setSaving(true)
-      const response = await fetch('/api/rpp/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(buildApiBody()) })
-      const data = await response.json()
-      if (data.success) { toast({ title: "Berhasil", description: "RPP berhasil disimpan" }); router.push('/dashboard/guru/perencanaan') }
-      else { throw new Error(data.error || 'Gagal menyimpan RPP') }
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message || "Gagal menyimpan RPP" })
-    } finally { setSaving(false) }
-  }
+    const timer = setTimeout(loadFromUrl, 100)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [urlTemplateId])
 
   const formatPreviewText = (text: string) => {
-    if (!text) return '-'
-    return text.split('\n').map((line, i) => <p key={i} className="mb-2">{line}</p>)
+    if (!text) return ''
+    return text.length > 200 ? text.substring(0, 200) + '...' : text
   }
-  return (
-    <DashboardLayout role="guru" userName="Ibu Guru">
-      <div className="space-y-6">
 
+  // === BAGIAN 4.4: JSX Return ===
+
+  return (
+    <DashboardLayout>
+      <div className="min-h-screen space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold tracking-tight">Buat RPP KBC Baru</h1>
-            <p className="text-muted-foreground mt-1">
-              Rencana Pelaksanaan Pembelajaran Kurikulum Berbasis Cinta
-              {schoolProfile && (
-                <span className="ml-2 text-sm text-primary">• {schoolProfile.name}</span>
-              )}
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <Button variant="ghost" size="sm" onClick={() => router.back()}>
+              <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
+            </Button>
+            <h1 className="text-2xl font-bold">Buat RPP KBC Baru</h1>
+            <p className="text-sm text-muted-foreground">
+              Format RPP KBC Baru (12 Bagian A-L)
+            </p>
+            <p className="text-xs text-muted-foreground">
+              RPP ini menggunakan format KBC Kemenag dengan 12 bagian (A-L). Pilih template dari Bank Template KBC untuk mengisi otomatis semua bagian, lalu sesuaikan isian yang diperlukan.
             </p>
           </div>
         </div>
 
-        {/* Info Card */}
-        <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20">
-          <CardContent className="py-4">
-            <div className="flex items-start gap-3">
-              <div className="text-yellow-600 dark:text-yellow-500 mt-0.5">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="12" y1="8" x2="12" y2="12"></line>
-                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                </svg>
+        {/* Template Preview Dialog */}
+        <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh]">
+            <DialogHeader>
+              <DialogTitle>Preview: {selectedTemplate?.nama || selectedTemplate?.tema}</DialogTitle>
+              <DialogDescription>
+                Lihat isi template KBC sebelum mengisi form RPP
+              </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="h-[70vh] pr-4">
+              <div className="space-y-6">
+                {/* Info */}
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="font-medium">Tema:</span> {selectedTemplate?.tema || '-'}</div>
+                  <div><span className="font-medium">Subtema:</span> {selectedTemplate?.subtema || '-'}</div>
+                  <div><span className="font-medium">Kelompok Usia:</span> {selectedTemplate?.kelompokUsia || '-'}</div>
+                </div>
+                {/* B */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold text-primary">B. Capaian Pembelajaran</h3>
+                  <Card><CardContent className="pt-4">
+                    <div className="text-sm text-muted-foreground whitespace-pre-line">{formatPreviewText(selectedTemplate?.capaianPembelajaran || '')}</div>
+                  </CardContent></Card>
+                </div>
+                {/* C */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold text-primary">C. Tujuan Pembelajaran</h3>
+                  <Card><CardContent className="pt-4">
+                    <div className="text-sm text-muted-foreground whitespace-pre-line">{formatPreviewText(selectedTemplate?.tujuanPembelajaran || '')}</div>
+                  </CardContent></Card>
+                </div>
+                {/* D */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold text-primary">D. Nilai Cinta KBC</h3>
+                  <Card><CardContent className="pt-4 space-y-2">
+                    {selectedTemplate?.nilaiCinta ? Object.entries(selectedTemplate.nilaiCinta).map(([key, val]: [string, any]) => (
+                      <div key={key} className="text-sm"><span className="font-medium capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span> <span className="text-muted-foreground">{val || '-'}</span></div>
+                    )) : <p className="text-sm text-muted-foreground italic">Belum ada data</p>}
+                  </CardContent></Card>
+                </div>
+                {/* E */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold text-primary">E. Dimensi Kelulusan KBC</h3>
+                  <Card><CardContent className="pt-4 space-y-2">
+                    {selectedTemplate?.dimensiKelulusan ? Object.entries(selectedTemplate.dimensiKelulusan).map(([key, val]: [string, any]) => (
+                      <div key={key} className="text-sm"><span className="font-medium capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span> <span className="text-muted-foreground">{val || '-'}</span></div>
+                    )) : <p className="text-sm text-muted-foreground italic">Belum ada data</p>}
+                  </CardContent></Card>
+                </div>
+                {/* F & G */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-semibold text-primary">F. Pemahaman Bermakna</h3>
+                    <Card><CardContent className="pt-4">
+                      <div className="text-sm text-muted-foreground whitespace-pre-line">{formatPreviewText(selectedTemplate?.pemahamanBermakna || '')}</div>
+                    </CardContent></Card>
+                  </div>
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-semibold text-primary">G. Pertanyaan Pemantik</h3>
+                    <Card><CardContent className="pt-4">
+                      <div className="text-sm text-muted-foreground whitespace-pre-line">{formatPreviewText(selectedTemplate?.pertanyaanPemantik || '')}</div>
+                    </CardContent></Card>
+                  </div>
+                </div>
+                {/* H */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold text-primary">H. Sarana, Media, Bahan</h3>
+                  <Card><CardContent className="pt-4 space-y-2">
+                    {selectedTemplate?.saranaMediaBahan ? (
+                      <>
+                        {selectedTemplate.saranaMediaBahan.sarana && <div><span className="text-xs font-medium">Sarana:</span><p className="text-sm mt-0.5 whitespace-pre-line">{selectedTemplate.saranaMediaBahan.sarana}</p></div>}
+                        {selectedTemplate.saranaMediaBahan.media && <div><span className="text-xs font-medium">Media:</span><p className="text-sm mt-0.5 whitespace-pre-line">{selectedTemplate.saranaMediaBahan.media}</p></div>}
+                        {selectedTemplate.saranaMediaBahan.bahan && <div><span className="text-xs font-medium">Bahan:</span><p className="text-sm mt-0.5 whitespace-pre-line">{selectedTemplate.saranaMediaBahan.bahan}</p></div>}
+                      </>
+                    ) : <p className="text-sm text-muted-foreground italic">Belum ada data</p>}
+                  </CardContent></Card>
+                </div>
+                {/* I */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold text-primary">I. Langkah Pembelajaran</h3>
+                  <Card><CardContent className="pt-4 space-y-3">
+                    {selectedTemplate?.langkahPembelajaran ? (
+                      <>
+                        {selectedTemplate.langkahPembelajaran.penyambutan && <div><span className="text-xs font-medium">Penyambutan:</span><p className="text-sm mt-0.5 whitespace-pre-line">{selectedTemplate.langkahPembelajaran.penyambutan}</p></div>}
+                        {selectedTemplate.langkahPembelajaran.pembukaan && <div><span className="text-xs font-medium">Pembukaan:</span><p className="text-sm mt-0.5 whitespace-pre-line">{selectedTemplate.langkahPembelajaran.pembukaan}</p></div>}
+                        {selectedTemplate.langkahPembelajaran.kegiatanInti && (
+                          <div className="space-y-2">
+                            <span className="text-xs font-medium">Kegiatan Inti:</span>
+                            {selectedTemplate.langkahPembelajaran.kegiatanInti.eksplorasi && <div className="ml-2"><span className="text-xs text-muted-foreground">Eksplorasi:</span><p className="text-sm mt-0.5 whitespace-pre-line">{selectedTemplate.langkahPembelajaran.kegiatanInti.eksplorasi}</p></div>}
+                            {selectedTemplate.langkahPembelajaran.kegiatanInti.bermain && <div className="ml-2"><span className="text-xs text-muted-foreground">Bermain:</span><p className="text-sm mt-0.5 whitespace-pre-line">{selectedTemplate.langkahPembelajaran.kegiatanInti.bermain}</p></div>}
+                            {selectedTemplate.langkahPembelajaran.kegiatanInti.berkarya && <div className="ml-2"><span className="text-xs text-muted-foreground">Berkarya:</span><p className="text-sm mt-0.5 whitespace-pre-line">{selectedTemplate.langkahPembelajaran.kegiatanInti.berkarya}</p></div>}
+                            {selectedTemplate.langkahPembelajaran.kegiatanInti.refleksi && <div className="ml-2"><span className="text-xs text-muted-foreground">Refleksi:</span><p className="text-sm mt-0.5 whitespace-pre-line">{selectedTemplate.langkahPembelajaran.kegiatanInti.refleksi}</p></div>}
+                          </div>
+                        )}
+                        {selectedTemplate.langkahPembelajaran.penutup && <div><span className="text-xs font-medium">Penutup:</span><p className="text-sm mt-0.5 whitespace-pre-line">{selectedTemplate.langkahPembelajaran.penutup}</p></div>}
+                      </>
+                    ) : <p className="text-sm text-muted-foreground italic">Belum ada data</p>}
+                  </CardContent></Card>
+                </div>
+                {/* J */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold text-primary">J. Asesmen</h3>
+                  <Card><CardContent className="pt-4">
+                    <div className="text-sm text-muted-foreground whitespace-pre-line">{formatPreviewText(selectedTemplate?.asesmen || '')}</div>
+                  </CardContent></Card>
+                </div>
+                {/* K & L */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold text-primary">K & L. Tindak Lanjut & Refleksi Guru</h3>
+                  <Card><CardContent className="pt-4 space-y-3">
+                    <div><span className="text-xs font-medium">Tindak Lanjut:</span><p className="text-sm mt-0.5 whitespace-pre-line">{formatPreviewText(selectedTemplate?.tindakLanjut || '-')}</p></div>
+                    <div><span className="text-xs font-medium">Refleksi Guru:</span><p className="text-sm mt-0.5 whitespace-pre-line">{formatPreviewText(selectedTemplate?.refleksiGuru || '-')}</p></div>
+                  </CardContent></Card>
+                </div>
               </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-yellow-900 dark:text-yellow-100">Format RPP KBC Baru (12 Bagian A-L)</h3>
-                <p className="text-sm text-yellow-800 dark:text-yellow-200 mt-1">
-                  RPP ini menggunakan format baru KBC Kemenag dengan 12 bagian (A-L). Template lama akan mengisi bagian B, C, F, dan G secara otomatis. Bagian D, E, H, I, J perlu diisi manual oleh guru.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </ScrollArea>
+          </DialogContent>
+        </Dialog>
 
-        {/* Template Selection */}
+        {/* Template Selection Card */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Pilih Template Tema</CardTitle>
-                <CardDescription>Pilih template atau buat template baru untuk mengisi form RPP</CardDescription>
+                <CardTitle>Pilih Template KBC</CardTitle>
+                <CardDescription>Pilih template dari Bank Template KBC untuk mengisi semua bagian otomatis</CardDescription>
               </div>
               <div className="flex gap-2 flex-wrap items-center">
-                {selectedTemplate && (
-                  <>
-                    <Button onClick={handleGenerateVariation} variant="outline" size="sm" disabled={generatingTemplate}>
-                      {generatingTemplate ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Memuat...</>) : (<><Sparkles className="mr-2 h-4 w-4" />Generate Variasi Baru</>)}
-                    </Button>
-                    <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">⚠️ Fitur AI belum tersedia</span>
-                  </>
-                )}
                 <Button onClick={handlePreviewPDF} disabled={loadingPDF} variant="outline" size="sm">
                   {loadingPDF && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <Eye className="mr-2 h-4 w-4" />Preview PDF
+                  <Eye className="mr-2 h-4 w-4" />
+                  Preview PDF
                 </Button>
                 <Button onClick={handleSave} disabled={saving} variant="outline" size="sm">
                   {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <Save className="mr-2 h-4 w-4" />Simpan
+                  <Save className="mr-2 h-4 w-4" />
+                  Simpan
                 </Button>
                 <Button onClick={handleExportPDF} disabled={loadingPDF} variant="outline" size="sm">
                   {loadingPDF && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <FileDown className="mr-2 h-4 w-4" />Export PDF
+                  <FileDown className="mr-2 h-4 w-4" />
+                  Export PDF
                 </Button>
                 <Button onClick={handleExport} disabled={loading} variant="outline" size="sm">
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <Download className="mr-2 h-4 w-4" />Export Word
+                  <Download className="mr-2 h-4 w-4" />
+                  Export Word
                 </Button>
               </div>
             </div>
@@ -468,26 +546,46 @@ export default function BuatRPPPage() {
           <CardContent className="space-y-4">
             {fetchingTemplates ? (
               <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" /><span>Memuat template...</span>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Memuat template...</span>
               </div>
             ) : (
               <div className="flex items-center gap-2">
+                <div className="w-48 shrink-0">
+                  <Select value={kelompokUsiaFilter} onValueChange={(v) => {
+                    setKelompokUsiaFilter(v)
+                    setSelectedTemplateId("")
+                    setSelectedTemplate(null)
+                    fetchTemplates(v)
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Kelompok A (4-5 Tahun)">Kelompok A</SelectItem>
+                      <SelectItem value="Kelompok B (5-6 Tahun)">Kelompok B</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="flex-1">
                   <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
                     <SelectTrigger>
-                      <SelectValue placeholder={templates.length === 0 ? "Belum ada template. Buat template baru dulu." : "Pilih template untuk mengisi otomatis..."} />
+                      <SelectValue placeholder={templates.length === 0 ? "Belum ada template untuk kelompok usia ini." : "Pilih template untuk mengisi otomatis..."} />
                     </SelectTrigger>
                     <SelectContent>
-                      {templates.map((template) => (
-                        <SelectItem key={template.id} value={template.id}>{template.tema}</SelectItem>
+                      {templates.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.nama || `${t.tema}: ${t.subtema}`}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <Button onClick={() => setGenerateDialogOpen(true)} variant="outline" size="sm">
-                  <Plus className="mr-2 h-4 w-4" />Buat Template Baru
+                <Button onClick={() => router.push('/dashboard/guru/perencanaan/bank-template')} variant="outline" size="sm">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Bank Template
                 </Button>
-                <Button onClick={fetchTemplates} variant="outline" size="icon" title="Refresh template">
+                <Button onClick={() => fetchTemplates()} variant="outline" size="icon" title="Refresh template">
                   <RefreshCw className="h-4 w-4" />
                 </Button>
               </div>
@@ -495,90 +593,7 @@ export default function BuatRPPPage() {
           </CardContent>
         </Card>
 
-        {/* Generate Template Dialog */}
-        <Dialog open={generateDialogOpen} onOpenChange={setGenerateDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Buat Template Baru</DialogTitle>
-              <DialogDescription>Masukkan nama tema untuk membuat template RPP KBC baru secara otomatis</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Tema *</Label>
-                <Input value={newTema} onChange={(e) => setNewTema(e.target.value)} placeholder="Contoh: Alam Semesta, Pahlawanku, dll." disabled={generatingTemplate} />
-              </div>
-              <div className="bg-muted/50 p-3 rounded text-sm text-muted-foreground">
-                <p><strong>Info:</strong> Template akan dibuat otomatis oleh AI dengan konten lengkap sesuai format RPP KBC.</p>
-                <p className="mt-2 text-amber-600 dark:text-amber-400"><strong>⏱️ Perhatian:</strong> Proses ini memerlukan waktu sekitar 30-60 detik.</p>
-              </div>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setGenerateDialogOpen(false)} disabled={generatingTemplate}>Batal</Button>
-              <Button onClick={handleGenerateTemplate} disabled={generatingTemplate}>
-                {generatingTemplate ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Memproses (AI bekerja)...</>) : "Buat Template"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Template Preview Dialog */}
-        <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh]">
-            <DialogHeader>
-              <DialogTitle>Preview Template: {selectedTemplate?.tema}</DialogTitle>
-              <DialogDescription>Lihat isi template sebelum mengisi form RPP</DialogDescription>
-            </DialogHeader>
-            <ScrollArea className="h-[70vh] pr-4">
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-primary">B. Capaian Pembelajaran</h3>
-                  <Card><CardContent className="pt-4 space-y-3">
-                    <div><Label className="font-medium">Tema</Label><p className="text-sm text-muted-foreground mt-1">{selectedTemplate?.tema || '-'}</p></div>
-                    <div><Label className="font-medium">Profil Lulusan / Capaian Pembelajaran</Label><p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">{formatPreviewText(selectedTemplate?.profilLulusan || '')}</p></div>
-                  </CardContent></Card>
-                </div>
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-primary">C. Tujuan Pembelajaran</h3>
-                  <Card><CardContent className="pt-4"><div className="text-sm text-muted-foreground whitespace-pre-line">{formatPreviewText(selectedTemplate?.tujuanPembelajaran || '')}</div></CardContent></Card>
-                </div>
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-primary">D. Nilai Kurikulum Berbasis Cinta</h3>
-                  <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground italic">Belum tersedia dari template. Nilai Cinta KBC merupakan konsep baru yang perlu diisi manual.</p></CardContent></Card>
-                </div>
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-primary">E. Dimensi Kelulusan KBC Kemenag</h3>
-                  <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground italic">Belum tersedia dari template. Dimensi Kelulusan KBC merupakan format baru yang perlu diisi manual.</p></CardContent></Card>
-                </div>
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-primary">F. Pemahaman Bermakna</h3>
-                  <Card><CardContent className="pt-4"><div className="text-sm text-muted-foreground whitespace-pre-line">{formatPreviewText(selectedTemplate?.tujuanPembelajaranMendalam || '')}</div></CardContent></Card>
-                </div>
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-primary">G. Pertanyaan Pemantik</h3>
-                  <Card><CardContent className="pt-4"><div className="text-sm text-muted-foreground whitespace-pre-line">{formatPreviewText(selectedTemplate?.materiIntegrasiKBC || '')}</div></CardContent></Card>
-                </div>
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-primary">H. Sarana, Media, dan Bahan Pembelajaran</h3>
-                  <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground italic">Belum tersedia dari template. Perlu diisi manual oleh guru.</p></CardContent></Card>
-                </div>
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-primary">I. Langkah Pembelajaran</h3>
-                  <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground italic">Belum tersedia dari template. Langkah pembelajaran format baru perlu diisi manual.</p></CardContent></Card>
-                </div>
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-primary">J. Asesmen</h3>
-                  <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground italic">Belum tersedia dari template. Perlu diisi manual oleh guru.</p></CardContent></Card>
-                </div>
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-primary">K & L. Tindak Lanjut & Refleksi Guru</h3>
-                  <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground italic">Selalu diisi manual oleh guru setelah pembelajaran.</p></CardContent></Card>
-                </div>
-              </div>
-            </ScrollArea>
-          </DialogContent>
-        </Dialog>
-
-        {/* Form Sections A-L */}
+        {/* === BAGIAN 4.6: Form Sections A-L === */}
         <div className="space-y-6">
 
           {/* A. Identitas Pembelajaran */}
@@ -592,15 +607,13 @@ export default function BuatRPPPage() {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                  <Label>Fase</Label>
-                  <Select value={formData.fase} onValueChange={(v) => setFormData({...formData, fase: v})}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="Fase Fondasi">Fase Fondasi</SelectItem></SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
                   <Label>Kelompok Usia</Label>
-                  <Select value={formData.kelompokUsia} onValueChange={(v) => setFormData({...formData, kelompokUsia: v})}>
+                  <Select value={formData.kelompokUsia} onValueChange={(v) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      kelompokUsia: v
+                    }))
+                  }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Kelompok A (4-5 Tahun)">Kelompok A (4-5 Tahun)</SelectItem>
@@ -649,27 +662,19 @@ export default function BuatRPPPage() {
                 <span className="bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center text-sm">B</span>
                 Capaian Pembelajaran
               </CardTitle>
-              <CardDescription>Tema dan Capaian Pembelajaran</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Tema *</Label>
-                  <Input value={formData.tema} onChange={(e) => setFormData({...formData, tema: e.target.value})} placeholder="Contoh: Lingkungan Sekitarku" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Subtema *</Label>
-                  <Input value={formData.subtema} onChange={(e) => setFormData({...formData, subtema: e.target.value})} placeholder="Contoh: Mesjid tempat ibadah" />
-                </div>
+              <div className="space-y-2">
+                <Label>Tema</Label>
+                <Input value={formData.tema} onChange={(e) => setFormData({...formData, tema: e.target.value})} placeholder="Contoh: Lingkungan Sekitarku" />
+              </div>
+              <div className="space-y-2">
+                <Label>Subtema</Label>
+                <Input value={formData.subtema} onChange={(e) => setFormData({...formData, subtema: e.target.value})} placeholder="Contoh: Mesjid tempat ibadah" />
               </div>
               <div className="space-y-2">
                 <Label>Capaian Pembelajaran</Label>
-                <Textarea
-                  value={formData.capaianPembelajaran}
-                  onChange={(e) => setFormData({...formData, capaianPembelajaran: e.target.value})}
-                  rows={4}
-                  placeholder="Tuliskan capaian pembelajaran yang diharapkan..."
-                />
+                <Textarea value={formData.capaianPembelajaran} onChange={(e) => setFormData({...formData, capaianPembelajaran: e.target.value})} rows={3} placeholder="Tuliskan capaian pembelajaran yang diharapkan..." />
               </div>
             </CardContent>
           </Card>
@@ -683,203 +688,159 @@ export default function BuatRPPPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <Label>Tujuan Pembelajaran</Label>
-                <Textarea
-                  value={formData.tujuanPembelajaran}
-                  onChange={(e) => setFormData({...formData, tujuanPembelajaran: e.target.value})}
-                  rows={6}
-                  placeholder="Tuliskan tujuan pembelajaran yang ingin dicapai..."
-                />
-              </div>
+              <Textarea value={formData.tujuanPembelajaran} onChange={(e) => setFormData({...formData, tujuanPembelajaran: e.target.value})} rows={4} placeholder="Tuliskan tujuan pembelajaran yang ingin dicapai..." />
             </CardContent>
           </Card>
 
-          {/* D. Nilai Kurikulum Berbasis Cinta (6 Nilai Cinta) */}
+          {/* D. 6 Nilai Cinta KBC */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <span className="bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center text-sm">D</span>
-                Nilai Kurikulum Berbasis Cinta
+                Nilai Cinta KBC
               </CardTitle>
-              <CardDescription>6 Nilai Cinta dalam Pembelajaran</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Cinta kepada Allah SWT</Label>
-                  <Textarea
-                    value={formData.nilaiCinta.cintaAllah}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      nilaiCinta: { ...formData.nilaiCinta, cintaAllah: e.target.value }
-                    })}
-                    rows={3}
-                    placeholder="Nilai cinta kepada Allah SWT..."
-                  />
+                  <Label>Cinta Kepada Allah SWT</Label>
+                  <Textarea value={formData.nilaiCinta.cintaAllah} onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      nilaiCinta: { ...prev.nilaiCinta, cintaAllah: e.target.value }
+                    }))
+                  }} rows={2} placeholder="Nilai cinta kepada Allah SWT..." />
                 </div>
                 <div className="space-y-2">
-                  <Label>Cinta kepada Rasulullah SAW</Label>
-                  <Textarea
-                    value={formData.nilaiCinta.cintaRasulullah}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      nilaiCinta: { ...formData.nilaiCinta, cintaRasulullah: e.target.value }
-                    })}
-                    rows={3}
-                    placeholder="Nilai cinta kepada Rasulullah SAW..."
-                  />
+                  <Label>Cinta Kepada Rasulullah SAW</Label>
+                  <Textarea value={formData.nilaiCinta.cintaRasulullah} onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      nilaiCinta: { ...prev.nilaiCinta, cintaRasulullah: e.target.value }
+                    }))
+                  }} rows={2} placeholder="Nilai cinta kepada Rasulullah SAW..." />
                 </div>
                 <div className="space-y-2">
-                  <Label>Cinta kepada Diri Sendiri</Label>
-                  <Textarea
-                    value={formData.nilaiCinta.cintaDiriSendiri}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      nilaiCinta: { ...formData.nilaiCinta, cintaDiriSendiri: e.target.value }
-                    })}
-                    rows={3}
-                    placeholder="Nilai cinta kepada diri sendiri..."
-                  />
+                  <Label>Cinta Kepada Diri Sendiri</Label>
+                  <Textarea value={formData.nilaiCinta.cintaDiriSendiri} onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      nilaiCinta: { ...prev.nilaiCinta, cintaDiriSendiri: e.target.value }
+                    }))
+                  }} rows={2} placeholder="Nilai cinta kepada diri sendiri..." />
                 </div>
                 <div className="space-y-2">
-                  <Label>Cinta kepada Sesama</Label>
-                  <Textarea
-                    value={formData.nilaiCinta.cintaSesama}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      nilaiCinta: { ...formData.nilaiCinta, cintaSesama: e.target.value }
-                    })}
-                    rows={3}
-                    placeholder="Nilai cinta kepada sesama..."
-                  />
+                  <Label>Cinta Kepada Sesama</Label>
+                  <Textarea value={formData.nilaiCinta.cintaSesama} onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      nilaiCinta: { ...prev.nilaiCinta, cintaSesama: e.target.value }
+                    }))
+                  }} rows={2} placeholder="Nilai cinta kepada sesama..." />
                 </div>
                 <div className="space-y-2">
-                  <Label>Cinta kepada Lingkungan</Label>
-                  <Textarea
-                    value={formData.nilaiCinta.cintaLingkungan}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      nilaiCinta: { ...formData.nilaiCinta, cintaLingkungan: e.target.value }
-                    })}
-                    rows={3}
-                    placeholder="Nilai cinta kepada lingkungan..."
-                  />
+                  <Label>Cinta Kepada Lingkungan</Label>
+                  <Textarea value={formData.nilaiCinta.cintaLingkungan} onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      nilaiCinta: { ...prev.nilaiCinta, cintaLingkungan: e.target.value }
+                    }))
+                  }} rows={2} placeholder="Nilai cinta kepada lingkungan..." />
                 </div>
                 <div className="space-y-2">
-                  <Label>Cinta kepada Bangsa & Negara</Label>
-                  <Textarea
-                    value={formData.nilaiCinta.cintaBangsaNegara}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      nilaiCinta: { ...formData.nilaiCinta, cintaBangsaNegara: e.target.value }
-                    })}
-                    rows={3}
-                    placeholder="Nilai cinta kepada bangsa & negara..."
-                  />
+                  <Label>Cinta Kepada Bangsa & Negara</Label>
+                  <Textarea value={formData.nilaiCinta.cintaBangsaNegara} onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      nilaiCinta: { ...prev.nilaiCinta, cintaBangsaNegara: e.target.value }
+                    }))
+                  }} rows={2} placeholder="Nilai cinta kepada bangsa & negara..." />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* E. Dimensi Kelulusan KBC Kemenag (8 Dimensi) */}
+          {/* E. 8 Dimensi Kelulusan */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <span className="bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center text-sm">E</span>
                 Dimensi Kelulusan KBC Kemenag
               </CardTitle>
-              <CardDescription>8 Dimensi Kelulusan Kurikulum Berbasis Cinta</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Keimanan & Ketakwaan</Label>
-                  <Textarea
-                    value={formData.dimensiKelulusan.keimananKetakwaan}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      dimensiKelulusan: { ...formData.dimensiKelulusan, keimananKetakwaan: e.target.value }
-                    })}
-                    rows={3} placeholder="Dimensi keimanan & ketakwaan..."
-                  />
+                  <Textarea value={formData.dimensiKelulusan.keimananKetakwaan} onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      dimensiKelulusan: { ...prev.dimensiKelulusan, keimananKetakwaan: e.target.value }
+                    }))
+                  }} rows={2} placeholder="Dimensi keimanan & ketakwaan..." />
                 </div>
                 <div className="space-y-2">
                   <Label>Kewargaan</Label>
-                  <Textarea
-                    value={formData.dimensiKelulusan.kewargaan}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      dimensiKelulusan: { ...formData.dimensiKelulusan, kewargaan: e.target.value }
-                    })}
-                    rows={3} placeholder="Dimensi kewargaan..."
-                  />
+                  <Textarea value={formData.dimensiKelulusan.kewargaan} onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      dimensiKelulusan: { ...prev.dimensiKelulusan, kewargaan: e.target.value }
+                    }))
+                  }} rows={2} placeholder="Dimensi kewargaan..." />
                 </div>
                 <div className="space-y-2">
                   <Label>Penalaran Kritis</Label>
-                  <Textarea
-                    value={formData.dimensiKelulusan.penalaranKritis}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      dimensiKelulusan: { ...formData.dimensiKelulusan, penalaranKritis: e.target.value }
-                    })}
-                    rows={3} placeholder="Dimensi penalaran kritis..."
-                  />
+                  <Textarea value={formData.dimensiKelulusan.penalaranKritis} onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      dimensiKelulusan: { ...prev.dimensiKelulusan, penalaranKritis: e.target.value }
+                    }))
+                  }} rows={2} placeholder="Dimensi penalaran kritis..." />
                 </div>
                 <div className="space-y-2">
                   <Label>Kreativitas</Label>
-                  <Textarea
-                    value={formData.dimensiKelulusan.kreativitas}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      dimensiKelulusan: { ...formData.dimensiKelulusan, kreativitas: e.target.value }
-                    })}
-                    rows={3} placeholder="Dimensi kreativitas..."
-                  />
+                  <Textarea value={formData.dimensiKelulusan.kreativitas} onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      dimensiKelulusan: { ...prev.dimensiKelulusan, kreativitas: e.target.value }
+                    }))
+                  }} rows={2} placeholder="Dimensi kreativitas..." />
                 </div>
                 <div className="space-y-2">
                   <Label>Kolaborasi</Label>
-                  <Textarea
-                    value={formData.dimensiKelulusan.kolaborasi}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      dimensiKelulusan: { ...formData.dimensiKelulusan, kolaborasi: e.target.value }
-                    })}
-                    rows={3} placeholder="Dimensi kolaborasi..."
-                  />
+                  <Textarea value={formData.dimensiKelulusan.kolaborasi} onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      dimensiKelulusan: { ...prev.dimensiKelulusan, kolaborasi: e.target.value }
+                    }))
+                  }} rows={2} placeholder="Dimensi kolaborasi..." />
                 </div>
                 <div className="space-y-2">
                   <Label>Kemandirian</Label>
-                  <Textarea
-                    value={formData.dimensiKelulusan.kemandirian}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      dimensiKelulusan: { ...formData.dimensiKelulusan, kemandirian: e.target.value }
-                    })}
-                    rows={3} placeholder="Dimensi kemandirian..."
-                  />
+                  <Textarea value={formData.dimensiKelulusan.kemandirian} onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      dimensiKelulusan: { ...prev.dimensiKelulusan, kemandirian: e.target.value }
+                    }))
+                  }} rows={2} placeholder="Dimensi kemandirian..." />
                 </div>
                 <div className="space-y-2">
                   <Label>Kesehatan</Label>
-                  <Textarea
-                    value={formData.dimensiKelulusan.kesehatan}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      dimensiKelulusan: { ...formData.dimensiKelulusan, kesehatan: e.target.value }
-                    })}
-                    rows={3} placeholder="Dimensi kesehatan..."
-                  />
+                  <Textarea value={formData.dimensiKelulusan.kesehatan} onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      dimensiKelulusan: { ...prev.dimensiKelulusan, kesehatan: e.target.value }
+                    }))
+                  }} rows={2} placeholder="Dimensi kesehatan..." />
                 </div>
                 <div className="space-y-2">
                   <Label>Komunikasi</Label>
-                  <Textarea
-                    value={formData.dimensiKelulusan.komunikasi}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      dimensiKelulusan: { ...formData.dimensiKelulusan, komunikasi: e.target.value }
-                    })}
-                    rows={3} placeholder="Dimensi komunikasi..."
-                  />
+                  <Textarea value={formData.dimensiKelulusan.komunikasi} onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      dimensiKelulusan: { ...prev.dimensiKelulusan, komunikasi: e.target.value }
+                    }))
+                  }} rows={2} placeholder="Dimensi komunikasi..." />
                 </div>
               </div>
             </CardContent>
@@ -894,15 +855,7 @@ export default function BuatRPPPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <Label>Pemahaman Bermakna</Label>
-                <Textarea
-                  value={formData.pemahamanBermakna}
-                  onChange={(e) => setFormData({...formData, pemahamanBermakna: e.target.value})}
-                  rows={6}
-                  placeholder="Tuliskan pemahaman bermakna yang ingin dicapai..."
-                />
-              </div>
+              <Textarea value={formData.pemahamanBermakna} onChange={(e) => setFormData({...formData, pemahamanBermakna: e.target.value})} rows={3} placeholder="Tuliskan pemahaman bermakna yang ingin dicapai..." />
             </CardContent>
           </Card>
 
@@ -915,59 +868,45 @@ export default function BuatRPPPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <Label>Pertanyaan Pemantik</Label>
-                <Textarea
-                  value={formData.pertanyaanPemantik}
-                  onChange={(e) => setFormData({...formData, pertanyaanPemantik: e.target.value})}
-                  rows={6}
-                  placeholder="Tuliskan pertanyaan pemantik untuk memulai pembelajaran..."
-                />
-              </div>
+              <Textarea value={formData.pertanyaanPemantik} onChange={(e) => setFormData({...formData, pertanyaanPemantik: e.target.value})} rows={3} placeholder="Tuliskan pertanyaan pemantik untuk memulai pembelajaran..." />
             </CardContent>
           </Card>
 
-          {/* H. Sarana, Media, dan Bahan Pembelajaran */}
+          {/* H. Sarana, Media, Bahan */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <span className="bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center text-sm">H</span>
-                Sarana, Media, dan Bahan Pembelajaran
+                Sarana, Media, dan Bahan
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Sarana</Label>
-                <Textarea
-                  value={formData.saranaMediaBahan.sarana}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    saranaMediaBahan: { ...formData.saranaMediaBahan, sarana: e.target.value }
-                  })}
-                  rows={3} placeholder="Tuliskan sarana yang digunakan..."
-                />
+                <Textarea value={formData.saranaMediaBahan.sarana} onChange={(e) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    saranaMediaBahan: { ...prev.saranaMediaBahan, sarana: e.target.value }
+                  }))
+                }} rows={2} placeholder="Tuliskan sarana yang digunakan..." />
               </div>
               <div className="space-y-2">
                 <Label>Media Pembelajaran</Label>
-                <Textarea
-                  value={formData.saranaMediaBahan.media}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    saranaMediaBahan: { ...formData.saranaMediaBahan, media: e.target.value }
-                  })}
-                  rows={3} placeholder="Tuliskan media pembelajaran yang digunakan..."
-                />
+                <Textarea value={formData.saranaMediaBahan.media} onChange={(e) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    saranaMediaBahan: { ...prev.saranaMediaBahan, media: e.target.value }
+                  }))
+                }} rows={2} placeholder="Tuliskan media pembelajaran yang digunakan..." />
               </div>
               <div className="space-y-2">
                 <Label>Bahan Pembelajaran</Label>
-                <Textarea
-                  value={formData.saranaMediaBahan.bahan}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    saranaMediaBahan: { ...formData.saranaMediaBahan, bahan: e.target.value }
-                  })}
-                  rows={3} placeholder="Tuliskan bahan pembelajaran yang digunakan..."
-                />
+                <Textarea value={formData.saranaMediaBahan.bahan} onChange={(e) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    saranaMediaBahan: { ...prev.saranaMediaBahan, bahan: e.target.value }
+                  }))
+                }} rows={2} placeholder="Tuliskan bahan pembelajaran yang digunakan..." />
               </div>
             </CardContent>
           </Card>
@@ -988,11 +927,9 @@ export default function BuatRPPPage() {
                 <div className="space-y-2">
                   <Textarea
                     value={formData.langkahPembelajaran.penyambutan}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      langkahPembelajaran: { ...formData.langkahPembelajaran, penyambutan: e.target.value }
-                    })}
-                    rows={4} placeholder="Kegiatan penyambutan anak..."
+                    onChange={(e) => setFormData({...formData, langkahPembelajaran: {...formData.langkahPembelajaran, penyambutan: e.target.value}})}
+                    rows={4}
+                    placeholder="Kegiatan penyambutan anak..."
                   />
                 </div>
               </div>
@@ -1003,11 +940,9 @@ export default function BuatRPPPage() {
                 <div className="space-y-2">
                   <Textarea
                     value={formData.langkahPembelajaran.pembukaan}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      langkahPembelajaran: { ...formData.langkahPembelajaran, pembukaan: e.target.value }
-                    })}
-                    rows={4} placeholder="Kegiatan pembukaan..."
+                    onChange={(e) => setFormData({...formData, langkahPembelajaran: {...formData.langkahPembelajaran, pembukaan: e.target.value}})}
+                    rows={4}
+                    placeholder="Kegiatan pembukaan..."
                   />
                 </div>
               </div>
@@ -1015,19 +950,14 @@ export default function BuatRPPPage() {
               {/* Kegiatan Inti */}
               <div className="space-y-4 border p-4 rounded-lg bg-muted/50">
                 <h4 className="font-semibold">Kegiatan Inti</h4>
-
+                
                 <div className="space-y-2 pl-4">
                   <Label className="font-medium">Eksplorasi</Label>
                   <Textarea
                     value={formData.langkahPembelajaran.kegiatanInti.eksplorasi}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      langkahPembelajaran: {
-                        ...formData.langkahPembelajaran,
-                        kegiatanInti: { ...formData.langkahPembelajaran.kegiatanInti, eksplorasi: e.target.value }
-                      }
-                    })}
-                    rows={4} placeholder="Kegiatan eksplorasi..."
+                    onChange={(e) => setFormData({...formData, langkahPembelajaran: {...formData.langkahPembelajaran, kegiatanInti: {...formData.langkahPembelajaran.kegiatanInti, eksplorasi: e.target.value}})}
+                    rows={4}
+                    placeholder="Kegiatan eksplorasi..."
                   />
                 </div>
 
@@ -1035,14 +965,9 @@ export default function BuatRPPPage() {
                   <Label className="font-medium">Bermain</Label>
                   <Textarea
                     value={formData.langkahPembelajaran.kegiatanInti.bermain}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      langkahPembelajaran: {
-                        ...formData.langkahPembelajaran,
-                        kegiatanInti: { ...formData.langkahPembelajaran.kegiatanInti, bermain: e.target.value }
-                      }
-                    })}
-                    rows={4} placeholder="Kegiatan bermain..."
+                    onChange={(e) => setFormData({...formData, langkahPembelajaran: {...formData.langkahPembelajaran, kegiatanInti: {...formData.langkahPembelajaran.kegiatanInti, bermain: e.target.value}})}
+                    rows={4}
+                    placeholder="Kegiatan bermain..."
                   />
                 </div>
 
@@ -1050,14 +975,9 @@ export default function BuatRPPPage() {
                   <Label className="font-medium">Berkarya</Label>
                   <Textarea
                     value={formData.langkahPembelajaran.kegiatanInti.berkarya}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      langkahPembelajaran: {
-                        ...formData.langkahPembelajaran,
-                        kegiatanInti: { ...formData.langkahPembelajaran.kegiatanInti, berkarya: e.target.value }
-                      }
-                    })}
-                    rows={4} placeholder="Kegiatan berkarya..."
+                    onChange={(e) => setFormData({...formData, langkahPembelajaran: {...formData.langkahPembelajaran, kegiatanInti: {...formData.langkahPembelajaran.kegiatanInti, berkarya: e.target.value}})}
+                    rows={4}
+                    placeholder="Kegiatan berkarya..."
                   />
                 </div>
 
@@ -1065,14 +985,9 @@ export default function BuatRPPPage() {
                   <Label className="font-medium">Refleksi</Label>
                   <Textarea
                     value={formData.langkahPembelajaran.kegiatanInti.refleksi}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      langkahPembelajaran: {
-                        ...formData.langkahPembelajaran,
-                        kegiatanInti: { ...formData.langkahPembelajaran.kegiatanInti, refleksi: e.target.value }
-                      }
-                    })}
-                    rows={4} placeholder="Kegiatan refleksi..."
+                    onChange={(e) => setFormData({...formData, langkahPembelajaran: {...formData.langkahPembelajaran, kegiatanInti: {...formData.langkahPembelajaran.kegiatanInti, refleksi: e.target.value}})}
+                    rows={4}
+                    placeholder="Kegiatan refleksi..."
                   />
                 </div>
               </div>
@@ -1083,17 +998,14 @@ export default function BuatRPPPage() {
                 <div className="space-y-2">
                   <Textarea
                     value={formData.langkahPembelajaran.penutup}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      langkahPembelajaran: { ...formData.langkahPembelajaran, penutup: e.target.value }
-                    })}
-                    rows={4} placeholder="Kegiatan penutup..."
+                    onChange={(e) => setFormData({...formData, langkahPembelajaran: {...formData.langkahPembelajaran, penutup: e.target.value}})}
+                    rows={4}
+                    placeholder="Kegiatan penutup..."
                   />
                 </div>
               </div>
             </CardContent>
           </Card>
-
           {/* J. Asesmen */}
           <Card>
             <CardHeader>
@@ -1107,8 +1019,9 @@ export default function BuatRPPPage() {
                 <Label>Asesmen</Label>
                 <Textarea
                   value={formData.asesmen}
-                  onChange={(e) => setFormData({...formData, asesmen: e.target.value})}
-                  rows={6} placeholder="Tuliskan instrumen dan teknik asesmen..."
+                  onChange={(e) => setFormData(prev => ({...prev, asesmen: e.target.value}))}
+                  rows={6}
+                  placeholder="Tuliskan instrumen dan teknik asesmen..."
                 />
               </div>
             </CardContent>
@@ -1127,8 +1040,9 @@ export default function BuatRPPPage() {
                 <Label>Tindak Lanjut</Label>
                 <Textarea
                   value={formData.tindakLanjut}
-                  onChange={(e) => setFormData({...formData, tindakLanjut: e.target.value})}
-                  rows={4} placeholder="Tuliskan tindak lanjut pembelajaran..."
+                  onChange={(e) => setFormData(prev => ({...prev, tindakLanjut: e.target.value}))}
+                  rows={4}
+                  placeholder="Tuliskan tindak lanjut pembelajaran..."
                 />
               </div>
             </CardContent>
@@ -1147,8 +1061,9 @@ export default function BuatRPPPage() {
                 <Label>Refleksi Guru</Label>
                 <Textarea
                   value={formData.refleksiGuru}
-                  onChange={(e) => setFormData({...formData, refleksiGuru: e.target.value})}
-                  rows={4} placeholder="Tuliskan refleksi guru setelah pembelajaran..."
+                  onChange={(e) => setFormData(prev => ({...prev, refleksiGuru: e.target.value}))}
+                  rows={4}
+                  placeholder="Tuliskan refleksi guru setelah pembelajaran..."
                 />
               </div>
             </CardContent>
