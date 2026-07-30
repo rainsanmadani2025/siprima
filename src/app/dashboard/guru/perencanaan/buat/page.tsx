@@ -24,7 +24,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Download, ArrowLeft, Loader2, Plus, RefreshCw, Eye, FileDown, Save } from "lucide-react"
+import { Download, ArrowLeft, Loader2, Plus, RefreshCw, Eye, FileDown, Save, FileText } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter, useSearchParams } from "next/navigation"
 
@@ -300,7 +300,7 @@ function BuatRPPContent() {
             <p className="text-muted-foreground mt-1">Rencana Pelaksanaan Pembelajaran Kurikulum Berbasis Cinta</p>
           </div>
           <div className="flex gap-2 shrink-0">
- 	    <Button variant="outline" onClick={() => router.push("/dashboard/guru/perencanaan/bank-template")}><BookOpen className="mr-2 h-4 w-4" />Bank 	    Template</Button>
+ 	    <Button variant="outline" onClick={() => router.push("/dashboard/guru/perencanaan/bank-template")}><FileText className="mr-2 h-4 w-4" />Bank 	    Template</Button>
             <Button variant="outline" onClick={handlePreviewPDF}><Eye className="mr-2 h-4 w-4" />Preview PDF</Button>
             <Button variant="outline" onClick={handleExportPDF} disabled={exporting}>
               {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
