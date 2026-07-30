@@ -1,11 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import { getCurrentAcademicYear } from '@/lib/semester-utils'
+import { db } from '@/lib/db'
+import { mapDbToKBC } from '@/lib/rpp-mapping'
 
 export async function POST(request: NextRequest) {
   try {
     const requestData = await request.json()
-    const rppData = requestData
+
+    // If rppId is provided, fetch from DB and reverse-map to KBC fields
+    let rppData = requestData
+    if (requestData.rppId && !requestData.tema) {
+      const dbRecord = await db.rPP.findUnique({ where: { id: requestData.rppId } })
+      if (dbRecord) {
+        rppData = mapDbToKBC(dbRecord)
+      } else {
+        return NextResponse.json({ success: false, error: 'RPP tidak ditemukan' }, { status: 404 })
+      }
+    }
 
     // Parse JSON fields (form sends stringified JSON)
     const parseJSON = (field: any): any => {
@@ -57,14 +69,14 @@ export async function POST(request: NextRequest) {
     }
 
     const drawText = (text: string, x: number, y: number, size: number, isBold: boolean) => {
-    const clean = text.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '')
-    if (!clean) return
-    getPage().drawText(clean, {
-      x, y, size,
-      font: isBold ? fontBold : font,
-      color: rgb(0, 0, 0)
-    })
-  }
+      const clean = text.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '')
+      if (!clean) return
+      getPage().drawText(clean, {
+        x, y, size,
+        font: isBold ? fontBold : font,
+        color: rgb(0, 0, 0)
+      })
+    }
 
     const drawSectionHeader = (title: string) => {
       ensureSpace(30)
@@ -293,6 +305,10 @@ export async function POST(request: NextRequest) {
     // B. CAPAIAN PEMBELAJARAN
     // ============================================================
     drawSectionHeader('B. Capaian Pembelajaran')
+    drawPairs([
+      ['Tema:', rppData.tema || '-'],
+      ['Subtema:', rppData.subtema || '-'],
+    ])
     drawParagraph(rppData.capaianPembelajaran || '-')
 
     // ============================================================

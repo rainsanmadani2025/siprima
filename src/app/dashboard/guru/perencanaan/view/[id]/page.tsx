@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ArrowLeft, Loader2, Download, Edit, Printer } from "lucide-react"
 import { useRouter, useParams } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 
-interface RPPData {
+interface RPPRaw {
   id: string
   tema: string
   subtema: string
@@ -40,13 +40,91 @@ interface RPPData {
   updatedAt: string
 }
 
+interface NilaiCinta {
+  cintaAllah?: string
+  cintaRasulullah?: string
+  cintaDiriSendiri?: string
+  cintaSesama?: string
+  cintaLingkungan?: string
+  cintaBangsaNegara?: string
+}
+
+interface DimensiKelulusan {
+  keimananKetakwaan?: string
+  kewargaan?: string
+  penalaranKritis?: string
+  kreativitas?: string
+  kolaborasi?: string
+  kemandirian?: string
+  kesehatan?: string
+  komunikasi?: string
+}
+
+interface SaranaMediaBahan {
+  sarana?: string
+  media?: string
+  bahan?: string
+}
+
+interface KegiatanInti {
+  eksplorasi?: string
+  bermain?: string
+  berkarya?: string
+  refleksi?: string
+}
+
+interface LangkahPembelajaran {
+  penyambutan?: string
+  pembukaan?: string
+  kegiatanInti?: KegiatanInti
+  penutup?: string
+}
+
+const NILAI_CINTA_LABELS: Record<string, string> = {
+  cintaAllah: 'Cinta kepada Allah SWT',
+  cintaRasulullah: 'Cinta kepada Rasulullah SAW',
+  cintaDiriSendiri: 'Cinta kepada Diri Sendiri',
+  cintaSesama: 'Cinta kepada Sesama',
+  cintaLingkungan: 'Cinta kepada Lingkungan',
+  cintaBangsaNegara: 'Cinta kepada Bangsa dan Negara',
+}
+
+const DIMENSI_LABELS: Record<string, string> = {
+  keimananKetakwaan: 'Keimanan dan Ketakwaan',
+  kewargaan: 'Kewargaan',
+  penalaranKritis: 'Penalaran Kritis',
+  kreativitas: 'Kreativitas',
+  kolaborasi: 'Kolaborasi',
+  kemandirian: 'Kemandirian',
+  kesehatan: 'Kesehatan',
+  komunikasi: 'Komunikasi',
+}
+
+function parseJsonSafe(raw: any): any {
+  if (raw === null || raw === undefined) return undefined
+  if (typeof raw === 'object') return raw
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return undefined
+  }
+}
+
+function extractAsesmen(rubrikPenilaian: any): string {
+  const parsed = parseJsonSafe(rubrikPenilaian)
+  if (!parsed) return typeof rubrikPenilaian === 'string' ? rubrikPenilaian : '-'
+  if (typeof parsed === 'string') return parsed
+  if (parsed.asesmen) return parsed.asesmen
+  return JSON.stringify(parsed, null, 2)
+}
+
 export default function ViewRPPPage() {
   const router = useRouter()
   const params = useParams()
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
   const [loadingPDF, setLoadingPDF] = useState(false)
-  const [rpp, setRpp] = useState<RPPData | null>(null)
+  const [rpp, setRpp] = useState<RPPRaw | null>(null)
 
   useEffect(() => {
     if (params.id) {
@@ -123,11 +201,23 @@ export default function ViewRPPPage() {
   }
 
   const formatText = (text?: string) => {
-    if (!text) return '-'
+    if (!text) return <span className="text-muted-foreground">-</span>
     return text.split('\n').map((line, i) => (
       <p key={i} className="mb-2">{line}</p>
     ))
   }
+
+  // --- Derived / mapped data (DB kolom lama → KBC field baru) ---
+  const nilaiCinta: NilaiCinta = parseJsonSafe(rpp?.tujuanKBC) || {}
+  const dimensiKelulusan: DimensiKelulusan = parseJsonSafe(rpp?.tujuanProfilLulusan) || {}
+  const saranaMediaBahan: SaranaMediaBahan = parseJsonSafe(rpp?.kerangkaPembelajaran) || {}
+  const langkahPembelajaran: LangkahPembelajaran = parseJsonSafe(rpp?.kegiatanPembelajaran) || {}
+  const capaianPembelajaran = rpp?.temaProjek || '-'
+  const pemahamanBermakna = rpp?.tujuanPembelajaranMendalam || '-'
+  const pertanyaanPemantik = rpp?.materiIntegrasiKBC || '-'
+  const tindakLanjut = rpp?.pokokBahasan || '-'
+  const refleksiGuru = rpp?.judulKegiatan || '-'
+  const asesmenText = rpp ? extractAsesmen(rpp.rubrikPenilaian) : '-'
 
   if (loading) {
     return (
@@ -194,7 +284,7 @@ export default function ViewRPPPage() {
         {/* RPP Content */}
         <ScrollArea className="h-[calc(100vh-200px)] pr-4">
           <div className="space-y-6 print:space-y-4">
-            {/* Header Info */}
+            {/* School Header */}
             <Card className="print:border print:shadow-none">
               <CardHeader>
                 <div className="text-center space-y-2">
@@ -225,184 +315,179 @@ export default function ViewRPPPage() {
               </CardContent>
             </Card>
 
-            {/* B. Tema Projek */}
+            {/* B. Capaian Pembelajaran */}
             <Card className="print:border print:shadow-none">
               <CardHeader>
-                <CardTitle>B. Tema Projek</CardTitle>
+                <CardTitle>B. Capaian Pembelajaran</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div><strong>Tema:</strong> {rpp.tema}</div>
                 <div><strong>Subtema:</strong> {rpp.subtema}</div>
-                <div><strong>Tema Projek:</strong> {rpp.temaProjek}</div>
-                <div><strong>Judul Kegiatan:</strong> {rpp.judulKegiatan}</div>
-                <div><strong>Pokok Bahasan:</strong> {rpp.pokokBahasan || '-'}</div>
+                <div><strong>Capaian Pembelajaran:</strong></div>
+                <div className="ml-4">{formatText(capaianPembelajaran)}</div>
               </CardContent>
             </Card>
 
-            {/* C. Topik KBC */}
+            {/* C. Tujuan Pembelajaran */}
             <Card className="print:border print:shadow-none">
               <CardHeader>
-                <CardTitle>C. Topik KBC</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {formatText(rpp.topikKBC)}
-              </CardContent>
-            </Card>
-
-            {/* D. Profil Lulusan */}
-            <Card className="print:border print:shadow-none">
-              <CardHeader>
-                <CardTitle>D. Profil Lulusan</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {formatText(rpp.profilLulusan)}
-              </CardContent>
-            </Card>
-
-            {/* E. Tujuan KBC */}
-            <Card className="print:border print:shadow-none">
-              <CardHeader>
-                <CardTitle>E. Tujuan KBC</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {formatText(rpp.tujuanKBC)}
-              </CardContent>
-            </Card>
-
-            {/* F. Tujuan Profil Lulusan */}
-            <Card className="print:border print:shadow-none">
-              <CardHeader>
-                <CardTitle>F. Tujuan Profil Lulusan</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {rpp.tujuanProfilLulusan && Object.entries(rpp.tujuanProfilLulusan).map(([key, value]) => (
-                  <div key={key}>
-                    <strong>{key}:</strong>
-                    <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">{value as string || '-'}</p>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* G. Tujuan Pembelajaran Mendalam */}
-            <Card className="print:border print:shadow-none">
-              <CardHeader>
-                <CardTitle>G. Tujuan Pembelajaran Mendalam (KD)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {formatText(rpp.tujuanPembelajaranMendalam)}
-              </CardContent>
-            </Card>
-
-            {/* H. Materi Integrasi KBC */}
-            <Card className="print:border print:shadow-none">
-              <CardHeader>
-                <CardTitle>H. Materi Integrasi KBC</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {formatText(rpp.materiIntegrasiKBC)}
-              </CardContent>
-            </Card>
-
-            {/* I. Tujuan Pembelajaran */}
-            <Card className="print:border print:shadow-none">
-              <CardHeader>
-                <CardTitle>I. Tujuan Pembelajaran</CardTitle>
+                <CardTitle>C. Tujuan Pembelajaran</CardTitle>
               </CardHeader>
               <CardContent>
                 {formatText(rpp.tujuanPembelajaran)}
               </CardContent>
             </Card>
 
-            {/* J. Kerangka Pembelajaran */}
+            {/* D. Nilai Cinta */}
             <Card className="print:border print:shadow-none">
               <CardHeader>
-                <CardTitle>J. Kerangka Pembelajaran</CardTitle>
+                <CardTitle>D. Nilai Cinta</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {rpp.kerangkaPembelajaran && (
-                  <>
-                    <div>
-                      <strong>Praktek Pedagogik:</strong>
-                      {formatText(rpp.kerangkaPembelajaran.praktekPedagogik)}
-                    </div>
-                    {rpp.kerangkaPembelajaran.lingkunganPembelajaran && (
-                      <div className="space-y-2">
-                        <strong>Lingkungan Pembelajaran:</strong>
-                        {Object.entries(rpp.kerangkaPembelajaran.lingkunganPembelajaran).map(([key, value]) => (
-                          <div key={key} className="ml-4">
-                            <strong>{key}:</strong>
-                            {formatText(value as string)}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <div>
-                      <strong>Kemitraan Pembelajaran:</strong>
-                      {formatText(rpp.kerangkaPembelajaran.kemitraanPembelajaran)}
-                    </div>
-                    <div>
-                      <strong>Pemanfaatan Digital:</strong>
-                      {formatText(rpp.kerangkaPembelajaran.pemanfaatanDigital)}
-                    </div>
-                  </>
-                )}
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Object.entries(NILAI_CINTA_LABELS).map(([key, label]) => (
+                  <div key={key}>
+                    <strong>{label}:</strong>
+                    <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
+                      {nilaiCinta[key as keyof NilaiCinta] || '-'}
+                    </p>
+                  </div>
+                ))}
               </CardContent>
             </Card>
 
-            {/* K. Kegiatan Pembelajaran */}
+            {/* E. Dimensi Kelulusan */}
             <Card className="print:border print:shadow-none">
               <CardHeader>
-                <CardTitle>K. Kegiatan Pembelajaran</CardTitle>
+                <CardTitle>E. Dimensi Kelulusan</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Object.entries(DIMENSI_LABELS).map(([key, label]) => (
+                  <div key={key}>
+                    <strong>{label}:</strong>
+                    <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
+                      {dimensiKelulusan[key as keyof DimensiKelulusan] || '-'}
+                    </p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* F. Pemahaman Bermakna */}
+            <Card className="print:border print:shadow-none">
+              <CardHeader>
+                <CardTitle>F. Pemahaman Bermakna</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {formatText(pemahamanBermakna)}
+              </CardContent>
+            </Card>
+
+            {/* G. Pertanyaan Pemantik */}
+            <Card className="print:border print:shadow-none">
+              <CardHeader>
+                <CardTitle>G. Pertanyaan Pemantik</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {formatText(pertanyaanPemantik)}
+              </CardContent>
+            </Card>
+
+            {/* H. Sarana, Media, Bahan */}
+            <Card className="print:border print:shadow-none">
+              <CardHeader>
+                <CardTitle>H. Sarana, Media, Bahan</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <strong>Sarana:</strong>
+                  <div className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
+                    {saranaMediaBahan.sarana || '-'}
+                  </div>
+                </div>
+                <div>
+                  <strong>Media:</strong>
+                  <div className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
+                    {saranaMediaBahan.media || '-'}
+                  </div>
+                </div>
+                <div>
+                  <strong>Bahan:</strong>
+                  <div className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
+                    {saranaMediaBahan.bahan || '-'}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* I. Langkah Pembelajaran */}
+            <Card className="print:border print:shadow-none">
+              <CardHeader>
+                <CardTitle>I. Langkah Pembelajaran</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {rpp.kegiatanPembelajaran && (
-                  <>
-                    <div className="space-y-3">
-                      <h4 className="font-semibold">1. Tahap Persiapan</h4>
-                      <div className="ml-4 space-y-2">
-                        <div><strong>a. Pemahaman Konsep:</strong>{formatText(rpp.kegiatanPembelajaran.persiapan?.pemahamanKonsep)}</div>
-                        <div><strong>b. Penyiapan Alat:</strong>{formatText(rpp.kegiatanPembelajaran.persiapan?.penyiapanAlat)}</div>
-                        <div><strong>c. Alat & Bahan:</strong>{formatText(rpp.kegiatanPembelajaran.persiapan?.alatBahan)}</div>
-                      </div>
+                <div>
+                  <strong>1. Penyambutan</strong>
+                  <div className="ml-4 mt-1">{formatText(langkahPembelajaran.penyambutan)}</div>
+                </div>
+                <div>
+                  <strong>2. Pembukaan</strong>
+                  <div className="ml-4 mt-1">{formatText(langkahPembelajaran.pembukaan)}</div>
+                </div>
+                <div>
+                  <strong>3. Kegiatan Inti</strong>
+                  <div className="ml-4 mt-2 space-y-4">
+                    <div>
+                      <strong>a. Eksplorasi</strong>
+                      <div className="ml-4 mt-1">{formatText(langkahPembelajaran.kegiatanInti?.eksplorasi)}</div>
                     </div>
+                    <div>
+                      <strong>b. Bermain</strong>
+                      <div className="ml-4 mt-1">{formatText(langkahPembelajaran.kegiatanInti?.bermain)}</div>
+                    </div>
+                    <div>
+                      <strong>c. Berkarya</strong>
+                      <div className="ml-4 mt-1">{formatText(langkahPembelajaran.kegiatanInti?.berkarya)}</div>
+                    </div>
+                    <div>
+                      <strong>d. Refleksi</strong>
+                      <div className="ml-4 mt-1">{formatText(langkahPembelajaran.kegiatanInti?.refleksi)}</div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <strong>4. Penutup</strong>
+                  <div className="ml-4 mt-1">{formatText(langkahPembelajaran.penutup)}</div>
+                </div>
+              </CardContent>
+            </Card>
 
-                    <div className="space-y-3">
-                      <h4 className="font-semibold">2. Tahap Pelaksanaan</h4>
-                      <div className="ml-4 space-y-2">
-                        <div><strong>a. Orientasi:</strong>{formatText(rpp.kegiatanPembelajaran.pelaksanaan?.orientasi)}</div>
-                        <div><strong>b. Eksplorasi:</strong>{formatText(rpp.kegiatanPembelajaran.pelaksanaan?.eksplorasi)}</div>
-                        <div><strong>c. Diskusi:</strong>{formatText(rpp.kegiatanPembelajaran.pelaksanaan?.diskusi)}</div>
-                        <div><strong>d. Kolaborasi:</strong>{formatText(rpp.kegiatanPembelajaran.pelaksanaan?.kolaborasi)}</div>
-                        <div><strong>e. Refleksi:</strong>{formatText(rpp.kegiatanPembelajaran.pelaksanaan?.refleksi)}</div>
-                      </div>
-                    </div>
+            {/* J. Asesmen */}
+            <Card className="print:border print:shadow-none">
+              <CardHeader>
+                <CardTitle>J. Asesmen</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {formatText(asesmenText)}
+              </CardContent>
+            </Card>
 
-                    <div className="space-y-3">
-                      <h4 className="font-semibold">3. Tahap Pembuatan Karya</h4>
-                      <div className="ml-4 space-y-2">
-                        <div><strong>a. Proses:</strong>{formatText(rpp.kegiatanPembelajaran.pembuatanKarya?.proses)}</div>
-                        <div><strong>b. Hasil:</strong>{formatText(rpp.kegiatanPembelajaran.pembuatanKarya?.hasil)}</div>
-                      </div>
-                    </div>
+            {/* K. Tindak Lanjut */}
+            <Card className="print:border print:shadow-none">
+              <CardHeader>
+                <CardTitle>K. Tindak Lanjut</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {formatText(tindakLanjut)}
+              </CardContent>
+            </Card>
 
-                    <div className="space-y-3">
-                      <h4 className="font-semibold">4. Tahap Presentasi</h4>
-                      <div className="ml-4 space-y-2">
-                        <div><strong>a. Persiapan:</strong>{formatText(rpp.kegiatanPembelajaran.presentasi?.persiapan)}</div>
-                        <div><strong>b. Pelaksanaan:</strong>{formatText(rpp.kegiatanPembelajaran.presentasi?.pelaksanaan)}</div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <h4 className="font-semibold">5. Tahap Refleksi Akhir</h4>
-                      <div className="ml-4 space-y-2">
-                        <div><strong>a. Refleksi Guru:</strong>{formatText(rpp.kegiatanPembelajaran.refleksiAkhir?.refleksiGuru)}</div>
-                        <div><strong>b. Refleksi Anak:</strong>{formatText(rpp.kegiatanPembelajaran.refleksiAkhir?.refleksiAnak)}</div>
-                      </div>
-                    </div>
-                  </>
-                )}
+            {/* L. Refleksi Guru */}
+            <Card className="print:border print:shadow-none">
+              <CardHeader>
+                <CardTitle>L. Refleksi Guru</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {formatText(refleksiGuru)}
               </CardContent>
             </Card>
 

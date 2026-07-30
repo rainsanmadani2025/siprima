@@ -1,479 +1,509 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, AlignmentType } from 'docx'
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle } from 'docx'
+import { getCurrentAcademicYear } from '@/lib/semester-utils'
+import { db } from '@/lib/db'
+import { mapDbToKBC } from '@/lib/rpp-mapping'
+
+// Parse JSON fields (form sends objects or stringified JSON)
+const parseJSON = (field: any): any => {
+  if (!field) return {}
+  if (typeof field === 'string') {
+    try { return JSON.parse(field) } catch { return {} }
+  }
+  return field
+}
+
+const NILAI_CINTA_LABELS: Record<string, string> = {
+  cintaAllah: 'Cinta kepada Allah SWT',
+  cintaRasulullah: 'Cinta kepada Rasulullah SAW',
+  cintaDiriSendiri: 'Cinta kepada Diri Sendiri',
+  cintaSesama: 'Cinta kepada Sesama',
+  cintaLingkungan: 'Cinta kepada Lingkungan',
+  cintaBangsaNegara: 'Cinta kepada Bangsa dan Negara',
+}
+
+const DIMENSI_LABELS: Record<string, string> = {
+  keimananKetakwaan: 'Keimanan dan Ketakwaan',
+  kewargaan: 'Kewargaan',
+  penalaranKritis: 'Penalaran Kritis',
+  kreativitas: 'Kreativitas',
+  kolaborasi: 'Kolaborasi',
+  kemandirian: 'Kemandirian',
+  kesehatan: 'Kesehatan',
+  komunikasi: 'Komunikasi',
+}
+
+const KEGIATAN_INTI_LABELS: Record<string, string> = {
+  eksplorasi: 'a. Eksplorasi',
+  bermain: 'b. Bermain',
+  berkarya: 'c. Berkarya',
+  refleksi: 'd. Refleksi Siswa',
+}
+
+const SARANA_LABELS: Record<string, string> = {
+  sarana: 'Sarana',
+  media: 'Media Pembelajaran',
+  bahan: 'Bahan Pembelajaran',
+}
+
+// Helper: create a key-value row table
+function createKeyValueTable(data: [string, string][]): Table {
+  const rows = data.map(([key, value]) =>
+    new TableRow({
+      children: [
+        new TableCell({
+          width: { size: 35, type: WidthType.PERCENTAGE },
+          borders: {
+            top: { style: BorderStyle.NONE, size: 0 },
+            bottom: { style: BorderStyle.NONE, size: 0 },
+            left: { style: BorderStyle.NONE, size: 0 },
+            right: { style: BorderStyle.NONE, size: 0 },
+          },
+          children: [new Paragraph({ children: [new TextRun({ text: key, bold: true, size: 22 })] })],
+        }),
+        new TableCell({
+          width: { size: 5, type: WidthType.PERCENTAGE },
+          borders: {
+            top: { style: BorderStyle.NONE, size: 0 },
+            bottom: { style: BorderStyle.NONE, size: 0 },
+            left: { style: BorderStyle.NONE, size: 0 },
+            right: { style: BorderStyle.NONE, size: 0 },
+          },
+          children: [new Paragraph({ children: [new TextRun({ text: ':', bold: true, size: 22 })] })],
+        }),
+        new TableCell({
+          width: { size: 60, type: WidthType.PERCENTAGE },
+          borders: {
+            top: { style: BorderStyle.NONE, size: 0 },
+            bottom: { style: BorderStyle.NONE, size: 0 },
+            left: { style: BorderStyle.NONE, size: 0 },
+            right: { style: BorderStyle.NONE, size: 0 },
+          },
+          children: [new Paragraph({ children: [new TextRun({ text: value || '-', size: 22 })] })],
+        }),
+      ],
+    })
+  )
+
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows,
+  })
+}
+
+// Helper: paragraph from text with line breaks
+function textToParagraphs(text: string, indent: number = 0): Paragraph[] {
+  if (!text || text.trim() === '') return [new Paragraph({ text: '-', size: 22 })]
+  return text
+    .split('\n')
+    .filter((line) => line.trim())
+    .map(
+      (line) =>
+        new Paragraph({
+          spacing: { after: 80 },
+          indent: indent > 0 ? { left: indent * 360 } : undefined,
+          children: [new TextRun({ text: line, size: 22 })],
+        })
+    )
+}
+
+// Helper: create labeled sub-items from a JSON object
+function createJsonSubItems(
+  obj: Record<string, string>,
+  labelMap: Record<string, string>,
+  indent: number = 0
+): Paragraph[] {
+  const result: Paragraph[] = []
+  const entries = Object.entries(obj).filter(([, v]) => v && v.trim() !== '')
+  if (entries.length === 0) {
+    result.push(new Paragraph({ text: '-', size: 22 }))
+    return result
+  }
+  for (const [key, value] of entries) {
+    const label = labelMap?.[key] || key
+    result.push(
+      new Paragraph({
+        spacing: { before: 120, after: 40 },
+        indent: indent > 0 ? { left: indent * 360 } : undefined,
+        children: [new TextRun({ text: `${label}:`, bold: true, size: 22 })],
+      })
+    )
+    result.push(...textToParagraphs(value, indent + 1))
+  }
+  return result
+}
+
+// Helper: create kegiatan inti sub-sections
+function createKegiatanInti(kegiatanInti: any): Paragraph[] {
+  const result: Paragraph[] = []
+  if (!kegiatanInti || typeof kegiatanInti !== 'object') {
+    result.push(new Paragraph({ text: '-', size: 22 }))
+    return result
+  }
+  const entries = Object.entries(kegiatanInti).filter(
+    ([, v]) => v && String(v).trim() !== ''
+  )
+  if (entries.length === 0) {
+    result.push(new Paragraph({ text: '-', size: 22 }))
+    return result
+  }
+  for (const [key, value] of entries) {
+    const label = KEGIATAN_INTI_LABELS[key] || key
+    result.push(
+      new Paragraph({
+        spacing: { before: 120, after: 40 },
+        indent: { left: 360 },
+        children: [new TextRun({ text: label, bold: true, size: 22 })],
+      })
+    )
+    result.push(...textToParagraphs(String(value), 2))
+  }
+  return result
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const rppData = await request.json()
+    const requestData = await request.json()
+
+    // If rppId is provided, fetch from DB and reverse-map to KBC fields
+    let rppData = requestData
+    if (requestData.rppId && !requestData.tema) {
+      const dbRecord = await db.rPP.findUnique({ where: { id: requestData.rppId } })
+      if (dbRecord) {
+        rppData = mapDbToKBC(dbRecord)
+      } else {
+        return NextResponse.json({ success: false, error: 'RPP tidak ditemukan' }, { status: 404 })
+      }
+    }
+
+    const nilaiCinta = parseJSON(rppData.nilaiCinta)
+    const dimensiKelulusan = parseJSON(rppData.dimensiKelulusan)
+    const saranaMediaBahan = parseJSON(rppData.saranaMediaBahan)
+    const langkahPembelajaran = parseJSON(rppData.langkahPembelajaran)
 
     const doc = new Document({
-      sections: [{
-        properties: {},
-        children: [
-          // Header
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            children: [
-              new TextRun({
-                text: rppData.namaSekolah || "RA INSAN MADANI",
-                bold: true,
-                size: 32
-              })
-            ]
-          }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            children: [
-              new TextRun({
-                text: "Rencana Pelaksanaan Pembelajaran",
-                bold: true,
-                size: 28
-              })
-            ]
-          }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            children: [
-              new TextRun({
-                text: "Kurikulum Berbasis Cinta (KBC)",
-                bold: true,
-                size: 24
-              })
-            ]
-          }),
-          new Paragraph({ text: "" }),
+      sections: [
+        {
+          properties: {},
+          children: [
+            // HEADER
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 80 },
+              children: [
+                new TextRun({
+                  text: rppData.namaSekolah || 'RA INSAN MADANI',
+                  bold: true,
+                  size: 32,
+                }),
+              ],
+            }),
+            rppData.alamatSekolah
+              ? new Paragraph({
+                  alignment: AlignmentType.CENTER,
+                  spacing: { after: 80 },
+                  children: [
+                    new TextRun({
+                      text: rppData.alamatSekolah,
+                      size: 20,
+                    }),
+                  ],
+                })
+              : new Paragraph({ text: '' }),
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 60 },
+              children: [
+                new TextRun({
+                  text: 'Rencana Pelaksanaan Pembelajaran',
+                  bold: true,
+                  size: 28,
+                }),
+              ],
+            }),
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 120 },
+              children: [
+                new TextRun({
+                  text: 'Kurikulum Berbasis Cinta (KBC)',
+                  bold: true,
+                  size: 24,
+                }),
+              ],
+            }),
 
-          // A. Identitas Pembelajaran
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            children: [new TextRun({ text: "A. Identitas Pembelajaran", bold: true })]
-          }),
-          new Paragraph({ text: "" }),
-          ...createKeyValueTable([
-            ["Fase:", rppData.fase || "Fase Fondasi"],
-            ["Kelompok Usia:", rppData.kelompokUsia || "Kelompok A (4-5 Tahun)"],
-            ["Semester:", rppData.semester || "Ganjil"],
-            ["Tahun Ajaran:", rppData.tahunAjaran || "2025/2026"],
-            ["Hari:", rppData.hari || "-"],
-            ["Jumlah Pertemuan:", rppData.jumlahPertemuan || "-"],
-            ["Kelas:", rppData.kelas || "-"],
-            ["Guru:", rppData.guru || "-"]
-          ]),
+            // A. IDENTITAS PEMBELAJARAN
+            new Paragraph({
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 200, after: 100 },
+              children: [
+                new TextRun({
+                  text: 'A. Identitas Pembelajaran',
+                  bold: true,
+                  size: 24,
+                }),
+              ],
+            }),
+            createKeyValueTable([
+              ['Fase', rppData.fase || 'Fase Fondasi'],
+              ['Kelompok Usia', rppData.kelompokUsia || '-'],
+              ['Semester', rppData.semester || 'Ganjil'],
+              ['Tahun Ajaran', rppData.tahunAjaran || getCurrentAcademicYear()],
+              ['Hari', rppData.hari || '-'],
+              ['Jumlah Pertemuan', rppData.jumlahPertemuan || '8 JP'],
+              ['Kelas', rppData.kelas || '-'],
+              ['Guru', rppData.guru || '-'],
+            ]),
 
-          new Paragraph({ text: "" }),
+            // B. CAPAIAN PEMBELAJARAN
+            new Paragraph({
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 100 },
+              children: [
+                new TextRun({
+                  text: 'B. Capaian Pembelajaran',
+                  bold: true,
+                  size: 24,
+                }),
+              ],
+            }),
+            createKeyValueTable([
+              ['Tema', rppData.tema || '-'],
+              ['Subtema', rppData.subtema || '-'],
+            ]),
+            new Paragraph({ spacing: { before: 80 }, children: [] }),
+            ...textToParagraphs(rppData.capaianPembelajaran || '-'),
 
-          // B. Tema Projek
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            children: [new TextRun({ text: "B. Tema Projek", bold: true })]
-          }),
-          new Paragraph({ text: "" }),
-          ...createKeyValueTable([
-            ["Tema:", rppData.tema || "-"],
-            ["Subtema:", rppData.subtema || "-"],
-            ["Tema Projek:", rppData.temaProjek || "-"],
-            ["Judul Kegiatan:", rppData.judulKegiatan || "-"],
-            ["Pokok Bahasan:", rppData.pokokBahasan || "-"]
-          ]),
+            // C. TUJUAN PEMBELAJARAN
+            new Paragraph({
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 100 },
+              children: [
+                new TextRun({
+                  text: 'C. Tujuan Pembelajaran',
+                  bold: true,
+                  size: 24,
+                }),
+              ],
+            }),
+            ...textToParagraphs(rppData.tujuanPembelajaran || '-'),
 
-          new Paragraph({ text: "" }),
+            // D. 6 NILAI CINTA
+            new Paragraph({
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 100 },
+              children: [
+                new TextRun({
+                  text: 'D. 6 Nilai Cinta',
+                  bold: true,
+                  size: 24,
+                }),
+              ],
+            }),
+            ...createJsonSubItems(nilaiCinta, NILAI_CINTA_LABELS),
 
-          // C. Topik KBC
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            children: [new TextRun({ text: "C. Topik KBC", bold: true })]
-          }),
-          ...parseBulletPoints(rppData.topikKBC || "Cinta Diri dan Sesama"),
+            // E. 8 DIMENSI KELULUSAN
+            new Paragraph({
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 100 },
+              children: [
+                new TextRun({
+                  text: 'E. 8 Dimensi Kelulusan KBC Kemenag',
+                  bold: true,
+                  size: 24,
+                }),
+              ],
+            }),
+            ...createJsonSubItems(dimensiKelulusan, DIMENSI_LABELS),
 
-          // D. Profil Lulusan
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            children: [new TextRun({ text: "D. Profil Lulusan", bold: true })]
-          }),
-          ...parseBulletPoints(rppData.profilLulusan || "Kesehatan\nKemandirian\nBernalar Kritis\nKreatif\nBerkarakter\nBeriman\nBertakwa"),
+            // F. PEMAHAMAN BERMAKNA
+            new Paragraph({
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 100 },
+              children: [
+                new TextRun({
+                  text: 'F. Pemahaman Bermakna',
+                  bold: true,
+                  size: 24,
+                }),
+              ],
+            }),
+            ...textToParagraphs(rppData.pemahamanBermakna || '-'),
 
-          new Paragraph({ text: "" }),
+            // G. PERTANYAAN PEMANTIK
+            new Paragraph({
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 100 },
+              children: [
+                new TextRun({
+                  text: 'G. Pertanyaan Pemantik',
+                  bold: true,
+                  size: 24,
+                }),
+              ],
+            }),
+            ...textToParagraphs(rppData.pertanyaanPemantik || '-'),
 
-          // E. Tujuan KBC
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            children: [new TextRun({ text: "E. Tujuan KBC", bold: true })]
-          }),
-          ...parseTextToParagraphs(rppData.tujuanKBC || "-"),
+            // H. SARANA, MEDIA, DAN BAHAN
+            new Paragraph({
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 100 },
+              children: [
+                new TextRun({
+                  text: 'H. Sarana, Media, dan Bahan',
+                  bold: true,
+                  size: 24,
+                }),
+              ],
+            }),
+            ...createJsonSubItems(saranaMediaBahan, SARANA_LABELS),
 
-          new Paragraph({ text: "" }),
+            // I. LANGKAH PEMBELAJARAN
+            new Paragraph({
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 100 },
+              children: [
+                new TextRun({
+                  text: 'I. Langkah Pembelajaran',
+                  bold: true,
+                  size: 24,
+                }),
+              ],
+            }),
 
-          // F. Tujuan Profil Lulusan
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            children: [new TextRun({ text: "F. Tujuan Profil Lulusan", bold: true })]
-          }),
-          ...parseProfilLulusanGoals(rppData.tujuanProfilLulusan || {}),
+            // 1. Penyambutan
+            new Paragraph({
+              spacing: { before: 160, after: 60 },
+              children: [
+                new TextRun({ text: '1. Penyambutan', bold: true, size: 22 }),
+              ],
+            }),
+            ...textToParagraphs(langkahPembelajaran?.penyambutan || '-', 1),
 
-          new Paragraph({ text: "" }),
+            // 2. Pembukaan
+            new Paragraph({
+              spacing: { before: 160, after: 60 },
+              children: [
+                new TextRun({ text: '2. Pembukaan', bold: true, size: 22 }),
+              ],
+            }),
+            ...textToParagraphs(langkahPembelajaran?.pembukaan || '-', 1),
 
-          // G. Tujuan Pembelajaran Mendalam
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            children: [new TextRun({ text: "G. Tujuan Pembelajaran Mendalam", bold: true })]
-          }),
-          ...parseKDMultiple(rppData.tujuanPembelajaranMendalam || ""),
+            // 3. Kegiatan Inti
+            new Paragraph({
+              spacing: { before: 160, after: 60 },
+              children: [
+                new TextRun({ text: '3. Kegiatan Inti', bold: true, size: 22 }),
+              ],
+            }),
+            ...createKegiatanInti(langkahPembelajaran?.kegiatanInti || {}),
 
-          new Paragraph({ text: "" }),
+            // 4. Penutup
+            new Paragraph({
+              spacing: { before: 160, after: 60 },
+              children: [
+                new TextRun({ text: '4. Penutup', bold: true, size: 22 }),
+              ],
+            }),
+            ...textToParagraphs(langkahPembelajaran?.penutup || '-', 1),
 
-          // H. Materi Integrasi KBC
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            children: [new TextRun({ text: "H. Materi Integrasi KBC", bold: true })]
-          }),
-          ...parseTextToParagraphs(rppData.materiIntegrasiKBC || "-"),
+            // J. ASESMEN
+            new Paragraph({
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 100 },
+              children: [
+                new TextRun({
+                  text: 'J. Asesmen',
+                  bold: true,
+                  size: 24,
+                }),
+              ],
+            }),
+            ...textToParagraphs(rppData.asesmen || '-'),
 
-          new Paragraph({ text: "" }),
+            // K. TINDAK LANJUT
+            new Paragraph({
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 100 },
+              children: [
+                new TextRun({
+                  text: 'K. Tindak Lanjut',
+                  bold: true,
+                  size: 24,
+                }),
+              ],
+            }),
+            ...textToParagraphs(rppData.tindakLanjut || '-'),
 
-          // I. Tujuan Pembelajaran
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            children: [new TextRun({ text: "I. Tujuan Pembelajaran", bold: true })]
-          }),
-          ...parseTextToParagraphs(rppData.tujuanPembelajaran || "-"),
+            // L. REFLEKSI GURU
+            new Paragraph({
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 100 },
+              children: [
+                new TextRun({
+                  text: 'L. Refleksi Guru',
+                  bold: true,
+                  size: 24,
+                }),
+              ],
+            }),
+            ...textToParagraphs(rppData.refleksiGuru || '-'),
 
-          new Paragraph({ text: "" }),
-
-          // J. Kerangka Pembelajaran
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            children: [new TextRun({ text: "J. Kerangka Pembelajaran", bold: true })]
-          }),
-          ...createKerangkaPembelajaran(rppData.kerangkaPembelajaran || {}),
-
-          new Paragraph({ text: "" }),
-
-          // K. Kegiatan Pembelajaran
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            children: [new TextRun({ text: "K. Kegiatan Pembelajaran (Format Matriks 5 Tahap)", bold: true })]
-          }),
-          ...createKegiatanPembelajaran(rppData.kegiatanPembelajaran || {}),
-
-          new Paragraph({ text: "" }),
-
-          // Lampiran 1
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            children: [new TextRun({ text: "Lampiran 1: Lembar Observasi", bold: true })]
-          }),
-          new Paragraph({ text: "*Berilah tanda (✓) sesuai hasil pengamatan perilaku dan sikap anak dalam kegiatan.*" }),
-          new Paragraph({ text: "" }),
-          createObservasiTable(),
-
-          new Paragraph({ text: "" }),
-
-          // Lampiran 2
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            children: [new TextRun({ text: "Lampiran 2: Rubrik Penilaian Kinerja", bold: true })]
-          }),
-          new Paragraph({ text: "" }),
-          createRubrikTable(),
-
-          // Footer
-          new Paragraph({ text: "" }),
-          new Paragraph({ text: "─" }),
-          new Paragraph({ text: "" }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            children: [new TextRun({ text: "Rencana Pelaksanaan Pembelajaran Kurikulum Berbasis Cinta (KBC)", bold: true })]
-          }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            children: [new TextRun({ text: `RA INSAN MADANI - ${rppData.semester || "Ganjil"} ${rppData.tahunAjaran || "2025/2026"}`, bold: true })]
-          })
-        ]
-      }]
+            // FOOTER
+            new Paragraph({ spacing: { before: 400 }, children: [] }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: '─'.repeat(60),
+                  size: 18,
+                  color: '999999',
+                }),
+              ],
+            }),
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 120 },
+              children: [
+                new TextRun({
+                  text: 'Rencana Pelaksanaan Pembelajaran Kurikulum Berbasis Cinta (KBC)',
+                  bold: true,
+                  size: 18,
+                }),
+              ],
+            }),
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 40 },
+              children: [
+                new TextRun({
+                  text: `${rppData.namaSekolah || 'RA INSAN MADANI'} - ${rppData.tema || ''} : ${rppData.subtema || ''} - ${rppData.semester || 'Ganjil'} ${rppData.tahunAjaran || getCurrentAcademicYear()}`,
+                  bold: true,
+                  size: 18,
+                }),
+              ],
+            }),
+          ],
+        },
+      ],
     })
 
     const buffer = await Packer.toBuffer(doc)
 
-    const fileName = `RPP-KBC-${rppData.tema || "Baru"}-${new Date().toISOString().split('T')[0]}.docx`
+    const fileName = `RPP-KBC-${(rppData.tema || 'Baru').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_')}-${new Date().toISOString().split('T')[0]}.docx`
 
     return new NextResponse(buffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'Content-Disposition': `attachment; filename="${fileName}"`
-      }
+        'Content-Disposition': `attachment; filename="${fileName}"`,
+      },
     })
   } catch (error) {
-    console.error('Error exporting RPP:', error)
+    console.error('Error exporting RPP KBC to Word:', error)
     return NextResponse.json(
       { success: false, error: 'Gagal mengekspor RPP' },
       { status: 500 }
     )
   }
-}
-
-function createKeyValueTable(data: string[][]): Array<Table | Paragraph> {
-  const rows = data.map(([key, value]) =>
-    new TableRow({
-      children: [
-        new TableCell({
-          width: { size: 30, type: WidthType.PERCENTAGE },
-          children: [new Paragraph({ children: [new TextRun({ text: key, bold: true })] })]
-        }),
-        new TableCell({
-          width: { size: 70, type: WidthType.PERCENTAGE },
-          children: [new Paragraph({ text: value })]
-        })
-      ]
-    })
-  )
-
-  const table = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: rows
-  })
-
-  return [table, new Paragraph({ text: "" })]
-}
-
-function parseBulletPoints(text: string): Paragraph[] {
-  const lines = text.split('\n').filter(line => line.trim())
-  return lines.map(line =>
-    new Paragraph({
-      bullet: { level: 0 },
-      children: [new TextRun({ text: line.replace(/^[•\-\*]\s*/, '') })]
-    })
-  )
-}
-
-function parseTextToParagraphs(text: string): Paragraph[] {
-  const lines = text.split('\n').filter(line => line.trim())
-  return lines.map(line =>
-    new Paragraph({ text: line })
-  )
-}
-
-function parseProfilLulusanGoals(goals: any): Array<Paragraph> {
-  const result: Array<Paragraph> = []
-  const defaultGoals = {
-    Kesehatan: "Mengenal lingkungan sehat",
-    Kemandirian: "Dapat merawat diri sendiri",
-    BernalarKritis: "Memahami alasan perilaku",
-    Kreatif: "Menciptakan aktivitas bermain",
-    Berkarakter: "Menumbuhkan sikap hormat",
-    Beriman: "Mengenal mesjid sebagai tempat ibadah",
-    Bertakwa: "Mengenal dasar-dasar ibadah"
-  }
-
-  for (const [key, value] of Object.entries(goals)) {
-    if (value) {
-      result.push(new Paragraph({
-        heading: HeadingLevel.HEADING_3,
-        children: [new TextRun({ text: key, bold: true })]
-      }))
-      result.push(new Paragraph({ text: `• ${value}` }))
-    }
-  }
-
-  return result
-}
-
-function parseKDMultiple(text: string): Paragraph[] {
-  const lines = text.split('\n').filter(line => line.trim())
-  return lines.map(line =>
-    new Paragraph({
-      children: [new TextRun({ text: line, bold: true })]
-    })
-  )
-}
-
-function createKerangkaPembelajaran(kerangka: any): Array<Paragraph> {
-  const result: Array<Paragraph> = []
-
-  // Praktek Pedagogik
-  result.push(new Paragraph({
-    heading: HeadingLevel.HEADING_3,
-    children: [new TextRun({ text: "Praktek Pedagogik", bold: true })]
-  }))
-  result.push(...parseBulletPoints(kerangka.praktekPedagogik || "Main peran\nObservasi lapangan\nCerita bergambar\nPertanyaan terbuka\nPembelajaran berbasis proyek"))
-  result.push(new Paragraph({ text: "" }))
-
-  // Lingkungan Pembelajaran
-  result.push(new Paragraph({
-    heading: HeadingLevel.HEADING_3,
-    children: [new TextRun({ text: "Lingkungan Pembelajaran", bold: true })]
-  }))
-
-  const lingkungan = kerangka.lingkunganPembelajaran || {}
-  if (lingkungan.fisik) {
-    result.push(new Paragraph({ children: [new TextRun({ text: "Fisik:", bold: true })] }))
-    result.push(...parseBulletPoints(lingkungan.fisik || "Model mesjid mini\nGambar mesjid\nKarpet sholat\nAlat salat"))
-  }
-  if (lingkungan.sosial) {
-    result.push(new Paragraph({ children: [new TextRun({ text: "Sosial:", bold: true })] }))
-    result.push(...parseBulletPoints(lingkungan.sosial || "Kerja kelompok kecil\nInteraksi dengan pengurus masjid\nBermain bersama teman"))
-  }
-  if (lingkungan.psikologis) {
-    result.push(new Paragraph({ children: [new TextRun({ text: "Psikologis:", bold: true })] }))
-    result.push(...parseBulletPoints(lingkungan.psikologis || "Lingkungan nyaman\nPujian dan motivasi\nKreativitas anak didik"))
-  }
-  if (lingkungan.akademik) {
-    result.push(new Paragraph({ children: [new TextRun({ text: "Akademik:", bold: true })] }))
-    result.push(...parseBulletPoints(lingkungan.akademik || "Buku cerita tentang mesjid\nGambar-gambar ibadah\nVideo edukasi"))
-  }
-  result.push(new Paragraph({ text: "" }))
-
-  // Kemitraan
-  result.push(new Paragraph({
-    heading: HeadingLevel.HEADING_3,
-    children: [new TextRun({ text: "Kemitraan Pembelajaran", bold: true })]
-  }))
-  result.push(...parseBulletPoints(kerangka.kemitraanPembelajaran || "Orang tua\nPengurus masjid setempat\nTokoh agama"))
-  result.push(new Paragraph({ text: "" }))
-
-  // Pemanfaatan Digital
-  result.push(new Paragraph({
-    heading: HeadingLevel.HEADING_3,
-    children: [new TextRun({ text: "Pemanfaatan Digital", bold: true })]
-  }))
-  result.push(...parseBulletPoints(kerangka.pemanfaatanDigital || "Video singkat tentang mesjid\nAplikasi edukasi anak tentang ibadah"))
-
-  return result
-}
-
-function createKegiatanPembelajaran(kegiatan: any): Array<Paragraph> {
-  const result: Array<Paragraph> = []
-
-  // 1. Tahap Persiapan
-  result.push(new Paragraph({
-    heading: HeadingLevel.HEADING_3,
-    children: [new TextRun({ text: "1. Tahap Persiapan", bold: true })]
-  }))
-  result.push(new Paragraph({ children: [new TextRun({ text: "Pemahaman Konsep:", bold: true })] }))
-  result.push(...parseBulletPoints(kegiatan.persiapan?.pemahamanKonsep || "Membaca buku tentang tema\nMelihat video pendek\nDiskusi sederhana"))
-  result.push(new Paragraph({ children: [new TextRun({ text: "Penyiapan Alat:", bold: true })] }))
-  result.push(...parseBulletPoints(kegiatan.persiapan?.penyiapanAlat || "Mempersiapkan alat peraga\nMenyiapkan gambar-gambar\nMempersiapkan bahan"))
-  result.push(new Paragraph({ children: [new TextRun({ text: "Alat & Bahan:", bold: true })] }))
-  result.push(...parseBulletPoints(kegiatan.persiapan?.alatBahan || "Kertas warna\nGunting\nLem\nGambar\nStiker"))
-  result.push(new Paragraph({ text: "" }))
-
-  // 2. Tahap Pelaksanaan
-  result.push(new Paragraph({
-    heading: HeadingLevel.HEADING_3,
-    children: [new TextRun({ text: "2. Tahap Pelaksanaan", bold: true })]
-  }))
-  result.push(new Paragraph({ children: [new TextRun({ text: "Orientasi/Pembukaan:", bold: true })] }))
-  result.push(...parseBulletPoints(kegiatan.pelaksanaan?.orientasi || "Mengajak anak duduk melingkar\nMenanyakan pengalaman anak\nMemperkenalkan tema"))
-  result.push(new Paragraph({ children: [new TextRun({ text: "Eksplorasi/Inti:", bold: true })] }))
-  result.push(...parseBulletPoints(kegiatan.pelaksanaan?.eksplorasi || "Melihat model\nMengenal bagian-bagian\nMempraktikkan aktivitas"))
-  result.push(new Paragraph({ children: [new TextRun({ text: "Diskusi/Bertanya:", bold: true })] }))
-  result.push(...parseBulletPoints(kegiatan.pelaksanaan?.diskusi || "Membahas cara bersikap\nMengapa penting\nApa saja aktivitas"))
-  result.push(new Paragraph({ children: [new TextRun({ text: "Kolaborasi:", bold: true })] }))
-  result.push(...parseBulletPoints(kegiatan.pelaksanaan?.kolaborasi || "Bekerja kelompok\nBermain peran\nMembuat poster"))
-  result.push(new Paragraph({ children: [new TextRun({ text: "Refleksi/Penutup:", bold: true })] }))
-  result.push(...parseBulletPoints(kegiatan.pelaksanaan?.refleksi || "Anak menceritakan pengalaman\nMenanyakan yang dipelajari"))
-  result.push(new Paragraph({ text: "" }))
-
-  // 3. Tahap Pembuatan Karya
-  result.push(new Paragraph({
-    heading: HeadingLevel.HEADING_3,
-    children: [new TextRun({ text: "3. Tahap Pembuatan Karya", bold: true })]
-  }))
-  result.push(new Paragraph({ children: [new TextRun({ text: "Proses:", bold: true })] }))
-  result.push(...parseBulletPoints(kegiatan.pembuatanKarya?.proses || "Membuat gambar\nMewarnai\nMembuat karya"))
-  result.push(new Paragraph({ children: [new TextRun({ text: "Hasil:", bold: true })] }))
-  result.push(...parseBulletPoints(kegiatan.pembuatanKarya?.hasil || "Gambar yang diperkirakan\nKarya yang dibuat\nPoster"))
-  result.push(new Paragraph({ text: "" }))
-
-  // 4. Tahap Presentasi
-  result.push(new Paragraph({
-    heading: HeadingLevel.HEADING_3,
-    children: [new TextRun({ text: "4. Tahap Presentasi", bold: true })]
-  }))
-  result.push(new Paragraph({ children: [new TextRun({ text: "Persiapan Presentasi:", bold: true })] }))
-  result.push(...parseBulletPoints(kegiatan.presentasi?.persiapan || "Menyiapkan karya\nMembuat kalimat penjelasan"))
-  result.push(new Paragraph({ children: [new TextRun({ text: "Pelaksanaan Presentasi:", bold: true })] }))
-  result.push(...parseBulletPoints(kegiatan.presentasi?.pelaksanaan || "Menampilkan karya\nMenceritakan karya\nMenjawab pertanyaan"))
-  result.push(new Paragraph({ text: "" }))
-
-  // 5. Tahap Refleksi Akhir
-  result.push(new Paragraph({
-    heading: HeadingLevel.HEADING_3,
-    children: [new TextRun({ text: "5. Tahap Refleksi Akhir", bold: true })]
-  }))
-  result.push(new Paragraph({ children: [new TextRun({ text: "Refleksi Guru:", bold: true })] }))
-  result.push(...parseBulletPoints(kegiatan.refleksiAkhir?.refleksiGuru || "Menilai pemahaman anak\nMengamati sikap anak\nMenilai kreativitas"))
-  result.push(new Paragraph({ children: [new TextRun({ text: "Refleksi Anak:", bold: true })] }))
-  result.push(...parseBulletPoints(kegiatan.refleksiAkhir?.refleksiAnak || "Menceritakan yang disukai\nMenyampaikan hal baru\nMenyampaikan kesulitan"))
-
-  return result
-}
-
-function createObservasiTable(): Table {
-  return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: [
-      new TableRow({
-        children: [
-          new TableCell({ width: { size: 10, type: WidthType.PERCENTAGE }, children: [new Paragraph({ text: "No", bold: true })] }),
-          new TableCell({ width: { size: 30, type: WidthType.PERCENTAGE }, children: [new Paragraph({ text: "Nama Siswa", bold: true })] }),
-          new TableCell({ width: { size: 15, type: WidthType.PERCENTAGE }, children: [new Paragraph({ text: "SB", bold: true })] }),
-          new TableCell({ width: { size: 15, type: WidthType.PERCENTAGE }, children: [new Paragraph({ text: "B", bold: true })] }),
-          new TableCell({ width: { size: 15, type: WidthType.PERCENTAGE }, children: [new Paragraph({ text: "C", bold: true })] }),
-          new TableCell({ width: { size: 15, type: WidthType.PERCENTAGE }, children: [new Paragraph({ text: "K", bold: true })] })
-        ]
-      }),
-      ...Array(6).fill(null).map((_, i) =>
-        new TableRow({
-          children: [
-            new TableCell({ children: [new Paragraph({ text: String(i + 1) })] }),
-            new TableCell({ children: [new Paragraph({ text: "-" })] }),
-            new TableCell({ children: [new Paragraph({ text: "" })] }),
-            new TableCell({ children: [new Paragraph({ text: "" })] }),
-            new TableCell({ children: [new Paragraph({ text: "" })] }),
-            new TableCell({ children: [new Paragraph({ text: "" })] })
-          ]
-        })
-      )
-    ]
-  })
-}
-
-function createRubrikTable(): Table {
-  return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: [
-      new TableRow({
-        children: [
-          new TableCell({ width: { size: 25, type: WidthType.PERCENTAGE }, children: [new Paragraph({ text: "Aspek Penilaian", bold: true })] }),
-          new TableCell({ width: { size: 25, type: WidthType.PERCENTAGE }, children: [new Paragraph({ text: "SB (Sangat Baik)", bold: true })] }),
-          new TableCell({ width: { size: 25, type: WidthType.PERCENTAGE }, children: [new Paragraph({ text: "B (Baik)", bold: true })] }),
-          new TableCell({ width: { size: 25, type: WidthType.PERCENTAGE }, children: [new Paragraph({ text: "C (Cukup)", bold: true })] })
-        ]
-      }),
-      new TableRow({
-        children: [
-          new TableCell({ children: [new Paragraph({ text: "Sikap dan Perilaku" })] }),
-          new TableCell({ children: [new Paragraph({ text: "Menunjukkan sikap baik" })] }),
-          new TableCell({ children: [new Paragraph({ text: "Mengikuti arahan" })] }),
-          new TableCell({ children: [new Paragraph({ text: "Kadang mengikuti" })] })
-        ]
-      }),
-      new TableRow({
-        children: [
-          new TableCell({ children: [new Paragraph({ text: "Kemampuan Kognitif" })] }),
-          new TableCell({ children: [new Paragraph({ text: "Mampu menjelaskan" })] }),
-          new TableCell({ children: [new Paragraph({ text: "Mengenal konsep" })] }),
-          new TableCell({ children: [new Paragraph({ text: "Mengenal sebagian" })] })
-        ]
-      }),
-      new TableRow({
-        children: [
-          new TableCell({ children: [new Paragraph({ text: "Keterampilan Motorik" })] }),
-          new TableCell({ children: [new Paragraph({ text: "Melakukan dengan benar" })] }),
-          new TableCell({ children: [new Paragraph({ text: "Melakukan dengan bantuan" })] }),
-          new TableCell({ children: [new Paragraph({ text: "Menirukan sederhana" })] })
-        ]
-      })
-    ]
-  })
 }
