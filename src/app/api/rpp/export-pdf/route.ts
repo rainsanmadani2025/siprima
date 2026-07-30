@@ -539,12 +539,10 @@ export async function POST(request: NextRequest) {
     yPos -= 8
 
     // Footer info text
-    const footerInfo = `RPP KBC - ${rppData.namaSekolah || 'RA INSAN MADANI'} - ${rppData.tema || ''} : ${rppData.subtema || ''} - ${rppData.semester || 'Ganjil'} ${rppData.tahunAjaran || getCurrentAcademicYear()}`
-    const cleanFooter = footerInfo.replace(/[^\x20-\x7E]/g, '')
-    drawText(cleanFooter, margin.left, yPos, 7, false)
     yPos -= 25
 
     // Signature positions
+
     const kepsekX = margin.left
     const guruX = pageWidth - margin.right - 150
     const sigWidth = 150
