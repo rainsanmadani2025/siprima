@@ -478,3 +478,22 @@ model RPPTemplateKBC {
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 }
+
+// Website Settings (single row)
+model SiteSettings {
+  id                  String   @id @default(cuid())
+  siteName            String   @default("RA Insan Madani")
+  siteDescription     String   @default("")
+  siteKeywords        String   @default("")
+  contactEmail        String   @default("")
+  contactPhone        String   @default("")
+  contactAddress      String   @default("")
+  facebookUrl         String   @default("")
+  instagramUrl        String   @default("")
+  youtubeUrl          String   @default("")
+  enableRegistration  Boolean  @default(false)
+  maintenanceMode     Boolean  @default(false)
+  themeColor          String   @default("#3B82F6")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
