@@ -58,17 +58,18 @@ export default function GuruPerencanaanPage() {
     }
   }, [teacherId])
 
-  const fetchTeacherId = async () => {
+  const fetchRPPs = async () => {
     try {
-      const userId = localStorage.getItem('userId')
-      if (!userId) return
-      const res = await fetch(`/api/guru/profile?userId=${userId}`)
-      const data = await res.json()
-      if (data.success && data.teacher?.id) {
-        setTeacherId(data.teacher.id)
+      setLoadingRpp(true)
+      const response = await fetch('/api/rpp/list')
+      const data = await response.json()
+      if (data.success) {
+        setRpps(data.rpps || [])
       }
-    } catch (e) {
-      console.error('Error fetching teacher ID:', e)
+    } catch (error) {
+      console.error('Error fetching RPPs:', error)
+    } finally {
+      setLoadingRpp(false)
     }
   }
 
