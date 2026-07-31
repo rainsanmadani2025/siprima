@@ -118,7 +118,8 @@ export default function ViewRPPPage() {
   }
 
   const handlePrint = () => {
-    window.print()
+    const printUrl = `${window.location.origin}/dashboard/guru/perencanaan/view/${rpp?.id}/print`
+    window.open(printUrl, '_blank')
   }
 
   const formatText = (text?: string) => {
