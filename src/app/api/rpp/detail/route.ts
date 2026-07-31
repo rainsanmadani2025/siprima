@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
+function safeJsonParse(value: string | null | undefined, fallback: any = null) {
+  if (!value) return fallback
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -13,7 +22,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Fetch RPP from database
     const rpp = await db.rPP.findUnique({
       where: { id }
     })
@@ -25,18 +33,15 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Parse JSON fields
-    const rppData = {
-      ...rpp,
-      tujuanProfilLulusan: rpp.tujuanProfilLulusan ? JSON.parse(rpp.tujuanProfilLulusan) : {},
-      kerangkaPembelajaran: rpp.kerangkaPembelajaran ? JSON.parse(rpp.kerangkaPembelajaran) : {},
-      kegiatanPembelajaran: rpp.kegiatanPembelajaran ? JSON.parse(rpp.kegiatanPembelajaran) : {},
-      rubrikPenilaian: rpp.rubrikPenilaian ? JSON.parse(rpp.rubrikPenilaian) : {}
-    }
-
     return NextResponse.json({
       success: true,
-      rpp: rppData
+      rpp: {
+        ...rpp,
+        tujuanProfilLulusan: safeJsonParse(rpp.tujuanProfilLulusan, {}),
+        kerangkaPembelajaran: safeJsonParse(rpp.kerangkaPembelajaran, {}),
+        kegiatanPembelajaran: safeJsonParse(rpp.kegiatanPembelajaran, {}),
+        rubrikPenilaian: safeJsonParse(rpp.rubrikPenilaian, null)
+      }
     })
   } catch (error: any) {
     console.error('Error fetching RPP detail:', error)
