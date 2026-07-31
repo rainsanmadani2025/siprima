@@ -150,7 +150,7 @@ export default function ViewRPPPage() {
         title: "Error",
         description: error.message || "Gagal mengambil detail RPP"
       })
-      router.push('/dashboard/guru/perencanaan')
+      router.back
     } finally {
       setLoading(false)
     }
@@ -262,13 +262,6 @@ export default function ViewRPPPage() {
             >
               <Edit className="mr-2 h-4 w-4" />
               Edit
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handlePrint}
-            >
-              <Printer className="mr-2 h-4 w-4" />
-              Print
             </Button>
             <Button
               onClick={handleDownloadPDF}
