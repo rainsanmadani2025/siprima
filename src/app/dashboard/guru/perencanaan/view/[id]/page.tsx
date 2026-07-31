@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { ArrowLeft, Loader2, Download, Edit, Printer } from "lucide-react"
 import { useRouter, useParams } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
@@ -150,6 +151,28 @@ export default function ViewRPPPage() {
 
   return (
     <DashboardLayout role="guru" userName="Ibu Guru">
+      {/* Print styles: force ScrollArea to show all content when printing */}
+      <style jsx global>{`
+        @media print {
+          [data-slot="scroll-area"] {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+          }
+          [data-slot="scroll-area-viewport"] {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+          }
+          [data-slot="scroll-area-scrollbar"] {
+            display: none !important;
+          }
+          [data-slot="scroll-area-corner"] {
+            display: none !important;
+          }
+        }
+      `}</style>
+
       <div className="space-y-6 print:p-0">
         {/* Header */}
         <div className="flex items-center justify-between print:hidden">
@@ -190,18 +213,8 @@ export default function ViewRPPPage() {
           </div>
         </div>
 
-        {/* Print Header - only visible when printing */}
-        <div className="hidden print:block text-center mb-6">
-          <h1 className="text-xl font-bold">{rpp.namaSekolah}</h1>
-          {rpp.alamatSekolah && (
-            <p className="text-sm">{rpp.alamatSekolah}</p>
-          )}
-          <p className="text-sm mt-1">Rencana Pelaksanaan Pembelajaran - Kurikulum Berbasis Cinta (KBC)</p>
-          <p className="text-sm font-semibold mt-1">{rpp.tema} - {rpp.semester} {rpp.tahunAjaran}</p>
-        </div>
-
-        {/* RPP Content - div instead of ScrollArea for proper printing */}
-        <div className="overflow-y-auto max-h-[calc(100vh-200px)] pr-4 print:overflow-visible print:max-h-none">
+        {/* RPP Content */}
+        <ScrollArea className="h-[calc(100vh-200px)] pr-4">
           <div className="space-y-6 print:space-y-4">
             {/* Header Info */}
             <Card className="print:border print:shadow-none print:break-inside-avoid">
@@ -421,7 +434,7 @@ export default function ViewRPPPage() {
               <p>Terakhir diupdate: {new Date(rpp.updatedAt).toLocaleDateString('id-ID')}</p>
             </div>
           </div>
-        </div>
+        </ScrollArea>
       </div>
     </DashboardLayout>
   )
