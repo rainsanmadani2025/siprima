@@ -290,17 +290,6 @@ export default function GuruPerencanaanPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {/* Search */}
-              <div className="mb-4 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Cari RPP..."
-                  value={rppSearch}
-                  onChange={(e) => setRppSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-
               {/* List */}
               <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
                 {loadingRpp ? (
