@@ -45,18 +45,11 @@ export default function GuruPerencanaanPage() {
   const [loadingRpp, setLoadingRpp] = useState(true)
   const [loadingProsem, setLoadingProsem] = useState(true)
   const [rppSearch, setRppSearch] = useState("")
-  const [teacherId, setTeacherId] = useState<string>("")
 
   useEffect(() => {
-    fetchTeacherId()
+    fetchRPPs()
     fetchProsems()
   }, [])
-
-  useEffect(() => {
-    if (teacherId) {
-      fetchRPPs()
-    }
-  }, [teacherId])
 
   const fetchRPPs = async () => {
     try {
@@ -65,25 +58,6 @@ export default function GuruPerencanaanPage() {
       const data = await response.json()
       if (data.success) {
         setRpps(data.rpps || [])
-      }
-    } catch (error) {
-      console.error('Error fetching RPPs:', error)
-    } finally {
-      setLoadingRpp(false)
-    }
-  }
-
-  const fetchRPPs = async () => {
-    try {
-      setLoadingRpp(true)
-      let url = '/api/rpp/list'
-      if (teacherId) {
-        url += `?teacherId=${teacherId}`
-      }
-      const response = await fetch(url)
-      const data = await response.json()
-      if (data.success) {
-        setRpps(data.rpps)
       }
     } catch (error) {
       console.error('Error fetching RPPs:', error)
