@@ -113,8 +113,10 @@ export default function DataAnakPage() {
     if (!currentUserId) return
     try {
       setLoading(true)
-      const response = await fetch(`/api/parent/children?userId=${currentUserId}`)
-      const data = await response.json()
+      	const userId = localStorage.getItem('userId')
+	const url = userId ? `/api/parent/children?userId=${userId}` : '/api/parent/children'
+	const response = await fetch(url)
+	const data = await response.json()
 
       if (data.children && data.children.length > 0) {
         const child = data.children[0]
