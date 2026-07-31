@@ -23,7 +23,6 @@ interface RPPItem {
   jumlahPertemuan: string
   kelas?: string
   guru?: string
-  teacherName?: string
   namaSekolah: string
   createdAt: string
   updatedAt: string
